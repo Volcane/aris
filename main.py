@@ -167,7 +167,7 @@ def status():
         ANTHROPIC_API_KEY, REGULATIONS_GOV_KEY,
         CONGRESS_GOV_KEY, LEGISCAN_KEY
     )
-    from config.states import ENABLED_STATES
+    from config.jurisdictions import ENABLED_US_STATES, ENABLED_INTERNATIONAL
 
     print_banner()
     print_stats()
@@ -177,13 +177,41 @@ def status():
         "Anthropic (required)":    ANTHROPIC_API_KEY,
         "Regulations.gov":         REGULATIONS_GOV_KEY,
         "Congress.gov":            CONGRESS_GOV_KEY,
-        "LegiScan":                LEGISCAN_KEY,
+        "LegiScan (US states)":    LEGISCAN_KEY,
     }
     for name, key in keys.items():
         icon = "[green]✓[/green]" if key else "[red]✗[/red]"
         console.print(f"  {icon}  {name}")
 
-    console.print(f"\n[bold]Enabled States[/bold]: {', '.join(ENABLED_STATES) or 'None'}")
+    console.print(f"\n[bold]Enabled US States[/bold]:     {', '.join(ENABLED_US_STATES) or 'None'}")
+    console.print(f"[bold]Enabled International[/bold]: {', '.join(ENABLED_INTERNATIONAL) or 'None'}")
+
+
+# ── agents ────────────────────────────────────────────────────────────────────
+
+@cli.command()
+def agents():
+    """List all active source agents by track."""
+    from agents.orchestrator import Orchestrator
+    from utils.reporter import print_banner
+    print_banner()
+    orch   = Orchestrator()
+    active = orch.list_active_agents()
+    console.print("\n[bold blue]Track 1 — US Federal[/bold blue]")
+    for a in active["federal"]:
+        console.print(f"  [green]✓[/green]  {a}")
+    console.print("\n[bold blue]Track 2 — US States[/bold blue]")
+    if active["us_states"]:
+        for a in active["us_states"]:
+            console.print(f"  [green]✓[/green]  {a}")
+    else:
+        console.print("  [dim]None enabled[/dim]")
+    console.print("\n[bold blue]Track 3 — International[/bold blue]")
+    if active["international"]:
+        for a in active["international"]:
+            console.print(f"  [green]✓[/green]  {a}")
+    else:
+        console.print("  [dim]None enabled[/dim]")
 
 
 # ── watch ─────────────────────────────────────────────────────────────────────
