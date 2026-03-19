@@ -19,6 +19,14 @@ from utils.cache import get_logger, keyword_score
 
 log = get_logger("aris.interpreter")
 
+# Lazy import to avoid circular dependency
+def _get_learning_agent():
+    try:
+        from agents.learning_agent import LearningAgent
+        return LearningAgent()
+    except Exception:
+        return None
+
 # ── Prompts ───────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """You are a regulatory intelligence analyst specializing in AI law and policy.
@@ -98,13 +106,33 @@ class InterpreterAgent:
         Analyse a single document dict.
         Returns a summary dict ready to be stored in the `summaries` table,
         or None if the document is not AI-relevant.
+
+        Uses the LearningAgent to:
+          1. Pre-filter using learned source quality and keyword weights
+          2. Inject domain-specific prompt additions from past adaptations
         """
-        # Pre-filter: skip documents with very low keyword score
+        # ── Stage 1: Learning-aware pre-filter ───────────────────────────────
+        learner = _get_learning_agent()
+
+        if learner:
+            skip, pre_score, reason = learner.should_skip(doc)
+            if skip:
+                log.debug("Learning pre-filter skipped %s: %s", doc.get("id"), reason)
+                return None
+        else:
+            # Fallback to basic keyword score
+            text_blob = f"{doc.get('title','')} {doc.get('full_text','')}"
+            if keyword_score(text_blob) < 0.05:
+                log.debug("Skipping low-relevance document: %s", doc["id"])
+                return None
+
+        # ── Stage 2: Build prompt with any domain-specific adaptations ────────
         text_blob = f"{doc.get('title','')} {doc.get('full_text','')}"
-        ks = keyword_score(text_blob)
-        if ks < 0.05:
-            log.debug("Skipping low-relevance document: %s (score %.2f)", doc["id"], ks)
-            return None
+
+        # Get learned prompt additions for this source/agency/jurisdiction
+        prompt_additions = ""
+        if learner:
+            prompt_additions = learner.get_adapted_prompt_additions(doc)
 
         prompt = ANALYSIS_PROMPT_TEMPLATE.format(
             doc_type      = doc.get("doc_type", "Document"),
@@ -118,6 +146,11 @@ class InterpreterAgent:
             text          = _truncate(text_blob, max_chars=5000),
         )
 
+        # Inject prompt adaptations before the JSON instruction block
+        if prompt_additions:
+            prompt = prompt_additions + "\n\n" + prompt
+
+        # ── Stage 3: Claude analysis ──────────────────────────────────────────
         try:
             message = self._client.messages.create(
                 model      = CLAUDE_MODEL,

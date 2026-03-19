@@ -33,10 +33,20 @@ from utils.db import (
     upsert_document, upsert_summary, get_unsummarized_documents,
     get_stats, get_document, get_all_documents,
     save_diff, save_link, diff_exists,
+    log_fetch_event,
 )
 from utils.cache import get_logger
 
 log = get_logger("aris.orchestrator")
+
+
+def _get_learner():
+    """Lazy-load the learning agent — gracefully absent if not yet configured."""
+    try:
+        from agents.learning_agent import LearningAgent
+        return LearningAgent()
+    except Exception:
+        return None
 
 
 # ── Agent loaders ─────────────────────────────────────────────────────────────
@@ -168,18 +178,43 @@ class Orchestrator:
 
         # ── Persist & detect version changes ─────────────────────────────────
         new_count      = 0
-        changed_ids    = []   # docs that existed before and changed content
+        changed_ids    = []
+        learner        = _get_learner()
+
+        # Update source statistics for adaptive scheduling
+        if learner and all_docs:
+            learner.update_source_statistics(all_docs)
+
+        # Flag anomalies before persisting
+        anomalies_flagged = 0
+        for doc in all_docs:
+            if learner:
+                anomaly = learner.detect_anomalies(doc)
+                if anomaly:
+                    doc["anomaly_flag"] = anomaly
+                    anomalies_flagged  += 1
+                    log.info("Anomaly detected in %s: %s", doc.get("id", ""), anomaly)
 
         for doc in all_docs:
-            old_doc = get_document(doc["id"])      # snapshot before upsert
+            old_doc = get_document(doc["id"])
             changed = upsert_document(doc)
             if changed:
                 new_count += 1
                 if old_doc and old_doc.get("full_text"):
-                    # Document existed before — this is a content update
                     changed_ids.append((old_doc, doc))
 
-        log.info("Fetch complete — %d new/updated documents", new_count)
+        # Log fetch events for adaptive scheduling
+        by_source = {}
+        for doc in all_docs:
+            s = doc.get("source", "unknown")
+            by_source[s] = by_source.get(s, 0) + 1
+        for source, total in by_source.items():
+            new_for_source = sum(1 for d in all_docs if d.get("source") == source and upsert_document(d) is False)
+            log_fetch_event(source, new_count=0, total_count=total)
+
+        log.info("Fetch complete — %d new/updated documents%s",
+                 new_count,
+                 f", {anomalies_flagged} anomalies flagged" if anomalies_flagged else "")
 
         version_diffs = 0
         addenda_found = 0
@@ -318,11 +353,12 @@ class Orchestrator:
     # ── Summarize ─────────────────────────────────────────────────────────────
 
     def summarize(self, limit: int = 50, progress_callback=None) -> int:
-        pending = get_unsummarized_documents(limit=limit)
+        pending = get_unsummarized_documents(limit=limit * 2)  # fetch more, then priority-sort
         if not pending:
             log.info("No pending documents to summarize")
             return 0
-        log.info("Summarizing %d documents with Claude…", len(pending))
+
+        # Convert to dicts for priority scoring
         doc_dicts = [
             {
                 "id":            doc.id,
@@ -332,12 +368,21 @@ class Orchestrator:
                 "title":         doc.title,
                 "url":           doc.url,
                 "published_date": str(doc.published_date) if doc.published_date else "",
+                "fetched_at":    str(doc.fetched_at) if doc.fetched_at else "",
                 "agency":        doc.agency or "",
                 "status":        doc.status or "",
                 "full_text":     doc.full_text or "",
             }
             for doc in pending
         ]
+
+        # Sort by priority and honour the limit
+        learner = _get_learner()
+        if learner:
+            doc_dicts = learner.sort_by_priority(doc_dicts)
+        doc_dicts = doc_dicts[:limit]
+
+        log.info("Summarizing %d documents with Claude (priority-sorted)…", len(doc_dicts))
         summaries = self.interpreter.analyse_batch(doc_dicts, progress_callback)
         saved = 0
         for summary in summaries:

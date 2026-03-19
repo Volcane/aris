@@ -272,17 +272,50 @@ def get_unsummarized_documents(limit: int = 50) -> List[Document]:
 
 def get_recent_summaries(days: int = 30,
                           jurisdiction: Optional[str] = None) -> List[Dict]:
+    """
+    Return documents joined with their summaries (if available).
+
+    Uses a LEFT OUTER JOIN so documents without a summary still appear —
+    they show with null summary fields until summarization runs.
+
+    The date filter applies to whichever is more recent: published_date or
+    fetched_at. This ensures documents with old or null published_date are
+    still visible as long as they were fetched recently.
+    """
     with get_session() as session:
         since = datetime.utcnow() - timedelta(days=days)
+
+        # LEFT OUTER JOIN — documents without summaries still returned
         q = (
             session.query(Document, Summary)
-            .join(Summary, Document.id == Summary.document_id)
-            .filter(Document.published_date >= since)
+            .outerjoin(Summary, Document.id == Summary.document_id)
+            .filter(
+                # Include if published recently OR fetched recently
+                # Handles: null published_date, historically-dated pinned docs,
+                # and documents fetched today that have old publication dates
+                (Document.fetched_at >= since) |
+                (Document.published_date >= since)
+            )
         )
         if jurisdiction:
             q = q.filter(Document.jurisdiction == jurisdiction)
+
         results = []
-        for doc, summ in q.order_by(Document.published_date.desc()).all():
+        for doc, summ in q.order_by(Document.fetched_at.desc()).all():
+            summary_fields = {
+                "plain_english":   None,
+                "requirements":    [],
+                "recommendations": [],
+                "action_items":    [],
+                "deadline":        None,
+                "impact_areas":    [],
+                "urgency":         None,
+                "relevance_score": None,
+            }
+            if summ:
+                for k in summary_fields:
+                    summary_fields[k] = getattr(summ, k)
+
             results.append({
                 "id":             doc.id,
                 "title":          doc.title,
@@ -293,11 +326,9 @@ def get_recent_summaries(days: int = 30,
                 "status":         doc.status,
                 "url":            doc.url,
                 "published_date": doc.published_date.isoformat() if doc.published_date else None,
-                **{k: getattr(summ, k) for k in [
-                    "plain_english", "requirements", "recommendations",
-                    "action_items", "deadline", "impact_areas",
-                    "urgency", "relevance_score"
-                ]},
+                "fetched_at":     doc.fetched_at.isoformat() if doc.fetched_at else None,
+                "summarized":     summ is not None,
+                **summary_fields,
             })
         return results
 
@@ -433,6 +464,327 @@ def get_links_for_document(doc_id: str) -> List[Dict[str, Any]]:
         ]
 
 
+# ── Learning tables ──────────────────────────────────────────────────────────
+
+class FeedbackEvent(Base):
+    """
+    Human feedback on a document's relevance.
+    Drives source quality scoring and keyword weight adjustment.
+    """
+    __tablename__ = "feedback_events"
+
+    id               = Column(Integer, primary_key=True, autoincrement=True)
+    document_id      = Column(String, nullable=False)
+    feedback         = Column(String, nullable=False)  # relevant|not_relevant|partially_relevant
+    reason           = Column(Text)
+    source           = Column(String)
+    agency           = Column(String)
+    jurisdiction     = Column(String)
+    doc_type         = Column(String)
+    matched_keywords = Column(JSON)    # list[str] — keywords that triggered the fetch
+    claude_score     = Column(Float)   # Claude's original relevance score
+    user             = Column(String, default="user")
+    recorded_at      = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_fb_document",    "document_id"),
+        Index("ix_fb_source",      "source"),
+        Index("ix_fb_feedback",    "feedback"),
+        Index("ix_fb_recorded_at", "recorded_at"),
+    )
+
+
+class SourceProfile(Base):
+    """
+    Rolling quality profile for each data source and agency.
+    Tracks positive/negative feedback counts and computed quality score.
+    """
+    __tablename__ = "source_profiles"
+
+    source_key     = Column(String, primary_key=True)  # source name or "agency::<name>"
+    profile_json   = Column(JSON, nullable=False)
+    last_updated   = Column(DateTime, default=datetime.utcnow)
+
+
+class KeywordWeights(Base):
+    """
+    Learned per-keyword weights for the pre-filter relevance score.
+    Weights start at 1.0 and drift based on feedback.
+    """
+    __tablename__ = "keyword_weights"
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    weights_json = Column(JSON, nullable=False)   # {keyword: float}
+    updated_at   = Column(DateTime, default=datetime.utcnow)
+
+
+class PromptAdaptation(Base):
+    """
+    Domain-specific additions to the Claude interpretation prompt,
+    generated when false-positive patterns are detected.
+    """
+    __tablename__ = "prompt_adaptations"
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    match_keys   = Column(JSON)     # {source, agency, jurisdiction} to match
+    instruction  = Column(Text)     # the NOTE: instruction to prepend
+    basis        = Column(Text)     # how many examples drove this
+    active       = Column(Boolean, default=True)
+    created_at   = Column(DateTime, default=datetime.utcnow)
+
+
+class FetchHistory(Base):
+    """
+    Log of every fetch operation, used for adaptive scheduling.
+    """
+    __tablename__ = "fetch_history"
+
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    source      = Column(String, nullable=False)
+    new_count   = Column(Integer, default=0)
+    total_count = Column(Integer, default=0)
+    fetched_at  = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_fh_source",     "source"),
+        Index("ix_fh_fetched_at", "fetched_at"),
+    )
+
+
+# ── Learning CRUD ─────────────────────────────────────────────────────────────
+
+def save_feedback(fb_dict: Dict[str, Any]) -> int:
+    with get_session() as session:
+        ev = FeedbackEvent(**{k: v for k, v in fb_dict.items() if hasattr(FeedbackEvent, k)})
+        session.add(ev)
+        session.commit()
+        session.refresh(ev)
+        return ev.id
+
+
+def get_recent_feedback(days: int = 30, document_id: Optional[str] = None) -> List[Dict]:
+    with get_session() as session:
+        since = datetime.utcnow() - timedelta(days=days)
+        q     = session.query(FeedbackEvent).filter(FeedbackEvent.recorded_at >= since)
+        if document_id:
+            q = q.filter(FeedbackEvent.document_id == document_id)
+        rows  = q.order_by(FeedbackEvent.recorded_at.desc()).all()
+        return [
+            {
+                "id":               r.id,
+                "document_id":      r.document_id,
+                "feedback":         r.feedback,
+                "reason":           r.reason,
+                "source":           r.source,
+                "agency":           r.agency,
+                "jurisdiction":     r.jurisdiction,
+                "doc_type":         r.doc_type,
+                "matched_keywords": r.matched_keywords or [],
+                "claude_score":     r.claude_score,
+                "recorded_at":      r.recorded_at.isoformat() if r.recorded_at else None,
+            }
+            for r in rows
+        ]
+
+
+def count_feedback_by_type() -> Dict[str, int]:
+    with get_session() as session:
+        from sqlalchemy import func
+        rows = session.query(
+            FeedbackEvent.feedback, func.count(FeedbackEvent.id)
+        ).group_by(FeedbackEvent.feedback).all()
+        return {fb: count for fb, count in rows}
+
+
+def get_recent_false_positives(source: str, limit: int = 20) -> List[Dict]:
+    with get_session() as session:
+        since = datetime.utcnow() - timedelta(days=60)
+        rows  = (
+            session.query(FeedbackEvent)
+            .filter(
+                FeedbackEvent.feedback == "not_relevant",
+                FeedbackEvent.source   == source,
+                FeedbackEvent.recorded_at >= since,
+            )
+            .order_by(FeedbackEvent.recorded_at.desc())
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "document_id": r.document_id,
+                "reason":      r.reason,
+                "agency":      r.agency,
+                "title":       None,   # caller can join if needed
+            }
+            for r in rows
+        ]
+
+
+def count_recent_false_positives(source: str, days: int = 30) -> int:
+    with get_session() as session:
+        since = datetime.utcnow() - timedelta(days=days)
+        return (
+            session.query(FeedbackEvent)
+            .filter(
+                FeedbackEvent.feedback == "not_relevant",
+                FeedbackEvent.source   == source,
+                FeedbackEvent.recorded_at >= since,
+            )
+            .count()
+        )
+
+
+def get_false_positive_patterns() -> List[Dict]:
+    """Return source+agency combinations with high false-positive rates."""
+    with get_session() as session:
+        from sqlalchemy import func
+        rows = (
+            session.query(
+                FeedbackEvent.source,
+                FeedbackEvent.agency,
+                func.count(FeedbackEvent.id).label("fp_count"),
+            )
+            .filter(FeedbackEvent.feedback == "not_relevant")
+            .group_by(FeedbackEvent.source, FeedbackEvent.agency)
+            .having(func.count(FeedbackEvent.id) >= 3)
+            .order_by(func.count(FeedbackEvent.id).desc())
+            .all()
+        )
+        return [{"source": r.source, "agency": r.agency, "fp_count": r.fp_count} for r in rows]
+
+
+def is_known_false_positive_pattern(doc: Dict) -> bool:
+    """Quick check: is this source+agency combination a known bad pattern?"""
+    with get_session() as session:
+        count = (
+            session.query(FeedbackEvent)
+            .filter(
+                FeedbackEvent.feedback == "not_relevant",
+                FeedbackEvent.source   == doc.get("source", ""),
+                FeedbackEvent.agency   == (doc.get("agency") or ""),
+            )
+            .count()
+        )
+        return count >= 8   # 8 confirmed false positives = auto-block pattern
+
+
+# ── Source profiles ───────────────────────────────────────────────────────────
+
+def get_source_profile(source_key: str) -> Optional[Dict]:
+    with get_session() as session:
+        row = session.get(SourceProfile, source_key)
+        return row.profile_json if row else None
+
+
+def upsert_source_profile(source_key: str, profile: Dict) -> None:
+    with get_session() as session:
+        row = session.get(SourceProfile, source_key)
+        if row:
+            row.profile_json = profile
+            row.last_updated = datetime.utcnow()
+        else:
+            session.add(SourceProfile(
+                source_key   = source_key,
+                profile_json = profile,
+                last_updated = datetime.utcnow(),
+            ))
+        session.commit()
+
+
+def get_all_source_profiles() -> Dict[str, Dict]:
+    with get_session() as session:
+        rows = session.query(SourceProfile).all()
+        return {r.source_key: r.profile_json for r in rows}
+
+
+# ── Keyword weights ───────────────────────────────────────────────────────────
+
+def get_keyword_weights() -> Dict[str, float]:
+    with get_session() as session:
+        row = session.query(KeywordWeights).order_by(
+            KeywordWeights.updated_at.desc()
+        ).first()
+        return row.weights_json if row else {}
+
+
+def save_keyword_weights(weights: Dict[str, float]) -> None:
+    with get_session() as session:
+        # Single row — always replace
+        session.query(KeywordWeights).delete()
+        session.add(KeywordWeights(weights_json=weights, updated_at=datetime.utcnow()))
+        session.commit()
+
+
+# ── Prompt adaptations ────────────────────────────────────────────────────────
+
+def get_prompt_adaptations(active_only: bool = True) -> List[Dict]:
+    with get_session() as session:
+        q = session.query(PromptAdaptation)
+        if active_only:
+            q = q.filter(PromptAdaptation.active == True)   # noqa: E712
+        rows = q.order_by(PromptAdaptation.created_at.desc()).all()
+        return [
+            {
+                "id":          r.id,
+                "match_keys":  r.match_keys,
+                "instruction": r.instruction,
+                "basis":       r.basis,
+                "active":      r.active,
+                "created_at":  r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ]
+
+
+def save_prompt_adaptation(adapt_dict: Dict) -> int:
+    with get_session() as session:
+        pa = PromptAdaptation(**{k: v for k, v in adapt_dict.items() if hasattr(PromptAdaptation, k)})
+        session.add(pa)
+        session.commit()
+        session.refresh(pa)
+        return pa.id
+
+
+def toggle_prompt_adaptation(adapt_id: int, active: bool) -> None:
+    with get_session() as session:
+        row = session.get(PromptAdaptation, adapt_id)
+        if row:
+            row.active = active
+            session.commit()
+
+
+# ── Fetch history ─────────────────────────────────────────────────────────────
+
+def log_fetch_event(source: str, new_count: int, total_count: int) -> None:
+    with get_session() as session:
+        session.add(FetchHistory(
+            source=source, new_count=new_count,
+            total_count=total_count, fetched_at=datetime.utcnow(),
+        ))
+        session.commit()
+
+
+def get_fetch_history(days: int = 60) -> List[Dict]:
+    with get_session() as session:
+        since = datetime.utcnow() - timedelta(days=days)
+        rows  = (
+            session.query(FetchHistory)
+            .filter(FetchHistory.fetched_at >= since)
+            .order_by(FetchHistory.fetched_at.desc())
+            .all()
+        )
+        return [
+            {
+                "source":      r.source,
+                "new_count":   r.new_count,
+                "total_count": r.total_count,
+                "fetched_at":  r.fetched_at.isoformat() if r.fetched_at else None,
+            }
+            for r in rows
+        ]
+
+
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
 def get_stats() -> Dict[str, Any]:
@@ -444,6 +796,9 @@ def get_stats() -> Dict[str, Any]:
         unreviewed      = session.query(DocumentDiff).filter_by(reviewed=False).count()
         critical_diffs  = session.query(DocumentDiff).filter_by(severity="Critical").count()
         high_diffs      = session.query(DocumentDiff).filter_by(severity="High").count()
+        total_feedback  = session.query(FeedbackEvent).count()
+        not_relevant    = session.query(FeedbackEvent).filter_by(feedback="not_relevant").count()
+        adaptations     = session.query(PromptAdaptation).filter_by(active=True).count()
         return {
             "total_documents":     total_docs,
             "total_summaries":     total_summaries,
@@ -454,4 +809,7 @@ def get_stats() -> Dict[str, Any]:
             "unreviewed_diffs":    unreviewed,
             "critical_diffs":      critical_diffs,
             "high_severity_diffs": high_diffs,
+            "total_feedback":      total_feedback,
+            "false_positives":     not_relevant,
+            "prompt_adaptations":  adaptations,
         }
