@@ -8,6 +8,7 @@ import { Spinner, EmptyState, SectionHeader, Badge } from '../components.jsx'
 const baselineApi = {
   all:      ()     => fetch('/api/baselines').then(r => r.json()),
   coverage: ()     => fetch('/api/baselines/coverage').then(r => r.json()),
+  status:   ()     => fetch('/api/baselines/status').then(r => r.json()),
   get:      (id)   => fetch(`/api/baselines/${id}`).then(r => r.json()),
   forJur:   (jur)  => fetch(`/api/baselines/jurisdiction/${jur}`).then(r => r.json()),
 }
@@ -31,6 +32,7 @@ const STATUS_STYLE = {
 export default function Baselines() {
   const [summaries,  setSummaries]  = useState([])
   const [coverage,   setCoverage]   = useState(null)
+  const [diagStatus, setDiagStatus] = useState(null)
   const [selected,   setSelected]   = useState(null)
   const [detail,     setDetail]     = useState(null)
   const [loading,    setLoading]    = useState(true)
@@ -40,9 +42,14 @@ export default function Baselines() {
   const load = async () => {
     setLoading(true)
     try {
-      const [all, cov] = await Promise.all([baselineApi.all(), baselineApi.coverage()])
+      const [all, cov, diag] = await Promise.all([
+        baselineApi.all(),
+        baselineApi.coverage(),
+        baselineApi.status(),
+      ])
       setSummaries(Array.isArray(all) ? all : [])
       setCoverage(cov)
+      setDiagStatus(diag)
     } finally { setLoading(false) }
   }
 
@@ -128,7 +135,12 @@ export default function Baselines() {
       {/* Right panel */}
       <div style={{ flex: 1, overflow: 'auto' }}>
         {!selected ? (
-          <BaselinePlaceholder summaries={summaries} coverage={coverage} onSelect={openDetail} />
+          <BaselinePlaceholder
+            summaries={summaries}
+            coverage={coverage}
+            diagStatus={diagStatus}
+            onSelect={openDetail}
+          />
         ) : loadingDetail ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner size={24} /></div>
         ) : detail ? (
@@ -590,7 +602,50 @@ function CrossRefsTab({ b }) {
 
 // ── Placeholder ───────────────────────────────────────────────────────────────
 
-function BaselinePlaceholder({ summaries, coverage, onSelect }) {
+function BaselinePlaceholder({ summaries, coverage, diagStatus, onSelect }) {
+  const filesOk  = diagStatus?.baselines_loaded > 0
+  const dirPath  = diagStatus?.baselines_dir
+  const dirExists= diagStatus?.dir_exists
+  const fileCount= diagStatus?.json_file_count || 0
+
+  if (diagStatus && !filesOk) {
+    return (
+      <div style={{ padding: '40px 32px', maxWidth: 580 }}>
+        <div style={{ marginBottom: 8, fontSize: 16, fontWeight: 500, color: 'var(--orange)' }}>
+          ⚠ Baseline files not found
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 20 }}>
+          The server is running but cannot find the baseline JSON files.
+          This is almost always a folder placement issue.
+        </p>
+
+        <div style={{ marginBottom: 20, padding: '12px 16px', background: 'var(--bg-3)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+          <div style={{ color: 'var(--text-3)', marginBottom: 6 }}>Server is looking in:</div>
+          <div style={{ color: dirExists ? 'var(--green)' : 'var(--red)', wordBreak: 'break-all', marginBottom: 8 }}>
+            {dirPath || 'unknown path'}
+          </div>
+          <div style={{ color: 'var(--text-3)', display: 'flex', gap: 20 }}>
+            <span>Folder exists: <span style={{ color: dirExists ? 'var(--green)' : 'var(--red)' }}>{dirExists ? 'Yes' : 'No'}</span></span>
+            {dirExists && <span>JSON files: <span style={{ color: fileCount >= 19 ? 'var(--green)' : 'var(--orange)' }}>{fileCount} of 20</span></span>}
+          </div>
+        </div>
+
+        <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 2 }}>
+          <strong>Fix:</strong>
+          <ol style={{ marginTop: 6, paddingLeft: 20 }}>
+            <li>In your <code style={{ background:'var(--bg-3)',padding:'1px 5px',borderRadius:3 }}>ai-reg-tracker/</code> project root, create a folder: <code style={{ background:'var(--bg-3)',padding:'1px 5px',borderRadius:3 }}>data/baselines/</code></li>
+            <li>Copy <strong>all 20 JSON files</strong> from the outputs into that folder — <code style={{ background:'var(--bg-3)',padding:'1px 5px',borderRadius:3 }}>index.json</code> plus the 19 regulation files</li>
+            <li>Restart <code style={{ background:'var(--bg-3)',padding:'1px 5px',borderRadius:3 }}>python server.py</code></li>
+          </ol>
+        </div>
+
+        <div style={{ marginTop: 20, padding: '10px 14px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--text-3)' }}>
+          Full diagnostic: <a href="/api/baselines/status" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>/api/baselines/status</a>
+        </div>
+      </div>
+    )
+  }
+
   const byJur = {}
   summaries.forEach(b => {
     const j = b.jurisdiction
@@ -599,17 +654,17 @@ function BaselinePlaceholder({ summaries, coverage, onSelect }) {
   })
 
   return (
-    <div style={{ padding: '40px 32px', maxWidth: 600 }}>
+    <div style={{ padding: '40px 32px', maxWidth: 560 }}>
       <BookOpen size={32} style={{ color: 'var(--accent)', marginBottom: 16 }} />
       <h2 style={{ fontWeight: 300, fontSize: '1.4rem', marginBottom: 12 }}>Regulatory Baselines</h2>
       <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 28 }}>
-        The settled body of AI law, authored once and shipped with ARIS. No API calls.
-        These baselines give the diff agent and gap analysis agent a stable starting point —
-        they know what a regulation said before any new version arrives.
+        The settled body of AI law, authored once and shipped with ARIS. No API calls required —
+        all 19 baselines load from local JSON files. Select any regulation in the sidebar to browse
+        its obligations, prohibited practices, compliance timeline, key definitions, and penalties.
       </p>
 
       {coverage && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 12, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 12, marginBottom: 16 }}>
           {Object.entries(coverage.by_jurisdiction || {}).map(([jur, regs]) => (
             <div key={jur} className="card" style={{ padding: '12px 16px' }}>
               <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
@@ -625,7 +680,7 @@ function BaselinePlaceholder({ summaries, coverage, onSelect }) {
       )}
 
       <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
-        Select a baseline from the list to browse its obligations, prohibitions, timeline, and definitions.
+        {summaries.length} baselines loaded · select one from the left panel to begin
       </div>
     </div>
   )

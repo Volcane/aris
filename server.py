@@ -460,6 +460,34 @@ Do not include generic advice — every item should be specific to this regulati
 
 # ·· Regulatory Baselines ·····································
 
+@app.get("/api/baselines/status")
+def baseline_status():
+    """Diagnostic endpoint — shows where the server is looking for baseline files."""
+    from pathlib import Path
+    try:
+        from agents.baseline_agent import BaselineAgent, _BASELINES_DIR
+        exists    = _BASELINES_DIR.exists()
+        json_files= list(_BASELINES_DIR.glob("*.json")) if exists else []
+        index_ok  = (_BASELINES_DIR / "index.json").exists()
+        loaded    = 0
+        if exists and index_ok:
+            try:
+                BaselineAgent._cache = None
+                loaded = len(BaselineAgent().get_all())
+            except Exception:
+                pass
+        return {
+            "baselines_dir":   str(_BASELINES_DIR),
+            "dir_exists":      exists,
+            "index_exists":    index_ok,
+            "json_file_count": len(json_files),
+            "baselines_loaded":loaded,
+            "json_files":      sorted(f.name for f in json_files),
+        }
+    except Exception as e:
+        return {"error": str(e), "baselines_dir": None, "baselines_loaded": 0}
+
+
 @app.get("/api/baselines")
 def list_baselines():
     """Return summary metadata for all loaded baseline regulations."""
