@@ -3,6 +3,7 @@ import { Search, ExternalLink, FileText, ListChecks, GitCompare, X, ChevronRight
 import ReactMarkdown from 'react-markdown'
 import { api } from '../api.js'
 import { Badge, UrgencyDot, Spinner, EmptyState, Modal, Pagination, RequirementList, KeyValue, SectionHeader } from '../components.jsx'
+import { FeedbackButtons } from './Learning.jsx'
 
 const URGENCIES = ['', 'Critical', 'High', 'Medium', 'Low']
 const JURISDICTIONS = ['', 'Federal', 'PA', 'EU', 'GB', 'CA', 'JP', 'CN', 'AU']
@@ -29,7 +30,7 @@ export default function Documents() {
   const [search,       setSearch]       = useState('')
   const [urgency,      setUrgency]      = useState('')
   const [jurisdiction, setJurisdiction] = useState('')
-  const [days,         setDays]         = useState(90)
+  const [days,         setDays]         = useState(365)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -122,6 +123,7 @@ export default function Documents() {
             <option value={90}>90 days</option>
             <option value={180}>6 months</option>
             <option value={365}>1 year</option>
+            <option value={3650}>All time</option>
           </select>
         </div>
 
@@ -148,16 +150,23 @@ export default function Documents() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 500 }} className="truncate">{doc.title}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2, fontFamily: 'var(--font-mono)' }}>
-                        {doc.agency} · {doc.published_date?.slice(0,10)}
+                        {doc.agency} · {(doc.published_date || doc.fetched_at)?.slice(0,10)}
                       </div>
                     </div>
                     <Badge level={doc.jurisdiction}>{doc.jurisdiction}</Badge>
-                    <Badge level={doc.urgency} />
+                    {doc.urgency
+                      ? <Badge level={doc.urgency} />
+                      : <span className="badge badge-neutral" title="Not yet summarized">Pending</span>
+                    }
                     <ChevronRight size={13} style={{ color: 'var(--text-3)' }} />
                   </div>
-                  {doc.plain_english && (
+                  {doc.plain_english ? (
                     <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, lineHeight: 1.5 }} className="truncate">
                       {doc.plain_english}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, fontStyle: 'italic' }}>
+                      Awaiting AI summarization — run agents to generate summary
                     </div>
                   )}
                 </div>
@@ -224,6 +233,11 @@ export default function Documents() {
                   <RequirementList items={detail.summary.action_items}    label="Action Items"           color="var(--accent)" />
                 </>
               )}
+
+              {/* Feedback */}
+              <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--bg-3)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                <FeedbackButtons documentId={selected.id} onFeedback={() => {}} />
+              </div>
 
               {/* Actions bar */}
               <div className="flex gap-2" style={{ marginTop: 24, flexWrap: 'wrap' }}>

@@ -20,7 +20,7 @@ export default function Dashboard({ status }) {
 
   useEffect(() => {
     Promise.all([
-      api.documents({ days: 14, page_size: 8 }),
+      api.documents({ days: 90, page_size: 8 }),
       api.changes({ days: 14 }),
     ]).then(([d, c]) => {
       setDocs(d.items || [])
