@@ -68,7 +68,7 @@ class FederalRegisterSource:
     # Fields to retrieve — sent as repeated fields[] params, not a dict value.
     FIELDS = [
         "document_number", "title", "publication_date", "type",
-        "agency_names", "abstract", "html_url", "effective_on",
+        "agency_names", "abstract", "html_url", "pdf_url", "effective_on",
     ]
 
     def search(self, lookback_days: int = LOOKBACK_DAYS,

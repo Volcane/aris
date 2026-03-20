@@ -16,7 +16,7 @@ from typing import Optional, List, Dict, Any
 
 from sqlalchemy import (
     create_engine, Column, String, Text, DateTime,
-    Float, Boolean, JSON, Index, text, Integer
+    Float, Boolean, JSON, Index, text, Integer, func
 )
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -1689,6 +1689,124 @@ class KnowledgeGraphEdge(Base):
         Index("ix_kge_target",    "target_id"),
         Index("ix_kge_edge_type", "edge_type"),
     )
+
+
+class EnforcementAction(Base):
+    """
+    A regulatory enforcement action, court case, or litigation notice
+    related to AI systems.
+
+    Covers: FTC consent orders, SEC litigation releases, CFPB enforcement,
+    EEOC press releases, UK ICO enforcement, DOJ civil rights actions,
+    CourtListener federal court opinions/dockets.
+
+    action_type values:
+      enforcement   — agency enforcement action / consent order / penalty
+      litigation    — active court case (complaint filed, not yet resolved)
+      opinion       — court opinion / judgment
+      settlement    — case resolved by settlement
+      guidance      — enforcement-related guidance (EEOC technical assistance, etc.)
+    """
+    __tablename__ = "enforcement_actions"
+
+    id               = Column(String, primary_key=True)   # source-prefixed e.g. "FTC-2025-001"
+    source           = Column(String, nullable=False)     # ftc | sec | cfpb | eeoc | ico | doj | courtlistener
+    action_type      = Column(String, nullable=False)     # enforcement | litigation | opinion | settlement | guidance
+    title            = Column(Text, nullable=False)
+    url              = Column(Text)
+    published_date   = Column(DateTime)
+    agency           = Column(String)                     # enforcing agency / court
+    jurisdiction     = Column(String)                     # Federal | GB | EU | etc.
+    respondent       = Column(Text)                       # company/person subject to action
+    summary          = Column(Text)                       # brief description
+    full_text        = Column(Text)                       # extracted body text if available
+    related_regs     = Column(JSON)                       # list of baseline IDs or doc IDs this enforces
+    outcome          = Column(String)                     # fine | injunction | settlement | pending | dismissed
+    penalty_amount   = Column(String)                     # e.g. "$1.2M" or "€500K"
+    ai_concepts      = Column(JSON)                       # list of concepts: bias_fairness, transparency, etc.
+    relevance_score  = Column(Float, default=0.0)
+    fetched_at       = Column(DateTime, default=datetime.utcnow)
+    raw_json         = Column(JSON)
+
+    __table_args__ = (
+        Index("ix_ea_source",     "source"),
+        Index("ix_ea_type",       "action_type"),
+        Index("ix_ea_jur",        "jurisdiction"),
+        Index("ix_ea_published",  "published_date"),
+    )
+
+
+# ── Enforcement Action CRUD ───────────────────────────────────────────────────
+
+def upsert_enforcement_action(action: dict) -> bool:
+    """Insert or update an enforcement action. Returns True if new."""
+    with get_session() as session:
+        existing = session.get(EnforcementAction, action["id"])
+        if existing:
+            for k, v in action.items():
+                if hasattr(existing, k) and k != "id":
+                    setattr(existing, k, v)
+            session.commit()
+            return False
+        session.add(EnforcementAction(**{
+            k: v for k, v in action.items()
+            if hasattr(EnforcementAction, k)
+        }))
+        session.commit()
+        return True
+
+
+def get_enforcement_actions(
+    jurisdiction: Optional[str]  = None,
+    source:       Optional[str]  = None,
+    action_type:  Optional[str]  = None,
+    days:         int             = 365,
+    limit:        int             = 200,
+) -> List[Dict]:
+    with get_session() as session:
+        q = session.query(EnforcementAction)
+        if jurisdiction:
+            q = q.filter(EnforcementAction.jurisdiction == jurisdiction)
+        if source:
+            q = q.filter(EnforcementAction.source == source)
+        if action_type:
+            q = q.filter(EnforcementAction.action_type == action_type)
+        if days:
+            cutoff = datetime.utcnow() - timedelta(days=days)
+            q = q.filter(EnforcementAction.published_date >= cutoff)
+        q = q.order_by(EnforcementAction.published_date.desc()).limit(limit)
+        return [
+            {
+                "id":             r.id,
+                "source":         r.source,
+                "action_type":    r.action_type,
+                "title":          r.title,
+                "url":            r.url,
+                "published_date": r.published_date.isoformat() if r.published_date else None,
+                "agency":         r.agency,
+                "jurisdiction":   r.jurisdiction,
+                "respondent":     r.respondent,
+                "summary":        r.summary,
+                "related_regs":   r.related_regs or [],
+                "outcome":        r.outcome,
+                "penalty_amount": r.penalty_amount,
+                "ai_concepts":    r.ai_concepts or [],
+                "relevance_score":r.relevance_score,
+            }
+            for r in q.all()
+        ]
+
+
+def count_enforcement_actions() -> Dict[str, int]:
+    with get_session() as session:
+        total = session.query(EnforcementAction).count()
+        by_source: Dict[str, int] = {}
+        for row in session.query(
+            EnforcementAction.source,
+            func.count(EnforcementAction.id)
+        ).group_by(EnforcementAction.source).all():
+            by_source[row[0]] = row[1]
+        return {"total": total, "by_source": by_source}
 
 
 # ── Knowledge Graph CRUD ──────────────────────────────────────────────────────

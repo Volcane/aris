@@ -16,6 +16,7 @@ ANTHROPIC_API_KEY    = os.getenv("ANTHROPIC_API_KEY", "")
 REGULATIONS_GOV_KEY  = os.getenv("REGULATIONS_GOV_KEY", "")
 CONGRESS_GOV_KEY     = os.getenv("CONGRESS_GOV_KEY", "")
 LEGISCAN_KEY         = os.getenv("LEGISCAN_KEY", "")
+COURTLISTENER_KEY    = os.getenv("COURTLISTENER_KEY", "")   # free at courtlistener.com
 
 # LLM provider keys (set the one matching LLM_PROVIDER)
 OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY",  "")
@@ -61,17 +62,32 @@ MIN_RELEVANCE_SCORE = float(os.getenv("MIN_RELEVANCE_SCORE", "0.5"))
 LOG_LEVEL           = os.getenv("LOG_LEVEL", "INFO")
 
 # ── AI keywords used to filter documents ─────────────────────────────────────
-AI_KEYWORDS = [
-    "artificial intelligence", "machine learning", "deep learning",
-    "generative ai", "large language model", "llm", "neural network",
-    "automated decision", "algorithmic", "algorithm", "facial recognition",
-    "biometric", "autonomous system", "predictive analytics",
-    "natural language processing", "nlp", "computer vision",
-    "foundation model", "ai governance", "ai safety", "ai risk",
-    "ai transparency", "ai accountability", "ai bias", "ai ethics",
-    "responsible ai", "trustworthy ai", "ai regulation",
-    "ai disclosure", "deepfake", "synthetic media",
-]
+# ── AI keyword taxonomy ───────────────────────────────────────────────────────
+# The canonical list lives in utils/search.py (150+ terms with synonyms).
+# AI_KEYWORDS is kept here for backward compatibility with any code that
+# imports it directly; it now imports from the expanded taxonomy.
+try:
+    from utils.search import AI_TERMS_EXPANDED as AI_KEYWORDS
+except ImportError:
+    # Fallback if search module not yet available (e.g. first import cycle)
+    AI_KEYWORDS = [
+        "artificial intelligence", "machine learning", "deep learning",
+        "generative ai", "large language model", "llm", "neural network",
+        "automated decision", "algorithmic", "algorithm", "facial recognition",
+        "biometric", "autonomous system", "predictive analytics",
+        "natural language processing", "nlp", "computer vision",
+        "foundation model", "ai governance", "ai safety", "ai risk",
+        "ai transparency", "ai accountability", "ai bias", "ai ethics",
+        "responsible ai", "trustworthy ai", "ai regulation",
+        "ai disclosure", "deepfake", "synthetic media",
+    ]
+
+# ── Search configuration ──────────────────────────────────────────────────────
+# Minimum relevance score to trigger FTS indexing (0.0–1.0)
+SEARCH_MIN_INDEX_SCORE = float(os.getenv("SEARCH_MIN_INDEX_SCORE", "0.05"))
+
+# Whether to rebuild the TF-IDF index after each summarisation run
+SEARCH_AUTO_REBUILD = os.getenv("SEARCH_AUTO_REBUILD", "true").lower() == "true"
 
 # ── Federal Register API ──────────────────────────────────────────────────────
 FEDERAL_REGISTER_BASE = "https://www.federalregister.gov/api/v1"

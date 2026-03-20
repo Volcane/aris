@@ -137,7 +137,14 @@ def _pdf_url_for_document(doc: Dict[str, Any]) -> Optional[str]:
         pdf_url = raw.get("pdf_url")
         if pdf_url:
             return pdf_url
-        # Construct from document number as fallback
+        # Derive from html_url: append .pdf to the full document path
+        # e.g. .../documents/2026/03/14/2026-05213/title-slug → .../title-slug.pdf
+        html_url = doc.get("url") or raw.get("html_url") or ""
+        if html_url and "federalregister.gov/documents/" in html_url:
+            # Strip trailing slash and query string, then append .pdf
+            clean = html_url.split("?")[0].rstrip("/")
+            return clean + ".pdf"
+        # Last resort: the /full_text/pdf/ path works for most but not all docs
         doc_num = doc_id.replace("FR-", "")
         if doc_num:
             return f"https://www.federalregister.gov/documents/full_text/pdf/{doc_num}.pdf"
@@ -186,7 +193,14 @@ def _download_pdf(url: str, dest: Path, timeout: int = 60) -> bool:
 
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "ARIS/1.0 PDF Fetcher"})
+        req = urllib.request.Request(url, headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/pdf,*/*;q=0.9",
+        })
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             content_type = resp.headers.get("Content-Type", "")
             data = resp.read()
@@ -238,6 +252,14 @@ class PDFAutoDownloader:
 
             # Skip if full_text is already substantial (>2000 chars from API)
             if len(doc.get("full_text") or "") > 2000:
+                results["skipped"] += 1
+                continue
+
+            # Skip documents that aren't AI-relevant — catches stale non-AI
+            # docs that entered the DB before the keyword filter was tightened
+            from utils.cache import is_ai_relevant as _is_ai
+            title_and_text = f"{doc.get('title', '')} {doc.get('full_text', '') or ''}"
+            if not _is_ai(title_and_text):
                 results["skipped"] += 1
                 continue
 

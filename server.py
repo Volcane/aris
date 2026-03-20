@@ -1583,6 +1583,50 @@ def qa_index_status():
         return {"ready": False, "error": str(e)}
 
 
+# ·· Enforcement & Litigation ··································
+
+@app.get("/api/enforcement")
+def get_enforcement(
+    jurisdiction: Optional[str] = None,
+    source:       Optional[str] = None,
+    action_type:  Optional[str] = None,
+    days:         int            = 365,
+    limit:        int            = 100,
+):
+    """
+    Return AI-related enforcement actions, court cases, and litigation
+    from FTC, SEC, CFPB, EEOC, DOJ, ICO, and CourtListener.
+    """
+    from utils.db import get_enforcement_actions
+    return {
+        "items": get_enforcement_actions(
+            jurisdiction=jurisdiction,
+            source=source,
+            action_type=action_type,
+            days=days,
+            limit=limit,
+        )
+    }
+
+
+@app.get("/api/enforcement/stats")
+def enforcement_stats():
+    """Return enforcement action counts by source and type."""
+    from utils.db import count_enforcement_actions
+    return count_enforcement_actions()
+
+
+@app.post("/api/enforcement/fetch")
+def fetch_enforcement(background_tasks: BackgroundTasks, days: int = 90):
+    """Trigger background enforcement fetch from all sources."""
+    def _run():
+        from sources.enforcement_agent import EnforcementAgent
+        counts = EnforcementAgent().fetch_all(lookback_days=days)
+        log.info("Enforcement fetch complete: %s", counts)
+    background_tasks.add_task(_run)
+    return {"status": "fetching", "lookback_days": days}
+
+
 # ·· Timeline ··················································
 
 @app.get("/api/timeline")

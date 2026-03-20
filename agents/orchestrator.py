@@ -187,6 +187,16 @@ class Orchestrator:
             except Exception as e:
                 log.warning("Horizon fetch failed: %s", e)
 
+        run_enforcement = run_all or "enforcement" in sources_lower
+        if run_enforcement:
+            log.info("═══ Track 5: Enforcement & Litigation ═══")
+            try:
+                from sources.enforcement_agent import EnforcementAgent
+                e_counts = EnforcementAgent().fetch_all(lookback_days=lookback_days)
+                log.info("Enforcement fetch complete: %s", e_counts)
+            except Exception as e:
+                log.warning("Enforcement fetch failed: %s", e)
+
         # ── Persist & detect version changes ─────────────────────────────────
         new_count      = 0
         changed_ids    = []

@@ -229,6 +229,28 @@ NEW_TABLES = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS enforcement_actions (
+        id               TEXT PRIMARY KEY,
+        source           TEXT NOT NULL,
+        action_type      TEXT NOT NULL,
+        title            TEXT NOT NULL,
+        url              TEXT,
+        published_date   TEXT,
+        agency           TEXT,
+        jurisdiction     TEXT,
+        respondent       TEXT,
+        summary          TEXT,
+        full_text        TEXT,
+        related_regs     TEXT,
+        outcome          TEXT,
+        penalty_amount   TEXT,
+        ai_concepts      TEXT,
+        relevance_score  REAL DEFAULT 0.0,
+        fetched_at       TEXT,
+        raw_json         TEXT
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS brief_cache (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         topic_key   TEXT NOT NULL UNIQUE,

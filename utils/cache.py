@@ -76,6 +76,21 @@ def set_cached(url: str, params, data: Any) -> None:
 
 # ── Resilient HTTP GET ────────────────────────────────────────────────────────
 
+# Default headers that make requests look like a real browser.
+# Federal agency sites (FTC, SEC, CFPB, EEOC, etc.) return 403 for
+# the default Python/requests User-Agent string.
+_DEFAULT_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/122.0.0.0 Safari/537.36"
+    ),
+    "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+}
+
+
 @retry(stop=stop_after_attempt(MAX_RETRIES), wait=wait_exponential(min=RETRY_WAIT_SECONDS))
 def http_get(url: str, params=None,
              headers: Optional[dict] = None, use_cache: bool = True) -> Any:
@@ -91,7 +106,8 @@ def http_get(url: str, params=None,
             log.debug("Cache hit: %s", url)
             return cached
 
-    resp = requests.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT)
+    merged = {**_DEFAULT_HEADERS, **(headers or {})}
+    resp = requests.get(url, params=params, headers=merged, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
 
     try:
@@ -115,7 +131,8 @@ def http_get_text(url: str, params: Optional[dict] = None,
         if cached is not None:
             return cached
 
-    resp = requests.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT)
+    merged = {**_DEFAULT_HEADERS, **(headers or {})}
+    resp = requests.get(url, params=params, headers=merged, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     data = resp.text
 

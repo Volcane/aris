@@ -5,7 +5,7 @@ import {
   Eye, Network, Settings, Loader2, AlertCircle,
   CheckSquare, Bell, Brain, Layers, FileInput,
   BarChart3, BookOpen, TrendingUp, CalendarDays,
-  Sparkles, Map, Clock, ScrollText,
+  Sparkles, Map, Clock, ScrollText, Shield,
 } from 'lucide-react'
 import { api } from './api.js'
 import Dashboard    from './views/Dashboard.jsx'
@@ -25,6 +25,7 @@ import AskAris      from './views/AskAris.jsx'
 import ConceptMap   from './views/ConceptMap.jsx'
 import Timeline     from './views/Timeline.jsx'
 import Brief        from './views/Brief.jsx'
+import Enforcement  from './views/Enforcement.jsx'
 import SettingsView from './views/Settings.jsx'
 
 // Nav grouped by function — Settings is pinned to the sidebar footer separately
@@ -43,11 +44,12 @@ const NAV_GROUPS = [
   {
     label: 'Monitor',
     items: [
-      { to: '/documents', icon: FileText,     label: 'Documents' },
-      { to: '/changes',   icon: GitCompare,   label: 'Changes'   },
-      { to: '/baselines', icon: BookOpen,     label: 'Baselines' },
-      { to: '/trends',    icon: TrendingUp,   label: 'Trends'    },
-      { to: '/horizon',   icon: CalendarDays, label: 'Horizon'   },
+      { to: '/documents',   icon: FileText,     label: 'Documents'   },
+      { to: '/changes',     icon: GitCompare,   label: 'Changes'     },
+      { to: '/baselines',   icon: BookOpen,     label: 'Baselines'   },
+      { to: '/trends',      icon: TrendingUp,   label: 'Trends'      },
+      { to: '/horizon',     icon: CalendarDays, label: 'Horizon'     },
+      { to: '/enforcement', icon: Shield,       label: 'Enforcement' },
     ],
   },
   {
@@ -234,6 +236,7 @@ export default function App() {
           <Route path="/baselines" element={<Baselines />} />
           <Route path="/trends"    element={<Trends />} />
           <Route path="/horizon"   element={<Horizon />} />
+          <Route path="/enforcement" element={<Enforcement />} />
           <Route path="/synthesis" element={<Synthesis />} />
           <Route path="/gap"       element={<GapAnalysis />} />
           <Route path="/pdf"       element={<PDFIngest />} />
