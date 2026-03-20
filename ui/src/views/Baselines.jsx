@@ -6,7 +6,7 @@ import { Spinner, EmptyState, SectionHeader, Badge } from '../components.jsx'
 // ── API ───────────────────────────────────────────────────────────────────────
 
 const baselineApi = {
-  all:      ()     => fetch('/api/baselines').then(r => r.json()),
+  all:      (p={}) => fetch('/api/baselines?' + new URLSearchParams(p)).then(r => r.json()),
   coverage: ()     => fetch('/api/baselines/coverage').then(r => r.json()),
   status:   ()     => fetch('/api/baselines/status').then(r => r.json()),
   get:      (id)   => fetch(`/api/baselines/${id}`).then(r => r.json()),
@@ -29,7 +29,7 @@ const STATUS_STYLE = {
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function Baselines() {
+export default function Baselines({ domain }) {
   const [summaries,  setSummaries]  = useState([])
   const [coverage,   setCoverage]   = useState(null)
   const [diagStatus, setDiagStatus] = useState(null)
@@ -43,7 +43,7 @@ export default function Baselines() {
     setLoading(true)
     try {
       const [all, cov, diag] = await Promise.all([
-        baselineApi.all(),
+        baselineApi.all(domain ? { domain } : {}),
         baselineApi.coverage(),
         baselineApi.status(),
       ])

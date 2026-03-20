@@ -33,7 +33,7 @@ log = get_logger("aris.briefs")
 
 # ── Prompts ───────────────────────────────────────────────────────────────────
 
-BRIEF_SYSTEM = """You are ARIS, an AI Regulation Intelligence System producing structured
+BRIEF_SYSTEM = """You are ARIS, an Automated Regulatory Intelligence System producing structured
 regulatory intelligence briefs for compliance professionals, policy analysts, and legal teams.
 
 Your briefs are:

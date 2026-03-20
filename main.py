@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ARIS — AI Regulation Intelligence System
+ARIS — Automated Regulatory Intelligence System
 Main CLI entry point.
 
 Usage:
@@ -33,9 +33,9 @@ console = Console()
 
 @click.group()
 def cli():
-    """ARIS — AI Regulation Intelligence System\n
-    Monitors Federal and state AI legislation, interprets the language,
-    and delivers actionable business summaries."""
+    """ARIS — Automated Regulatory Intelligence System\n
+    Monitors AI regulation and data privacy law across jurisdictions,
+    summarizes documents, and delivers actionable compliance intelligence."""
     pass
 
 

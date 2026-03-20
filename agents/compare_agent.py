@@ -36,7 +36,7 @@ log = get_logger("aris.compare")
 
 BASELINES_DIR = Path(__file__).parent.parent / "data" / "baselines"
 
-COMPARE_SYSTEM = """You are ARIS, an AI Regulation Intelligence System.
+COMPARE_SYSTEM = """You are ARIS, an Automated Regulatory Intelligence System covering AI regulation and data privacy law.
 You produce precise, structured comparisons of AI regulations for compliance professionals.
 Use only the provided source material. Cite every claim with [SOURCE: id]."""
 

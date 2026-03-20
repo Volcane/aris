@@ -49,7 +49,7 @@ log = get_logger("aris.server")
 # ── App setup ─────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="ARIS — AI Regulation Intelligence System",
+    title="ARIS — Automated Regulatory Intelligence System",
     description="REST API for the ARIS dashboard",
     version="1.0.0",
 )
@@ -181,6 +181,7 @@ def list_documents(
     jurisdiction: Optional[str] = None,
     urgency:      Optional[str] = None,
     doc_type:     Optional[str] = None,
+    domain:       Optional[str] = None,
     days:         int           = 365,
     search:       Optional[str] = None,
     page:         int           = 1,
@@ -188,7 +189,7 @@ def list_documents(
 ):
     """Paginated document list with filters. Excludes not_relevant (archived) documents."""
     from utils.db import get_document_review_statuses
-    summaries = get_recent_summaries(days=days, jurisdiction=jurisdiction)
+    summaries = get_recent_summaries(days=days, jurisdiction=jurisdiction, domain=domain)
 
     if urgency:
         summaries = [s for s in summaries if s.get("urgency") == urgency]
@@ -277,15 +278,31 @@ def get_doc_history(doc_id: str):
 
 @app.get("/api/changes")
 def list_changes(
-    days:      int           = 30,
-    severity:  Optional[str] = None,
-    diff_type: Optional[str] = None,
-    unreviewed: bool         = False,
+    days:       int           = 30,
+    severity:   Optional[str] = None,
+    diff_type:  Optional[str] = None,
+    domain:     Optional[str] = None,
+    unreviewed: bool          = False,
 ):
-    """All detected regulatory changes."""
+    """All detected regulatory changes. domain filter: ai | privacy"""
     if unreviewed:
-        return get_unreviewed_diffs(limit=200)
-    return get_recent_diffs(days=days, severity=severity, diff_type=diff_type)
+        diffs = get_unreviewed_diffs(limit=200)
+    else:
+        diffs = get_recent_diffs(days=days, severity=severity, diff_type=diff_type)
+    # Domain filter: join against document domain if requested
+    if domain:
+        from utils.db import get_document
+        filtered = []
+        for d in diffs:
+            doc_id = d.get("doc_id_new") or d.get("doc_id_base") or ""
+            if doc_id:
+                doc = get_document(doc_id)
+                if doc and doc.get("domain", "ai") == domain:
+                    filtered.append(d)
+            else:
+                filtered.append(d)
+        return filtered
+    return diffs
 
 
 @app.post("/api/changes/{diff_id}/review")
@@ -604,6 +621,7 @@ def get_horizon(
     days_ahead:   int            = 365,
     jurisdiction: Optional[str] = None,
     stage:        Optional[str] = None,
+    domain:       Optional[str] = None,
     limit:        int            = 200,
 ):
     from utils.db import get_horizon_items
@@ -611,6 +629,7 @@ def get_horizon(
         days_ahead   = days_ahead,
         jurisdiction = jurisdiction,
         stage        = stage,
+        domain       = domain,
         limit        = limit,
     )
 
@@ -1596,12 +1615,13 @@ def get_enforcement(
     jurisdiction: Optional[str] = None,
     source:       Optional[str] = None,
     action_type:  Optional[str] = None,
+    domain:       Optional[str] = None,
     days:         int            = 365,
     limit:        int            = 100,
 ):
     """
-    Return AI-related enforcement actions, court cases, and litigation
-    from FTC, SEC, CFPB, EEOC, DOJ, ICO, and CourtListener.
+    Return enforcement actions and litigation.
+    domain filter: ai | privacy | both
     """
     from utils.db import get_enforcement_actions
     return {
@@ -1609,6 +1629,7 @@ def get_enforcement(
             jurisdiction=jurisdiction,
             source=source,
             action_type=action_type,
+            domain=domain,
             days=days,
             limit=limit,
         )

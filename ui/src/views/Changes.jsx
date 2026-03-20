@@ -5,7 +5,7 @@ import { Badge, Spinner, EmptyState, SectionHeader, RequirementList } from '../c
 
 const SEVERITY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 }
 
-export default function Changes() {
+export default function Changes({ domain }) {
   const [changes,    setChanges]    = useState([])
   const [loading,    setLoading]    = useState(true)
   const [expanded,   setExpanded]   = useState({})
@@ -17,7 +17,7 @@ export default function Changes() {
   const load = async () => {
     setLoading(true)
     try {
-      const data = await api.changes({ days, severity, diff_type: diffType, unreviewed })
+      const data = await api.changes({ days, severity, diff_type: diffType, unreviewed, ...(domain ? { domain } : {}) })
       setChanges(data.sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 4) - (SEVERITY_ORDER[b.severity] ?? 4)))
     } finally { setLoading(false) }
   }

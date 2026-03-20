@@ -83,12 +83,14 @@ class InternationalAgentBase(ABC):
 
     # ── Main entry point ──────────────────────────────────────────────────────
 
-    def fetch_all(self, lookback_days: int = LOOKBACK_DAYS) -> List[Dict[str, Any]]:
+    def fetch_all(self, lookback_days: int = LOOKBACK_DAYS,
+                  domain: str = "both") -> List[Dict[str, Any]]:
         """
-        Fetch all AI-relevant documents from all sources for this jurisdiction.
+        Fetch all relevant documents from all sources for this jurisdiction.
         De-duplicates by document ID before returning.
         """
-        log.info("Starting %s fetch (%s)…", self.jurisdiction_name, self.jurisdiction_code)
+        log.info("Starting %s fetch (%s, domain=%s)…",
+                 self.jurisdiction_name, self.jurisdiction_code, domain)
 
         docs = self.fetch_native(lookback_days)
         docs.extend(self.fetch_secondary(lookback_days))

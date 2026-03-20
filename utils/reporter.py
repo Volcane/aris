@@ -41,8 +41,8 @@ URGENCY_STYLE = {
 
 def print_banner():
     console.print(Panel.fit(
-        "[bold white]ARIS[/bold white]  [dim]AI Regulation Intelligence System[/dim]\n"
-        "[dim]Monitoring Federal + Pennsylvania AI legislation[/dim]",
+        "[bold white]ARIS[/bold white]  [dim]Automated Regulatory Intelligence System[/dim]\n"
+        "[dim]Monitoring AI regulation and data privacy law[/dim]",
         border_style="blue",
     ))
 
@@ -192,7 +192,7 @@ def export_markdown(days: int = 30, filepath: Optional[str] = None) -> str:
     path = Path(filepath) if filepath else OUTPUT_DIR / f"aris_report_{_ts()}.md"
 
     lines = [
-        f"# ARIS — AI Regulation Intelligence Report",
+        f"# ARIS — Automated Regulatory Intelligence Report",
         f"*Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}*",
         f"*Coverage: last {days} days*",
         "",

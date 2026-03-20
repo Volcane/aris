@@ -38,7 +38,7 @@ const ALL_JURS   = ['Federal','EU','GB','CA','IL','CO','NY']
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function Horizon() {
+export default function Horizon({ domain }) {
   const [items,    setItems]    = useState([])
   const [stats,    setStats]    = useState(null)
   const [loading,  setLoading]  = useState(true)
@@ -56,13 +56,13 @@ export default function Horizon() {
     if (stgFilter) params.stage        = stgFilter
     try {
       const [its, st] = await Promise.all([
-        horizonApi.items(params),
+        horizonApi.items({ ...params, ...(domain ? { domain } : {}) }),
         horizonApi.stats(),
       ])
       setItems(Array.isArray(its) ? its : [])
       setStats(st)
     } finally { setLoading(false) }
-  }, [jurFilter, stgFilter])
+  }, [jurFilter, stgFilter, domain])
 
   useEffect(() => { load() }, [load])
 

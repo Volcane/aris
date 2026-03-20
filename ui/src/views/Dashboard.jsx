@@ -26,7 +26,7 @@ const fetchHorizonStats = () =>
 const fetchHorizonUpcoming = () =>
   fetch('/api/horizon?days_ahead=90&limit=5').then(r => r.json()).catch(() => [])
 
-export default function Dashboard({ status }) {
+export default function Dashboard({ status, domain }) {
   const [docs,         setDocs]         = useState([])
   const [changes,      setChanges]      = useState([])
   const [bases,        setBases]        = useState([])
@@ -38,8 +38,8 @@ export default function Dashboard({ status }) {
 
   useEffect(() => {
     Promise.all([
-      api.documents({ days: 90, page_size: 8 }).catch(() => ({ items: [] })),
-      api.changes({ days: 14 }).catch(() => []),
+      api.documents({ days: 90, page_size: 8, ...(domain ? { domain } : {}) }).catch(() => ({ items: [] })),
+      api.changes({ days: 14, ...(domain ? { domain } : {}) }).catch(() => []),
       fetchBaselines(),
       fetchBaselineCoverage(),
       fetchHorizonStats(),
@@ -52,7 +52,7 @@ export default function Dashboard({ status }) {
       setHorizonStats(hs)
       setHorizonItems(Array.isArray(hi) ? hi : [])
     }).finally(() => setLoading(false))
-  }, [])
+  }, [domain])
 
   const stats         = status?.stats || {}
   const hasDocuments  = (stats.total_documents || 0) > 0
@@ -70,7 +70,7 @@ export default function Dashboard({ status }) {
     <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontWeight: 300, fontSize: '1.8rem', marginBottom: 4 }}>
-          AI Regulation Intelligence
+          {domain === 'privacy' ? 'Data Privacy Intelligence' : 'AI Regulation Intelligence'}
         </h1>
         <p style={{ color: 'var(--text-3)', fontSize: 13 }}>
           {new Date().toLocaleDateString('en-US', {

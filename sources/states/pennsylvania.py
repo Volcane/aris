@@ -27,7 +27,7 @@ PA_SENATE_BILLS_XML = "https://www.legis.state.pa.us/cfdocs/legis/home/xml/sbHis
 
 class PennsylvaniaAgent(StateAgentBase):
     """
-    Pennsylvania AI legislation monitor.
+    Pennsylvania AI regulation and privacy legislation monitor.
 
     Data sources:
       - LegiScan API  (keyword search, full text)
@@ -154,8 +154,8 @@ class PennsylvaniaAgent(StateAgentBase):
                     doc["full_text"] = text
         return docs
 
-    def fetch_all(self, lookback_days: int = 30) -> List[Dict[str, Any]]:
+    def fetch_all(self, lookback_days: int = 30, domain: str = "both") -> List[Dict[str, Any]]:
         """Override to add enrichment pass."""
-        docs = super().fetch_all(lookback_days)
+        docs = super().fetch_all(lookback_days, domain=domain)
         docs = self.enrich_with_full_text(docs)
         return docs

@@ -256,7 +256,7 @@ function DetailPanel({ action, onClose }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function Enforcement() {
+export default function Enforcement({ domain }) {
   const [items,       setItems]       = useState([])
   const [stats,       setStats]       = useState(null)
   const [loading,     setLoading]     = useState(true)

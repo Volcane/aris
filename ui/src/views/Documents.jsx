@@ -38,7 +38,7 @@ function ReviewBadge({ status }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function Documents() {
+export default function Documents({ domain }) {
   const [tab,      setTab]      = useState('active')   // 'active' | 'archived'
 
   // Active tab state
@@ -81,12 +81,27 @@ export default function Documents() {
   const loadActive = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api.documents({ search, urgency, jurisdiction, days, page, page_size: 30 })
-      setDocs(res.items || [])
-      setTotal(res.total || 0)
-      setPages(res.pages || 1)
+      let res
+      if (search.trim()) {
+        // Use ranked search endpoint when a query is present
+        const params = new URLSearchParams({
+          q: search.trim(), limit: 30, days,
+        })
+        if (jurisdiction) params.set('jurisdiction', jurisdiction)
+        if (urgency)      params.set('urgency', urgency)
+        res = await fetch(`/api/search?${params}`).then(r => r.json())
+        // search endpoint returns {items, total, expanded_query}
+        setDocs(res.items || [])
+        setTotal(res.total || 0)
+        setPages(1)
+      } else {
+        res = await api.documents({ urgency, jurisdiction, days, page, page_size: 30, ...(domain ? { domain } : {}) })
+        setDocs(res.items || [])
+        setTotal(res.total || 0)
+        setPages(res.pages || 1)
+      }
     } finally { setLoading(false) }
-  }, [search, urgency, jurisdiction, days, page])
+  }, [search, urgency, jurisdiction, days, page, domain])
 
   const loadArchived = useCallback(async () => {
     setArchivedLoading(true)
