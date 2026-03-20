@@ -41,7 +41,12 @@ from typing import Any, Dict, List, Optional
 
 from sources.international.base import InternationalAgentBase, parse_date, strip_tags
 from config.settings import AI_KEYWORDS, LOOKBACK_DAYS
+_PRIVACY_FETCH_TERMS = [
+    'gdpr', 'personal data', 'data protection', 'data privacy',
+    'controller', 'processor', 'data subject', 'privacy regulation',
+]
 from utils.cache import http_get, http_get_text, is_ai_relevant, get_logger
+from utils.search import is_privacy_relevant, detect_domain
 
 log = get_logger("aris.international.eu")
 
@@ -372,7 +377,8 @@ class EUAgent(InternationalAgentBase):
 
     # ── Main fetch ────────────────────────────────────────────────────────────
 
-    def fetch_native(self, lookback_days: int = LOOKBACK_DAYS) -> List[Dict[str, Any]]:
+    def fetch_native(self, lookback_days: int = LOOKBACK_DAYS,
+                     domain: str = 'both') -> List[Dict[str, Any]]:
         """
         Primary fetch: pinned EU AI Act documents + EUR-Lex SPARQL search.
         Pinned docs are always included regardless of lookback_days, as they
@@ -383,7 +389,8 @@ class EUAgent(InternationalAgentBase):
         docs.extend(self._sparql_search(lookback_days))
         return docs
 
-    def fetch_secondary(self, lookback_days: int = LOOKBACK_DAYS) -> List[Dict[str, Any]]:
+    def fetch_secondary(self, lookback_days: int = LOOKBACK_DAYS,
+                         domain: str = 'both') -> List[Dict[str, Any]]:
         """Secondary fetch: EU AI Office RSS feed."""
         return self._fetch_ai_office_feed(lookback_days)
 

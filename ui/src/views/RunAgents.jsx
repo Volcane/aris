@@ -19,6 +19,8 @@ export default function RunAgents({ onJobStart }) {
   const [summarize,       setSummarize]       = useState(true)
   const [runDiff,         setRunDiff]         = useState(true)
   const [limit,           setLimit]           = useState(50)
+  const [forceSummarize,  setForceSummarize]  = useState(false)
+  const [domain,          setDomain]          = useState('both')
   const [running,         setRunning]         = useState(false)
   const [logLines,        setLogLines]        = useState([])
   const [logOffset,       setLogOffset]       = useState(0)
@@ -61,11 +63,13 @@ export default function RunAgents({ onJobStart }) {
     onJobStart?.()
     try {
       await api.runAgents({
-        sources:       selectedSources,
-        lookback_days: lookbackDays,
+        sources:         selectedSources,
+        lookback_days:   lookbackDays,
         summarize,
-        run_diff:      runDiff,
+        run_diff:        runDiff,
         limit,
+        force_summarize: forceSummarize,
+        domain,
       })
     } catch (e) {
       setLogLines([`ERROR: ${e.message}`])
@@ -118,6 +122,15 @@ export default function RunAgents({ onJobStart }) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
+              <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Domain</label>
+              <select value={domain} onChange={e => setDomain(e.target.value)}>
+                <option value="both">Both (AI + Privacy)</option>
+                <option value="ai">AI Regulation only</option>
+                <option value="privacy">Data Privacy only</option>
+              </select>
+            </div>
+
+            <div>
               <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 6 }}>Lookback window</label>
               <select value={lookbackDays} onChange={e => setLookbackDays(Number(e.target.value))}>
                 <option value={3}>3 days</option>
@@ -141,8 +154,8 @@ export default function RunAgents({ onJobStart }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { val: summarize,  set: setSummarize, label: 'Run AI summarization (Claude)' },
-                { val: runDiff,    set: setRunDiff,   label: 'Run change detection (diffs & addenda)' },
+                { val: summarize,      set: setSummarize,      label: 'Run AI summarization (Claude)' },
+                { val: runDiff,        set: setRunDiff,        label: 'Run change detection (diffs & addenda)' },
               ].map(({ val, set, label }) => (
                 <label key={label} className="flex items-center gap-3" style={{ cursor: 'pointer', fontSize: 13 }}>
                   <input
@@ -154,6 +167,25 @@ export default function RunAgents({ onJobStart }) {
                   <span style={{ color: 'var(--text-2)' }}>{label}</span>
                 </label>
               ))}
+              {summarize && (
+                <label className="flex items-center gap-3"
+                       style={{ cursor: 'pointer', fontSize: 12, paddingLeft: 4 }}>
+                  <input
+                    type="checkbox"
+                    checked={forceSummarize}
+                    onChange={e => setForceSummarize(e.target.checked)}
+                    style={{ width: 'auto', accentColor: 'var(--yellow)' }}
+                  />
+                  <span style={{ color: forceSummarize ? 'var(--yellow)' : 'var(--text-3)' }}>
+                    Force summarize — bypass quality filter
+                    {forceSummarize && <span style={{ marginLeft: 6, fontSize: 10,
+                      background: 'rgba(212,168,67,0.15)', color: 'var(--yellow)',
+                      padding: '1px 6px', borderRadius: 3, fontFamily: 'var(--font-mono)' }}>
+                      ON
+                    </span>}
+                  </span>
+                </label>
+              )}
             </div>
           </div>
 

@@ -1,0 +1,57 @@
+{
+  "id": "uk_gdpr_dpa",
+  "domain": "privacy",
+  "jurisdiction": "GB",
+  "title": "UK GDPR and Data Protection Act 2018",
+  "official_title": "UK General Data Protection Regulation (as retained in UK law by the European Union (Withdrawal) Act 2018) and the Data Protection Act 2018",
+  "short_name": "UK GDPR / DPA 2018",
+  "status": "In Force",
+  "effective_date": "2021-01-01",
+  "last_reviewed": "2025-03-01",
+  "overview": "The UK GDPR is the EU GDPR as retained in UK law following Brexit, with modifications made by the Data Protection, Privacy and Electronic Communications (Amendments etc) (EU Exit) Regulations 2019. The Data Protection Act 2018 (DPA 2018) sits alongside it, implementing derogations and providing the framework for law enforcement and intelligence services processing. The ICO (Information Commissioner's Office) enforces both. The UK has an EU adequacy decision allowing data flows from the EU (subject to periodic review).",
+  "key_divergences_from_eu_gdpr": [
+    "References to 'EU' replaced with 'UK'; EDPB replaced by ICO as the sole supervisory authority",
+    "UK adequacy framework: UK can grant adequacy to third countries independently of EU decisions",
+    "Data Reform: The Data Protection and Digital Information Act (DPDI) received Royal Assent in 2025, introducing UK-specific modifications including a new 'recognised legitimate interest' category, modified DPIA requirements, and changes to cookie consent rules",
+    "Senior Responsible Individual (SRI) replaces DPO requirement for many organisations under DPDI reforms",
+    "UK-US Data Bridge: allows transfers to certified US organisations (equivalent to EU-US DPF)",
+    "UK International Data Transfer Agreements (IDTAs) replace EU SCCs for transfers from UK"
+  ],
+  "data_subject_rights": [
+    {"right": "Right of access (UK GDPR Art. 15)", "description": "Free subject access requests (SARs). 1-month response deadline, extendable by 2 months for complex requests. Can charge reasonable fee for manifestly unfounded/excessive requests."},
+    {"right": "Right to erasure (UK GDPR Art. 17)", "description": "Right to be forgotten. Grounds: no longer necessary, consent withdrawn, unlawful processing, legal obligation."},
+    {"right": "Right to data portability (UK GDPR Art. 20)", "description": "Receive data in structured, machine-readable format. Applies to consent and contract legal bases."},
+    {"right": "Right to object (UK GDPR Art. 21)", "description": "Object to processing based on legitimate interests or direct marketing. Absolute right for direct marketing."},
+    {"right": "Rights re automated decisions (UK GDPR Art. 22)", "description": "Right not to be subject to solely automated decisions with significant legal effects. Human review on request."}
+  ],
+  "controller_obligations": [
+    {"obligation": "Lawful basis", "description": "Must identify and document lawful basis before processing. 6 bases mirror EU GDPR."},
+    {"obligation": "Privacy notice", "description": "Transparent information about processing must be provided at time of data collection."},
+    {"obligation": "Records of processing (Art. 30)", "description": "Required for organisations with 250+ employees or processing high-risk data."},
+    {"obligation": "Breach notification", "description": "Notify ICO within 72 hours. Notify affected individuals if high risk to their rights and freedoms."},
+    {"obligation": "DPIAs", "description": "Required for high-risk processing. ICO maintains list of processing types requiring DPIA."},
+    {"obligation": "DPO / SRI", "description": "Under DPDI reforms: DPO requirement replaced by Senior Responsible Individual for many organisations. SRI must have sufficient knowledge of UK data protection law."}
+  ],
+  "international_transfers": {
+    "adequacy_regulations": "UK Secretary of State can designate countries as adequate. Current: EU/EEA countries, plus countries under UK adequacy regulations.",
+    "idta": "International Data Transfer Agreement (IDTA) — UK equivalent of EU SCCs. Required for transfers to non-adequate countries.",
+    "addendum": "UK Addendum to EU SCCs available for organisations that already use EU SCCs.",
+    "uk_us_data_bridge": "Allows transfers to US organisations certified under the UK Extension to the EU-US Data Privacy Framework."
+  },
+  "ico_enforcement": {
+    "fines": "Up to £17.5M or 4% of global turnover for the most serious violations. Up to £8.7M or 2% for other violations.",
+    "enforcement_notices": "ICO can issue enforcement notices requiring specific actions.",
+    "assessment_notices": "ICO can require organisations to submit to audits.",
+    "notable_cases": "British Airways (£20M, 2020), Marriott (£18.4M, 2020), Clearview AI (£7.5M, 2022), TikTok (£12.7M, 2023 — child data)"
+  },
+  "penalty_structure": {
+    "tier_1": "Up to £8.7M or 2% of global annual turnover — controller/processor obligation violations.",
+    "tier_2": "Up to £17.5M or 4% of global annual turnover — basic principle violations, data subject rights, international transfers."
+  },
+  "cross_references": [
+    {"regulation": "EU GDPR (2016/679)", "relevance": "UK GDPR is based on EU GDPR. UK has EU adequacy decision, allowing data flows from EU to UK. Organisations operating in both UK and EU must comply with both."},
+    {"regulation": "PECR (Privacy and Electronic Communications Regulations 2003)", "relevance": "UK equivalent of ePrivacy Directive. Governs cookies, direct marketing, and electronic communications. ICO enforces alongside UK GDPR."},
+    {"regulation": "UK AI Regulation", "relevance": "UK takes sector-based approach to AI rather than a single AI Act. ICO's AI guidance addresses UK GDPR compliance for AI systems, including automated decision-making."},
+    {"regulation": "DPDI Act 2025", "relevance": "Reforms UK GDPR and DPA 2018 with UK-specific changes. Introduces recognised legitimate interests, reforms DPO/SRI requirements, updates DPIA rules, and modifies cookie consent requirements."}
+  ]
+}

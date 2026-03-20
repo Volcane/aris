@@ -1,0 +1,85 @@
+{
+  "id": "eu_gdpr_full",
+  "domain": "privacy",
+  "jurisdiction": "EU",
+  "title": "EU General Data Protection Regulation (Full — Regulation 2016/679)",
+  "official_title": "Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data",
+  "short_name": "GDPR",
+  "celex": "32016R0679",
+  "oj_reference": "OJ L 119, 4.5.2016, p. 1–88",
+  "status": "In Force",
+  "effective_date": "2018-05-25",
+  "last_reviewed": "2025-03-01",
+  "overview": "The GDPR is the primary EU data protection law, establishing comprehensive rights for individuals and obligations for organisations that process personal data. It applies to any organisation processing personal data of EU residents, regardless of where the organisation is based. The GDPR replaced the 1995 Data Protection Directive and created a single, directly applicable law across all EU member states.",
+  "territorial_scope": "Applies to: (1) organisations established in the EU processing personal data; (2) organisations outside the EU offering goods/services to EU data subjects; (3) organisations outside the EU monitoring behaviour of EU data subjects.",
+  "key_definitions": {
+    "personal_data": "Any information relating to an identified or identifiable natural person ('data subject').",
+    "processing": "Any operation performed on personal data, including collection, recording, storage, use, disclosure, erasure.",
+    "data_controller": "Entity that determines the purposes and means of processing personal data.",
+    "data_processor": "Entity that processes personal data on behalf of a controller.",
+    "data_subject": "The natural person whose personal data is processed.",
+    "consent": "Freely given, specific, informed and unambiguous indication of agreement to processing.",
+    "special_category_data": "Data revealing racial/ethnic origin, political opinions, religious beliefs, trade union membership, genetic/biometric data, health data, sex life/orientation.",
+    "supervisory_authority": "Independent public authority responsible for monitoring GDPR compliance in a member state."
+  },
+  "legal_bases": [
+    {"basis": "Consent (Art. 6(1)(a))", "description": "Data subject has given consent. Must be freely given, specific, informed, and unambiguous. Withdrawable at any time."},
+    {"basis": "Contract (Art. 6(1)(b))", "description": "Processing is necessary for a contract with the data subject, or to take pre-contractual steps."},
+    {"basis": "Legal obligation (Art. 6(1)(c))", "description": "Processing is necessary to comply with a legal obligation on the controller."},
+    {"basis": "Vital interests (Art. 6(1)(d))", "description": "Processing is necessary to protect someone's life."},
+    {"basis": "Public task (Art. 6(1)(e))", "description": "Processing is necessary for a public interest task or official authority."},
+    {"basis": "Legitimate interests (Art. 6(1)(f))", "description": "Processing is necessary for legitimate interests of the controller or third party, unless overridden by data subject rights. Cannot be used by public authorities."}
+  ],
+  "data_subject_rights": [
+    {"right": "Right of access (Art. 15)", "description": "Data subjects can request a copy of their personal data and information about how it is processed. Controller must respond within 1 month."},
+    {"right": "Right to rectification (Art. 16)", "description": "Data subjects can have inaccurate personal data corrected without undue delay."},
+    {"right": "Right to erasure / Right to be forgotten (Art. 17)", "description": "Data subjects can request deletion of personal data. Applies when data is no longer necessary, consent withdrawn, object to processing, unlawfully processed, or legal obligation to erase."},
+    {"right": "Right to restriction (Art. 18)", "description": "Data subjects can request suspension of processing in certain circumstances (e.g., accuracy contested, processing unlawful but erasure not wanted)."},
+    {"right": "Right to data portability (Art. 20)", "description": "Data subjects can receive their data in a structured, machine-readable format and transmit it to another controller. Applies to consent and contract bases only."},
+    {"right": "Right to object (Art. 21)", "description": "Data subjects can object to processing based on legitimate interests or public task. Absolute right to object to direct marketing. Controller must stop unless compelling legitimate grounds."},
+    {"right": "Rights re automated decisions (Art. 22)", "description": "Data subjects can refuse decisions based solely on automated processing that produce legal or similarly significant effects. Requires human review on request, right to express views, and to contest the decision."}
+  ],
+  "controller_obligations": [
+    {"obligation": "Lawfulness, fairness, transparency (Art. 5(1)(a))", "description": "Processing must have a legal basis and be transparent to data subjects."},
+    {"obligation": "Purpose limitation (Art. 5(1)(b))", "description": "Data collected for specified, explicit, legitimate purposes — cannot be used for incompatible purposes."},
+    {"obligation": "Data minimisation (Art. 5(1)(c))", "description": "Only collect data that is adequate, relevant, and necessary for the purpose."},
+    {"obligation": "Accuracy (Art. 5(1)(d))", "description": "Personal data must be accurate and kept up to date. Inaccurate data must be erased or rectified."},
+    {"obligation": "Storage limitation (Art. 5(1)(e))", "description": "Data must not be kept longer than necessary. Retention periods should be defined."},
+    {"obligation": "Integrity and confidentiality (Art. 5(1)(f))", "description": "Appropriate security measures must protect data from unauthorised access, destruction, or accidental loss."},
+    {"obligation": "Accountability (Art. 5(2))", "description": "Controllers must be able to demonstrate compliance with all GDPR principles."},
+    {"obligation": "Privacy by design and default (Art. 25)", "description": "Data protection must be built into systems from the outset. Default settings must be privacy-friendly."},
+    {"obligation": "Records of processing activities (Art. 30)", "description": "Controllers must maintain a written record of processing activities. Mandatory for organisations with 250+ employees or processing high-risk data."},
+    {"obligation": "Data breach notification (Art. 33–34)", "description": "Breaches must be notified to supervisory authority within 72 hours. High-risk breaches must also be communicated to affected data subjects without undue delay."},
+    {"obligation": "Data Protection Impact Assessment (Art. 35)", "description": "DPIAs required before high-risk processing (systematic profiling, large-scale processing of special category data, large-scale monitoring of public areas)."},
+    {"obligation": "Data Protection Officer (Art. 37–39)", "description": "DPO required for: public authorities, organisations doing large-scale systematic monitoring, organisations processing special category data at scale. DPO must be independent and report to highest management."}
+  ],
+  "processor_obligations": [
+    "Process only on documented instructions from controller",
+    "Ensure personnel processing data are bound by confidentiality",
+    "Implement appropriate technical and organisational security measures (Art. 32)",
+    "Assist controller with data subject rights requests",
+    "Delete or return all personal data at end of service",
+    "Provide all information necessary to demonstrate compliance",
+    "Cannot engage sub-processors without prior written consent of controller",
+    "Data Processing Agreement (DPA) required for all controller-processor relationships"
+  ],
+  "international_transfers": {
+    "adequacy_decisions": "Transfers to countries with an EU adequacy decision are permitted without additional safeguards. Current: Andorra, Argentina, Canada (commercial), Faroe Islands, Guernsey, Isle of Man, Israel, Japan, Jersey, New Zealand, South Korea, Switzerland, UK, Uruguay, USA (Data Privacy Framework).",
+    "standard_contractual_clauses": "SCCs issued by European Commission can authorise transfers. New SCCs (modular) adopted June 2021.",
+    "binding_corporate_rules": "BCRs allow multinational groups to make intra-group transfers. Requires supervisory authority approval.",
+    "derogations": "Transfers may be made without safeguards in specific situations: explicit consent, contract performance, public interest, legal claims, vital interests, public register."
+  },
+  "penalty_structure": {
+    "tier_1": "Up to €10M or 2% of global annual turnover (whichever higher) — for violations of: controller/processor obligations, certification bodies, monitoring bodies.",
+    "tier_2": "Up to €20M or 4% of global annual turnover (whichever higher) — for violations of: basic processing principles, data subject rights, international transfer rules, special category data rules.",
+    "other_remedies": "Data subjects can seek compensation for material or non-material damage. Class action complaints permitted in some member states. Supervisory authorities can impose temporary or permanent bans on processing."
+  },
+  "supervisory_authorities": "Each EU member state has at least one Data Protection Authority (DPA). Lead supervisory authority for cross-border processing is determined by main establishment (one-stop-shop mechanism). European Data Protection Board (EDPB) coordinates consistency.",
+  "cross_references": [
+    {"regulation": "EU AI Act (2024/1689)", "relevance": "Article 22 GDPR (automated decisions) interacts directly with AI Act obligations. High-risk AI systems processing personal data must comply with both. AI Act recitals explicitly reference GDPR."},
+    {"regulation": "EU Data Act (2023/2854)", "relevance": "Data Act governs access to and use of data generated by connected products and services. Complements GDPR but applies to non-personal data and IoT data sharing."},
+    {"regulation": "ePrivacy Directive (2002/58/EC)", "relevance": "Governs confidentiality of electronic communications, cookie consent, and direct marketing. Lex specialis to GDPR for electronic communications. Proposed ePrivacy Regulation would replace it."},
+    {"regulation": "UK GDPR", "relevance": "UK retained GDPR in domestic law post-Brexit as 'UK GDPR'. Substantively identical but enforced by the ICO. UK adequacy decision in place (reviewed periodically)."},
+    {"regulation": "CCPA/CPRA (California)", "relevance": "Both laws share core concepts (rights to access, delete, opt-out) but GDPR is more prescriptive on legal bases and DPIA. CCPA focuses more on sale/sharing of data."}
+  ]
+}

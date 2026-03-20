@@ -1,0 +1,62 @@
+{
+  "id": "japan_appi",
+  "domain": "privacy",
+  "jurisdiction": "JP",
+  "title": "Japan — Act on Protection of Personal Information (APPI)",
+  "official_title": "Act on the Protection of Personal Information (Act No. 57 of May 30, 2003, as amended 2022)",
+  "short_name": "Japan APPI",
+  "status": "In Force",
+  "last_amendment": "2022-04-01",
+  "last_reviewed": "2025-03-01",
+  "overview": "Japan's APPI is its comprehensive data protection law, enforced by the Personal Information Protection Commission (PPC). Japan holds an EU adequacy decision (mutual recognition). The APPI has been significantly amended three times (2015, 2020, 2022) to address technological developments. The 2022 amendments added pseudonymised information provisions, expanded breach notification, and strengthened individual rights.",
+  "key_definitions": {
+    "personal_information": "Information that can identify a specific individual (by name, date of birth, description, or individual identification code).",
+    "specially_designated_sensitive_information": "Race, creed, social status, medical history, criminal record, history of suffering damage from a crime. Requires prior consent for collection.",
+    "personal_data": "Personal information that is included in a personal information database.",
+    "retained_personal_data": "Personal data that the business operator can disclose, correct, add, delete, stop using, erase, or stop providing to third parties.",
+    "pseudonymised_information": "Personal information that has been processed to be unable to identify a specific individual without cross-referencing other information (2022 addition).",
+    "anonymously_processed_information": "Personal information that has been processed to be unable to identify a specific individual and cannot be restored."
+  },
+  "obligations": [
+    {"obligation": "Specifying purposes", "description": "Must specify and publish purposes of use as precisely as possible."},
+    {"obligation": "Acquisition", "description": "Must clearly notify or publicise purpose of use when acquiring personal information. Direct acquisition: notify purpose in advance or immediately after acquisition."},
+    {"obligation": "Appropriate use", "description": "Cannot use personal information beyond specified purposes without consent."},
+    {"obligation": "Accurate maintenance", "description": "Endeavour to keep personal data accurate and up to date."},
+    {"obligation": "Security management", "description": "Necessary and appropriate security management measures for personal data. Report breaches to PPC and notify data subjects (mandatory since 2022)."},
+    {"obligation": "Supervision of employees and outsourcees", "description": "Exercise necessary supervision over employees and outsourcees handling personal data."},
+    {"obligation": "Third party provision", "description": "Prohibited without consent except: legal obligation, protection of life/property/health, public health, public authority cooperation. Opt-out notification to PPC allowed for some third-party provision."},
+    {"obligation": "Records", "description": "Maintain records when providing personal data to third parties."},
+    {"obligation": "Overseas transfers", "description": "Consent required or recipient must meet equivalent standards. PPC maintains whitelist of countries with equivalent protection."},
+    {"obligation": "Responding to requests", "description": "Respond to requests to disclose, correct, add, delete, stop use, or stop third-party provision within 2 weeks (for ordinary requests)."}
+  ],
+  "individual_rights": [
+    "Right to be notified of purpose of use",
+    "Right of disclosure — request disclosure of retained personal data",
+    "Right of correction — correct, add, or delete inaccurate data",
+    "Right to stop use — stop use or erasure if collected in violation of law or used beyond purposes",
+    "Right to stop third-party provision",
+    "Right to data portability (limited — electronic provision if technically feasible, 2022)"
+  ],
+  "breach_notification": {
+    "mandatory_since": "2022",
+    "ppc_notification": "Required for breaches likely to cause significant harm — notify PPC promptly (within approximately 3–5 days for initial report) and full report within 30 days.",
+    "individual_notification": "Required where breach is likely to harm individual rights and interests."
+  },
+  "overseas_operations": "APPI applies to overseas businesses that acquire personal information of persons in Japan through the provision of goods or services (extraterritorial application from 2022).",
+  "ppc_enforcement": {
+    "guidance_recommendations": "PPC issues guidance and recommendations for compliance improvements.",
+    "administrative_orders": "Can issue orders to comply with provisions.",
+    "criminal_penalties": "Violations can lead to criminal charges — up to 1 year imprisonment or ¥1,000,000 fine for operators. Up to ¥100M for corporations."
+  },
+  "penalty_structure": {
+    "administrative": "Orders followed by potential criminal charges for non-compliance.",
+    "criminal_individual": "Up to 1 year imprisonment or ¥1,000,000 fine",
+    "criminal_corporation": "Up to ¥100,000,000 fine",
+    "false_reporting": "Up to 500,000 yen fine"
+  },
+  "cross_references": [
+    {"regulation": "EU GDPR", "relevance": "Japan has EU adequacy decision (mutual recognition arrangement). APPI 2022 amendments strengthened alignment. Key differences: opt-out model for some third-party sharing, different breach notification timeline, no right to erasure per se."},
+    {"regulation": "Japan AI Governance Guidelines", "relevance": "METI AI governance guidelines address data governance for AI systems that intersects with APPI obligations, particularly for automated processing."},
+    {"regulation": "APEC CBPR Framework", "relevance": "Japan participates in APEC Cross-Border Privacy Rules framework, facilitating data flows with participating economies."}
+  ]
+}

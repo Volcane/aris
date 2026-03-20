@@ -1,0 +1,57 @@
+{
+  "id": "australia_privacy",
+  "domain": "privacy",
+  "jurisdiction": "AU",
+  "title": "Australia — Privacy Act 1988 and Privacy Reform",
+  "official_title": "Privacy Act 1988 (Cth) as amended, and Privacy and Other Legislation Amendment Act 2024",
+  "short_name": "Australia Privacy Act",
+  "status": "In Force — significant 2024 amendments enacted",
+  "last_reviewed": "2025-03-01",
+  "overview": "Australia's Privacy Act 1988 is the federal privacy law governing Australian Government agencies and private sector organisations. The Privacy and Other Legislation Amendment Act 2024 enacted the first tranche of reforms recommended by the 2022 Privacy Act Review. Major reforms include: a statutory tort for serious privacy invasions, a Children's Online Privacy Code (enforceable from mid-2026), enhanced enforcement powers, and new transparency obligations for automated decision-making. Further tranches of reform are planned.",
+  "australian_privacy_principles": [
+    {"app": "APP 1", "title": "Open and transparent management", "description": "Have a clearly expressed, up-to-date privacy policy. Take reasonable steps to implement practices, procedures and systems to ensure compliance."},
+    {"app": "APP 2", "title": "Anonymity and pseudonymity", "description": "Give individuals the option to deal with you anonymously or by pseudonym (where lawful and practicable)."},
+    {"app": "APP 3", "title": "Collection of solicited personal information", "description": "Only collect personal information reasonably necessary for functions or activities. Collect sensitive information only with consent (or specific exceptions)."},
+    {"app": "APP 4", "title": "Dealing with unsolicited personal information", "description": "If you receive personal information you didn't solicit and couldn't have collected: destroy or de-identify it."},
+    {"app": "APP 5", "title": "Notification of collection", "description": "Take reasonable steps to notify individuals of collection, purpose, ability to access/correct, and other specified matters."},
+    {"app": "APP 6", "title": "Use or disclosure", "description": "Use or disclose personal information only for the primary purpose of collection, or a directly related secondary purpose, or with consent."},
+    {"app": "APP 7", "title": "Direct marketing", "description": "May only use or disclose personal information for direct marketing in specific circumstances. Must provide opt-out mechanism."},
+    {"app": "APP 8", "title": "Cross-border disclosure", "description": "Before disclosing to overseas recipients, take reasonable steps to ensure comparable protection, or rely on consent or exceptions."},
+    {"app": "APP 9", "title": "Adoption, use, or disclosure of government-related identifiers", "description": "Generally cannot adopt government identifiers for own purposes or disclose them."},
+    {"app": "APP 10", "title": "Quality of personal information", "description": "Reasonable steps to ensure accuracy, completeness, and currency for intended use."},
+    {"app": "APP 11", "title": "Security of personal information", "description": "Take reasonable steps to protect personal information from misuse, interference, loss, and unauthorised access/modification/disclosure. Destroy or de-identify when no longer needed."},
+    {"app": "APP 12", "title": "Access to personal information", "description": "Provide access to personal information upon request (within 30 days). Reasonable fees may be charged."},
+    {"app": "APP 13", "title": "Correction of personal information", "description": "Correct personal information on request if inaccurate, out-of-date, incomplete, irrelevant, or misleading."}
+  ],
+  "threshold": "APP entities: Australian Government agencies; private sector organisations with annual turnover above A$3 million; health service providers; some other organisations regardless of size (credit reporters, TFN recipients, contracted service providers).",
+  "notifiable_data_breaches": {
+    "scheme": "Notifiable Data Breaches (NDB) scheme (since 2018)",
+    "trigger": "Eligible data breach: unauthorised access/disclosure or loss likely to result in serious harm.",
+    "notification": "Notify OAIC and affected individuals as soon as practicable.",
+    "assessment": "30-day period to assess if breach is likely to result in serious harm."
+  },
+  "significant_2024_reforms": [
+    "Statutory tort for serious invasions of privacy (intrusion into private life or misuse of personal information, serious harm)",
+    "Children's Online Privacy Code — enforceable from mid-2026 (platforms likely to be accessed by children under 16)",
+    "Enhanced OAIC enforcement: infringement notices, civil penalty provisions",
+    "Automated decision-making transparency — entities must disclose significant automated decisions in privacy policies",
+    "Overseas data flows — additional protections for personal information disclosed overseas",
+    "New criminal offences for doxxing"
+  ],
+  "oaic_enforcement": {
+    "complaint_handling": "OAIC investigates complaints. Can make determinations requiring compensation or compliance.",
+    "commissioner_initiated": "Commissioner can initiate investigations without a complaint.",
+    "civil_penalties": "From 2024: body corporate up to A$50M; natural person up to A$2.5M for serious/repeated interferences.",
+    "infringement_notices": "New power to issue infringement notices for certain breaches."
+  },
+  "penalty_structure": {
+    "serious_repeated": "Body corporate: up to A$50,000,000. Natural person: up to A$2,500,000.",
+    "general": "Up to A$3,000,000 for body corporate; A$782,500 for individuals.",
+    "statutory_tort": "Individuals may sue for serious privacy invasions — damages including emotional distress."
+  },
+  "cross_references": [
+    {"regulation": "EU GDPR", "relevance": "Australia does not have an EU adequacy decision. Transfers to Australia require GDPR transfer mechanisms (SCCs etc.). 2024 reforms move Australia somewhat closer to GDPR standards."},
+    {"regulation": "Australia AI Governance", "relevance": "Australia has a voluntary AI governance framework. The 2024 Privacy Act reforms (automated decision-making transparency) intersect with AI governance obligations."},
+    {"regulation": "APEC CBPR Framework", "relevance": "Australia participates in APEC CBPR. Relevant for data transfers within Asia-Pacific."}
+  ]
+}

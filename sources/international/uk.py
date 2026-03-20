@@ -43,7 +43,12 @@ from typing import Any, Dict, List, Optional
 
 from sources.international.base import InternationalAgentBase, parse_date, strip_tags
 from config.settings import AI_KEYWORDS, LOOKBACK_DAYS
+_PRIVACY_FETCH_TERMS = [
+    'gdpr', 'uk gdpr', 'data protection', 'personal data',
+    'privacy', 'ico', 'information commissioner',
+]
 from utils.cache import http_get, http_get_text, is_ai_relevant, get_logger
+from utils.search import is_privacy_relevant, detect_domain
 
 log = get_logger("aris.international.uk")
 
@@ -348,14 +353,16 @@ class UKAgent(InternationalAgentBase):
 
     # ── Main fetch ────────────────────────────────────────────────────────────
 
-    def fetch_native(self, lookback_days: int = LOOKBACK_DAYS) -> List[Dict[str, Any]]:
+    def fetch_native(self, lookback_days: int = LOOKBACK_DAYS,
+                     domain: str = 'both') -> List[Dict[str, Any]]:
         """Primary: pinned docs + Parliament bills API."""
         docs = []
         docs.extend(self._get_pinned_docs())
         docs.extend(self._fetch_parliament_bills())
         return docs
 
-    def fetch_secondary(self, lookback_days: int = LOOKBACK_DAYS) -> List[Dict[str, Any]]:
+    def fetch_secondary(self, lookback_days: int = LOOKBACK_DAYS,
+                         domain: str = 'both') -> List[Dict[str, Any]]:
         """Secondary: legislation.gov.uk feed + GOV.UK policy publications."""
         docs = []
         docs.extend(self._fetch_legislation_feed(lookback_days))

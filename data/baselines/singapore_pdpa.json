@@ -1,0 +1,53 @@
+{
+  "id": "singapore_pdpa",
+  "domain": "privacy",
+  "jurisdiction": "SG",
+  "title": "Singapore — Personal Data Protection Act (PDPA 2012, as amended 2020)",
+  "official_title": "Personal Data Protection Act 2012 (No. 26 of 2012), as amended by the Personal Data Protection (Amendment) Act 2020",
+  "short_name": "Singapore PDPA",
+  "status": "In Force",
+  "effective_date": "2014-07-02",
+  "amendment_date": "2021-02-01",
+  "last_reviewed": "2025-03-01",
+  "overview": "Singapore's PDPA governs the collection, use, and disclosure of personal data by organisations. The 2020 amendments significantly updated the law: introducing mandatory data breach notification, enhanced enforcement powers with higher penalties, and a new consent framework including legitimate interests and deemed consent. The Personal Data Protection Commission (PDPC) enforces the PDPA alongside a voluntary Do Not Call (DNC) Registry.",
+  "obligations": [
+    {"obligation": "Consent (Part IV)", "description": "Obtain consent before collecting, using, or disclosing personal data. 2020 amendment introduced legitimate interests exception (processing reasonably expected and does not adversely affect individual). Deemed consent where individual voluntarily provided data or is notified and does not opt out."},
+    {"obligation": "Purpose limitation", "description": "Collect, use, or disclose only for purposes that a reasonable person would consider appropriate and that the individual was informed about."},
+    {"obligation": "Notification", "description": "Inform individuals of purposes before or at time of collection."},
+    {"obligation": "Access and correction", "description": "Provide access to personal data held and correct errors upon request. 10-business-day response standard for correction requests."},
+    {"obligation": "Accuracy", "description": "Make reasonable effort to ensure personal data collected is accurate and complete."},
+    {"obligation": "Protection", "description": "Implement reasonable security arrangements to prevent unauthorised access, collection, use, disclosure, or similar risks."},
+    {"obligation": "Retention limitation", "description": "Cease to retain personal data once no longer necessary for legal/business purposes."},
+    {"obligation": "Transfer limitation", "description": "When transferring personal data outside Singapore, ensure comparable protection — transfer contract, binding corporate rules, or adequacy (White List)."},
+    {"obligation": "Data breach notification (2020 amendment)", "description": "Mandatory notification to PDPC within 3 calendar days if breach likely to cause significant harm. Notify affected individuals if likely to cause significant harm. Voluntary notification for other breaches."},
+    {"obligation": "Data Protection Officer", "description": "Organisations must designate a DPO. DPO details must be publicly available on request."},
+    {"obligation": "Data Protection Impact Assessments", "description": "PDPC advisory: Conduct DPIAs for high-risk personal data processing including automated decision-making."}
+  ],
+  "exceptions_to_consent": [
+    "Research, news activity, credit bureaus, legal proceedings",
+    "Life threatening emergencies",
+    "National interest",
+    "Legitimate interests (2020) — processing reasonably expected by individual and does not adversely affect individual",
+    "Business improvement purposes (2020) — analytics for improving services, de-identified data preference",
+    "Business asset transaction"
+  ],
+  "advisory_guidelines": {
+    "ai_and_data": "PDPC issued Advisory Guidelines on the PDPA for Selected Topics (AI) — guidance on using AI to make decisions affecting individuals, explainability, and automated decision-making.",
+    "data_protection_by_design": "PDPC promotes data protection by design framework.",
+    "model_ai_governance": "Singapore Model AI Governance Framework (not binding) addresses responsible AI use including data governance."
+  },
+  "pdpc_enforcement": {
+    "directions": "PDPC can issue directions requiring compliance, stop-processing orders, and destruction orders.",
+    "financial_penalties": "Pre-2020: up to S$1M. Post-2020 amendment: up to S$1M or 10% of annual turnover in Singapore (whichever greater) for egregious cases."
+  },
+  "penalty_structure": {
+    "standard": "Up to S$1,000,000 per organisation",
+    "enhanced_2020": "Up to 10% of annual Singapore turnover for organisations with annual turnover exceeding S$10M",
+    "criminal": "Individuals found criminally responsible can face fines up to S$100,000 and/or imprisonment up to 3 years"
+  },
+  "cross_references": [
+    {"regulation": "EU GDPR", "relevance": "Singapore PDPA influenced by GDPR but has meaningful differences: legitimate interests and deemed consent are broader; no right to erasure; lower maximum penalties. Both require DPO designation."},
+    {"regulation": "Singapore AI Governance Framework", "relevance": "Model AI Governance Framework provides guidance on AI explainability and data governance that intersects with PDPA obligations for automated decision-making."},
+    {"regulation": "APEC CBPR Framework", "relevance": "Singapore participates in the APEC Cross-Border Privacy Rules (CBPR) framework, enabling data flows among APEC participants. Relevant for transfers within Asia-Pacific."}
+  ]
+}

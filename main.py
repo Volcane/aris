@@ -42,9 +42,12 @@ def cli():
 # ── run ───────────────────────────────────────────────────────────────────────
 
 @cli.command()
-@click.option("--days",    default=30,  show_default=True, help="Look back N days for new documents")
-@click.option("--limit",   default=50,  show_default=True, help="Max documents to summarize per run")
-def run(days, limit):
+@click.option("--days",    default=30,   show_default=True, help="Look back N days for new documents")
+@click.option("--limit",   default=50,   show_default=True, help="Max documents to summarize per run")
+@click.option("--domain",  default="both", show_default=True,
+              type=click.Choice(["ai", "privacy", "both"]),
+              help="Regulatory domain to fetch: ai | privacy | both")
+def run(days, limit, domain):
     """Full pipeline: fetch all sources, then summarize with AI."""
     from agents.orchestrator import Orchestrator
     from utils.reporter import print_banner, make_progress
@@ -54,7 +57,7 @@ def run(days, limit):
 
     with make_progress() as progress:
         fetch_task = progress.add_task("Fetching documents…", total=None)
-        fetched    = orchestrator.fetch(lookback_days=days)
+        fetched    = orchestrator.fetch(lookback_days=days, domain=domain)
         progress.update(fetch_task, completed=1, total=1,
                         description=f"Fetched {fetched} new/updated documents")
 
@@ -79,7 +82,10 @@ def run(days, limit):
 @click.option("--source",  default=None,
               help="Source to fetch: 'federal', 'state', or a state code like 'PA'")
 @click.option("--days",    default=30, show_default=True)
-def fetch(source, days):
+@click.option("--domain",  default="both", show_default=True,
+              type=click.Choice(["ai", "privacy", "both"]),
+              help="Regulatory domain to fetch: ai | privacy | both")
+def fetch(source, days, domain):
     """Fetch documents from sources without AI summarization."""
     from agents.orchestrator import Orchestrator
     from utils.reporter import print_banner, make_progress
@@ -90,7 +96,7 @@ def fetch(source, days):
 
     with make_progress() as progress:
         task = progress.add_task("Fetching…", total=None)
-        count = orchestrator.fetch(sources=sources, lookback_days=days)
+        count = orchestrator.fetch(sources=sources, lookback_days=days, domain=domain)
         progress.update(task, completed=1, total=1,
                         description=f"Done — {count} new/updated documents")
 
@@ -102,13 +108,20 @@ def fetch(source, days):
 @cli.command()
 @click.option("--limit", default=50, show_default=True,
               help="Max documents to summarize")
-def summarize(limit):
+@click.option("--force", is_flag=True, default=False,
+              help="Bypass the learning pre-filter and summarize all pending docs "
+                   "regardless of source quality scores. Use this if summarize "
+                   "completes with 0 summaries saved.")
+def summarize(limit, force):
     """Run AI summarization on all pending documents in the database."""
     from agents.orchestrator import Orchestrator
     from utils.reporter import print_banner, make_progress
 
     print_banner()
     orchestrator = Orchestrator()
+
+    if force:
+        console.print("[yellow]--force mode: learning pre-filter bypassed[/yellow]")
 
     with make_progress() as progress:
         task = progress.add_task(f"Summarizing (up to {limit})…", total=limit)
@@ -117,7 +130,7 @@ def summarize(limit):
             progress.update(task, completed=current, total=total,
                             description=f"Summarizing {current}/{total}…")
 
-        count = orchestrator.summarize(limit=limit, progress_callback=cb)
+        count = orchestrator.summarize(limit=limit, progress_callback=cb, force=force)
 
     console.print(f"\n[bold green]✓[/bold green] Created {count} AI summaries")
 

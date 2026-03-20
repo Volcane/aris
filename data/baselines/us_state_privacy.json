@@ -1,0 +1,152 @@
+{
+  "id": "us_state_privacy",
+  "domain": "privacy",
+  "jurisdiction": "Federal",
+  "title": "US State Privacy Law Tracker — Comprehensive State-by-State Overview",
+  "official_title": "Tracker of enacted US state comprehensive consumer data privacy laws",
+  "short_name": "US State Privacy Laws",
+  "status": "Multiple laws in force — see state entries",
+  "last_reviewed": "2025-03-01",
+  "overview": "In the absence of a federal comprehensive privacy law, at least 20 US states have enacted comprehensive consumer data privacy laws as of early 2026. While structurally similar (most follow a Virginia/Colorado model), each has important variations in scope, rights, obligations, and enforcement. Organisations operating across multiple states must map compliance requirements per state.",
+  "model_framework": "Most state laws follow the 'controller/processor' model from GDPR (rather than CCPA's 'business/service provider' model) and include: right to access, correct, delete, portability, and opt out of targeted advertising, sales, and automated decision-making. Most require DPIAs for high-risk processing.",
+  "enacted_laws": [
+    {
+      "state": "Virginia",
+      "law": "Consumer Data Protection Act (VCDPA)",
+      "effective": "2023-01-01",
+      "threshold": "100,000 consumers OR 25,000 consumers with 50%+ revenue from data sales",
+      "notable": "First comprehensive state law after CCPA. Opt-out model. No private right of action. AG enforcement only. 30-day cure period.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "Colorado",
+      "law": "Colorado Privacy Act (CPA)",
+      "effective": "2023-07-01",
+      "threshold": "100,000 consumers OR 25,000 consumers with 25%+ revenue from data sales",
+      "notable": "Requires opt-in consent for sensitive data. Universal opt-out mechanism required. 60-day cure period (expires 2025). Broadest definition of sensitive data.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "Connecticut",
+      "law": "Connecticut Data Privacy Act (CTDPA)",
+      "effective": "2023-07-01",
+      "threshold": "100,000 consumers OR 25,000 consumers with 25%+ revenue from data sales",
+      "notable": "Closely mirrors Virginia model. Covers children 13–16 (opt-in for targeted advertising). 60-day cure period.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "Texas",
+      "law": "Texas Data Privacy and Security Act (TDPSA)",
+      "effective": "2024-07-01",
+      "threshold": "Conducts business in Texas AND processes/sells personal data. No revenue or volume threshold (unusually broad scope).",
+      "notable": "Broadest applicability threshold. No private right of action. AG enforcement. Includes biometric data provisions. Small business exception.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "Montana",
+      "law": "Montana Consumer Data Privacy Act (MCDPA)",
+      "effective": "2024-10-01",
+      "threshold": "100,000 consumers OR 25,000 consumers with 25%+ revenue from data sales",
+      "notable": "Closely tracks Colorado model. Opt-in for sensitive data. Biometric data included.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "Oregon",
+      "law": "Oregon Consumer Privacy Act (OCPA)",
+      "effective": "2024-07-01",
+      "threshold": "100,000 consumers OR 25,000 consumers with 25%+ revenue from data sales",
+      "notable": "Broad definition of sensitive data. Includes personal data of deceased individuals. Applies to non-profits (delayed).",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "Florida",
+      "law": "Florida Digital Bill of Rights (FDBR)",
+      "effective": "2024-07-01",
+      "threshold": "Annual revenues over $1 billion AND derive 50%+ from online advertising, operate consumer smart speakers, or operate app stores",
+      "notable": "Narrow applicability — effectively targets large tech companies only. Includes strong consent requirements for children under 18.",
+      "dpia_required": false,
+      "opt_in_sensitive": false
+    },
+    {
+      "state": "Indiana",
+      "law": "Indiana Consumer Data Protection Act (INCDPA)",
+      "effective": "2026-01-01",
+      "threshold": "100,000 consumers OR 25,000 consumers with 50%+ revenue from data sales",
+      "notable": "Virginia-model law. 30-day cure period.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "Iowa",
+      "law": "Iowa Consumer Data Protection Act (ICDPA)",
+      "effective": "2025-01-01",
+      "threshold": "100,000 consumers OR 25,000 consumers with 50%+ revenue from data sales",
+      "notable": "Narrowest rights of any comprehensive state law — no right to correct or data portability. No DPIA requirement. Controller-friendly.",
+      "dpia_required": false,
+      "opt_in_sensitive": false
+    },
+    {
+      "state": "Tennessee",
+      "law": "Tennessee Information Protection Act (TIPA)",
+      "effective": "2025-07-01",
+      "threshold": "Revenue over $25M AND 175,000+ consumers OR 25,000 consumers with 25%+ revenue from data sales",
+      "notable": "Voluntary universal opt-out mechanism. Organisation must maintain NIST, ISO, or other recognised framework. Safe harbour for compliance frameworks.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "Delaware",
+      "law": "Delaware Personal Data Privacy Act (DPDPA)",
+      "effective": "2025-01-01",
+      "threshold": "35,000 consumers OR 10,000 consumers with 20%+ revenue from data sales (lower thresholds than most states)",
+      "notable": "Applies to non-profits. Broader scope than most. 60-day cure period.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "New Hampshire",
+      "law": "New Hampshire Privacy Act (NHPA)",
+      "effective": "2025-01-01",
+      "threshold": "35,000 consumers OR 10,000 consumers with 25%+ revenue from data sales",
+      "notable": "Delaware-model law.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    },
+    {
+      "state": "New Jersey",
+      "law": "New Jersey Data Protection Act (NJDPA)",
+      "effective": "2025-01-15",
+      "threshold": "100,000 consumers OR 25,000 consumers with 25%+ revenue from data sales",
+      "notable": "Applies to non-profits. GPC compliance required.",
+      "dpia_required": true,
+      "opt_in_sensitive": true
+    }
+  ],
+  "common_exemptions": [
+    "HIPAA-regulated entities and data",
+    "GLBA-regulated financial institutions and data",
+    "FERPA-regulated educational data",
+    "FCRA-regulated consumer reporting data",
+    "Government entities",
+    "Employee and B2B contact data (most states)",
+    "De-identified or publicly available information"
+  ],
+  "federal_preemption_status": "No comprehensive federal privacy law as of March 2026. The American Privacy Rights Act (APRA) was introduced in 2024 but did not pass. State laws continue to proliferate. Federal sectoral laws (HIPAA, GLBA, COPPA, FCRA) preempt state laws in their specific domains.",
+  "penalty_structure": {
+    "enforcement_model": "All state laws use AG enforcement (no private right of action except California). Penalties vary by state.",
+    "typical_range": "$7,500–$20,000 per intentional violation; $2,500–$7,500 per unintentional violation.",
+    "cure_periods": "Most states provide 30–60 day cure periods before enforcement, though several are eliminating or expiring these.",
+    "notable": "Texas has no cap on aggregate penalties. Virginia penalties up to $7,500 per violation."
+  },
+  "cross_references": [
+    {"regulation": "CCPA/CPRA (California)", "relevance": "CCPA/CPRA is the most comprehensive US state law and has influenced all subsequent state laws. Organisations complying with CCPA generally have a strong foundation for other state laws but need to check specific requirements."},
+    {"regulation": "EU GDPR", "relevance": "Most state laws borrow structural elements from GDPR (controller/processor model, DPIAs, purpose limitation). However, US laws use opt-out rather than opt-in model and do not require a documented lawful basis."},
+    {"regulation": "US Federal Sectoral Laws", "relevance": "HIPAA, GLBA, FERPA, COPPA, and FCRA provide data-specific exemptions from state privacy laws. Organisations covered by these federal laws may have partial or full exemption from state comprehensive privacy laws."}
+  ]
+}

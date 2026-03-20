@@ -1,0 +1,73 @@
+{
+  "id": "brazil_lgpd",
+  "domain": "privacy",
+  "jurisdiction": "BR",
+  "title": "Brazil — Lei Geral de Proteção de Dados (LGPD)",
+  "official_title": "Lei nº 13.709, de 14 de agosto de 2018 — Lei Geral de Proteção de Dados Pessoais (LGPD)",
+  "short_name": "LGPD",
+  "status": "In Force",
+  "effective_date": "2020-09-18",
+  "enforcement_date": "2021-08-01",
+  "last_reviewed": "2025-03-01",
+  "overview": "Brazil's LGPD is its comprehensive data protection law, modelled significantly on the EU GDPR. It applies to any processing of personal data of individuals located in Brazil, regardless of where the processing entity is based. The National Data Protection Authority (ANPD — Autoridade Nacional de Proteção de Dados) was created by the LGPD and began enforcement in 2021. Brazil has applied for EU adequacy recognition.",
+  "key_definitions": {
+    "personal_data": "Information regarding an identified or identifiable natural person.",
+    "sensitive_personal_data": "Data on racial or ethnic origin, religious belief, political opinion, trade union or religious/philosophical organisation membership, health or sex life data, genetic or biometric data — when linked to a natural person.",
+    "data_subject": "Natural person to whom personal data refers.",
+    "controller": "Natural or legal person, public or private, who is responsible for decisions about processing personal data.",
+    "operator": "Natural or legal person, public or private, who processes personal data on behalf of the controller.",
+    "data_protection_officer": "Person designated by controller and operator to act as a communication channel between controller, data subjects, and ANPD."
+  },
+  "legal_bases": [
+    "Consent — specific, explicit, informed consent for a defined purpose",
+    "Legal or regulatory obligation compliance",
+    "Public policy execution by public administration",
+    "Research by research bodies (with anonymisation if possible)",
+    "Contract performance (including pre-contractual steps)",
+    "Regular exercise of rights in judicial, administrative, or arbitration proceedings",
+    "Protection of life or physical safety of data subject or third parties",
+    "Health protection in procedures by health professionals or entities",
+    "Legitimate interests of controller or third party (proportionality test applies)",
+    "Credit protection"
+  ],
+  "data_subject_rights": [
+    "Confirmation of processing existence",
+    "Access to data",
+    "Correction of incomplete, inaccurate, or outdated data",
+    "Anonymisation, blocking, or deletion of unnecessary/excessive/non-compliant data",
+    "Portability to another service or product provider",
+    "Deletion of data processed with consent",
+    "Information on entities with which data was shared",
+    "Information about possibility of refusing consent and consequences",
+    "Withdrawal of consent",
+    "Review of decisions made solely by automated processing affecting interests"
+  ],
+  "controller_obligations": [
+    "Appoint a DPO (encarregado) — name must be publicly available",
+    "Maintain records of processing activities",
+    "Implement privacy by design and by default",
+    "Conduct Data Protection Impact Assessments for high-risk processing",
+    "Report security incidents to ANPD and data subjects",
+    "International transfer restrictions — only to countries with adequate protection or with safeguards",
+    "Consent must be specific and cannot be bundled"
+  ],
+  "international_transfers": "Transfers permitted to countries with adequate protection (ANPD determination), with contractual clauses, BCR, regulatory cooperation, certified standards, or other form of guarantee recognised by ANPD. Brazil seeking EU adequacy.",
+  "anpd_enforcement": {
+    "authority": "Autoridade Nacional de Proteção de Dados (ANPD) — independent federal authority",
+    "powers": "Issue regulations, conduct investigations, apply sanctions, coordinate with other regulators",
+    "first_sanctions": "ANPD began applying sanctions in 2023. First fines imposed in 2023–2024."
+  },
+  "penalty_structure": {
+    "warning": "Warning with deadline to take corrective measures",
+    "fine": "Up to 2% of company's revenue in Brazil in its last fiscal year, limited to R$ 50 million (approx. US$ 10M) per infraction",
+    "daily_fine": "Daily fine to compel cessation of violation",
+    "data_block": "Partial or full blocking of relevant personal data processing",
+    "deletion": "Deletion of relevant personal data",
+    "partial_suspension": "Suspension of database operation",
+    "full_prohibition": "Prohibition of personal data processing activities"
+  },
+  "cross_references": [
+    {"regulation": "EU GDPR", "relevance": "LGPD is closely modelled on GDPR. Brazil seeking EU adequacy. Organisations operating in both must comply with both laws — GDPR's stricter requirements (especially on consent) generally set the higher bar."},
+    {"regulation": "Brazil AI Bill (PL 2338/2023)", "relevance": "Brazil's pending AI regulation would complement LGPD. High-risk AI systems processing personal data must comply with both. PL 2338 includes specific provisions on automated decisions that intersect with LGPD Article 20."}
+  ]
+}

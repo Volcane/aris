@@ -32,6 +32,7 @@ from pathlib import Path
 COLUMN_ADDITIONS = [
     # documents table
     ("documents", "origin",         "TEXT",    "'api'"),
+    ("documents", "domain",         "TEXT",    "'ai'"),
 
     # summaries table
     ("summaries", "relevance_score","REAL",    "NULL"),
@@ -42,6 +43,7 @@ COLUMN_ADDITIONS = [
     ("summaries", "plain_english",  "TEXT",    "NULL"),
     ("summaries", "action_items",   "TEXT",    "NULL"),   # JSON stored as TEXT
     ("summaries", "jurisdiction",   "TEXT",    "NULL"),
+    ("summaries", "domain",         "TEXT",    "'ai'"),
 
     # document_diffs table
     ("document_diffs", "severity",             "TEXT", "NULL"),
@@ -75,6 +77,12 @@ COLUMN_ADDITIONS = [
     ("pdf_metadata", "word_count",   "INTEGER", "NULL"),
     ("pdf_metadata", "method",       "TEXT", "NULL"),
     ("pdf_metadata", "extracted_at", "TEXT", "NULL"),
+
+    # regulatory_horizon table
+    ("regulatory_horizon", "domain", "TEXT", "'ai'"),
+
+    # enforcement_actions table
+    ("enforcement_actions", "domain", "TEXT", "'ai'"),
 ]
 
 # ── New tables (create if missing) ─────────────────────────────────────────────

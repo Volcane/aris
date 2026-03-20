@@ -1,26 +1,516 @@
 {
   "version": "1.1",
   "last_reviewed": "2025-03-01",
-  "description": "Index of authoritative baseline regulations for ARIS. Each entry corresponds to a JSON file in this directory. These baselines ship with the application and require no API calls at runtime.",
+  "description": "AI regulation and data privacy baselines for ARIS. Each entry has a domain field: \"ai\" or \"privacy\".",
   "baselines": [
-    { "id": "eu_ai_act",       "file": "eu_ai_act.json",       "jurisdiction": "EU",       "title": "EU Artificial Intelligence Act (Regulation 2024/1689)",                    "short_name": "EU AI Act",          "status": "In Force",                    "priority": "critical", "doc_id_patterns": ["EU-CELEX-32024R1689","EU-AIACT","eu.*ai.*act","32024R1689"] },
-    { "id": "eu_gdpr_ai",      "file": "eu_gdpr_ai.json",      "jurisdiction": "EU",       "title": "EU GDPR — AI-Relevant Provisions",                                        "short_name": "EU GDPR (AI)",       "status": "In Force",                    "priority": "high",     "doc_id_patterns": ["EU-CELEX-32016R0679","GDPR","gdpr.*ai","automated.*decision"] },
-    { "id": "eu_dsa_dma",      "file": "eu_dsa_dma.json",      "jurisdiction": "EU",       "title": "EU Digital Services Act and Digital Markets Act — AI Provisions",          "short_name": "EU DSA/DMA (AI)",    "status": "In Force",                    "priority": "high",     "doc_id_patterns": ["EU-CELEX-32022R2065","EU-CELEX-32022R1925","dsa.*ai","dma.*algorithm","32022R2065","32022R1925"] },
-    { "id": "eu_ai_liability",  "file": "eu_ai_liability.json", "jurisdiction": "EU",       "title": "EU AI Liability Directive and Amended Product Liability Directive",        "short_name": "EU AI Liability",    "status": "Mixed",                       "priority": "high",     "doc_id_patterns": ["EU-CELEX-32024L2853","ai.*liability","product.*liability.*ai","32024L2853"] },
-    { "id": "us_eo_14110",     "file": "us_eo_14110.json",     "jurisdiction": "Federal",  "title": "Executive Order 14110 — Safe, Secure, and Trustworthy AI",                 "short_name": "EO 14110",           "status": "In Force",                    "priority": "high",     "doc_id_patterns": ["FR-2023-24283","EO-14110","executive.*order.*14110","14110"] },
-    { "id": "us_nist_ai_rmf",  "file": "us_nist_ai_rmf.json",  "jurisdiction": "Federal",  "title": "NIST AI Risk Management Framework (AI RMF 1.0)",                           "short_name": "NIST AI RMF",        "status": "Published",                   "priority": "high",     "doc_id_patterns": ["NIST-AI-RMF","nist.*rmf","nist.*risk.*management","AI-100-1"] },
-    { "id": "us_ftc_ai",       "file": "us_ftc_ai.json",       "jurisdiction": "Federal",  "title": "FTC AI Guidance and Enforcement Framework",                               "short_name": "FTC AI Guidance",    "status": "Active",                      "priority": "high",     "doc_id_patterns": ["FTC-AI","ftc.*ai","ftc.*algorithm","ftc.*automated"] },
-    { "id": "us_sector_ai",    "file": "us_sector_ai.json",    "jurisdiction": "Federal",  "title": "US Federal Sector-Specific AI Rules (CFPB, EEOC, FDA, OCC, HHS)",         "short_name": "US Sector AI Rules", "status": "Active",                      "priority": "high",     "doc_id_patterns": ["CFPB-AI","EEOC-AI","FDA-AI","OCC-AI","SR-11-7","cfpb.*ai","eeoc.*ai","fda.*ai.*device","model.*risk.*management"] },
-    { "id": "uk_ai_framework", "file": "uk_ai_framework.json", "jurisdiction": "GB",       "title": "UK AI Regulatory Framework and ICO AI Guidance",                          "short_name": "UK AI Framework",    "status": "Active",                      "priority": "high",     "doc_id_patterns": ["UK-AI","ICO-AI","uk.*ai.*regulation","uk.*data.*protection.*ai"] },
-    { "id": "canada_aida",     "file": "canada_aida.json",     "jurisdiction": "CA",       "title": "Artificial Intelligence and Data Act (Bill C-27 / AIDA)",                  "short_name": "Canada AIDA",        "status": "Proposed",                    "priority": "medium",   "doc_id_patterns": ["CA-AIDA","CA-C27","canada.*aida","bill.*c-27"] },
-    { "id": "illinois_aipa",   "file": "illinois_aipa.json",   "jurisdiction": "IL",       "title": "Illinois Artificial Intelligence Policy Act (PA 103-0928)",                "short_name": "Illinois AIPA",      "status": "In Force",                    "priority": "medium",   "doc_id_patterns": ["IL-AIPA","illinois.*ai.*policy","103-0928"] },
-    { "id": "colorado_ai",     "file": "colorado_ai.json",     "jurisdiction": "CO",       "title": "Colorado AI Act (SB 24-205)",                                             "short_name": "Colorado AI Act",    "status": "In Force",                    "priority": "medium",   "doc_id_patterns": ["CO-SB205","CO-SB-205","colorado.*ai","sb.*24-205"] },
-    { "id": "nyc_ll144",       "file": "nyc_ll144.json",       "jurisdiction": "NY",       "title": "NYC Local Law 144 — Automated Employment Decision Tools",                 "short_name": "NYC Local Law 144",  "status": "In Force",                    "priority": "high",     "doc_id_patterns": ["NYC-LL144","nyc.*ll.*144","local.*law.*144","automated.*employment.*decision"] },
-    { "id": "california_ai",   "file": "california_ai.json",   "jurisdiction": "CA_STATE", "title": "California AI Legislation (AB 2013, SB 942, etc.)",                       "short_name": "California AI Laws", "status": "Multiple",                    "priority": "high",     "doc_id_patterns": ["CA-AB2013","CA-SB942","CA-SB1047","california.*ai","ab.*2013","sb.*942"] },
-    { "id": "singapore_ai",    "file": "singapore_ai.json",    "jurisdiction": "SG",       "title": "Singapore Model AI Governance Framework",                                 "short_name": "Singapore AI",       "status": "Active",                      "priority": "medium",   "doc_id_patterns": ["SG-AI","singapore.*ai","MAIGF","ai.*verify","pdpa.*ai"] },
-    { "id": "australia_ai",    "file": "australia_ai.json",    "jurisdiction": "AU",       "title": "Australia AI Governance Framework and Voluntary AI Safety Standard",      "short_name": "Australia AI",       "status": "Active",                      "priority": "medium",   "doc_id_patterns": ["AU-AI","australia.*ai","disr.*ai","voluntary.*ai.*safety"] },
-    { "id": "japan_ai",        "file": "japan_ai.json",        "jurisdiction": "JP",       "title": "Japan AI Governance Guidelines and AI Strategy",                          "short_name": "Japan AI Guidelines", "status": "Active",                     "priority": "medium",   "doc_id_patterns": ["JP-AI","japan.*ai","meti.*ai","aisi.*japan"] },
-    { "id": "brazil_ai",       "file": "brazil_ai.json",       "jurisdiction": "BR",       "title": "Brazil LGPD AI Provisions and AI Bill (PL 2338/2023)",                    "short_name": "Brazil AI",          "status": "LGPD In Force; AI Bill Advancing", "priority": "medium", "doc_id_patterns": ["BR-AI","brazil.*ai","lgpd.*ai","PL-2338","pl.*2338"] },
-    { "id": "oecd_ai_principles","file": "oecd_ai_principles.json","jurisdiction": "INTL", "title": "OECD AI Principles and G7 Hiroshima AI Process",                          "short_name": "OECD AI / G7",       "status": "Active",                      "priority": "medium",   "doc_id_patterns": ["OECD-AI","oecd.*ai","hiroshima.*ai","g7.*ai","LEGAL-0449"] }
+    {
+      "id": "eu_ai_act",
+      "file": "eu_ai_act.json",
+      "jurisdiction": "EU",
+      "title": "EU Artificial Intelligence Act (Regulation 2024/1689)",
+      "short_name": "EU AI Act",
+      "status": "In Force",
+      "priority": "critical",
+      "doc_id_patterns": [
+        "EU-CELEX-32024R1689",
+        "EU-AIACT",
+        "eu.*ai.*act",
+        "32024R1689"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "eu_gdpr_ai",
+      "file": "eu_gdpr_ai.json",
+      "jurisdiction": "EU",
+      "title": "EU GDPR \u2014 AI-Relevant Provisions",
+      "short_name": "EU GDPR (AI)",
+      "status": "In Force",
+      "priority": "high",
+      "doc_id_patterns": [
+        "EU-CELEX-32016R0679",
+        "GDPR",
+        "gdpr.*ai",
+        "automated.*decision"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "eu_dsa_dma",
+      "file": "eu_dsa_dma.json",
+      "jurisdiction": "EU",
+      "title": "EU Digital Services Act and Digital Markets Act \u2014 AI Provisions",
+      "short_name": "EU DSA/DMA (AI)",
+      "status": "In Force",
+      "priority": "high",
+      "doc_id_patterns": [
+        "EU-CELEX-32022R2065",
+        "EU-CELEX-32022R1925",
+        "dsa.*ai",
+        "dma.*algorithm",
+        "32022R2065",
+        "32022R1925"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "eu_ai_liability",
+      "file": "eu_ai_liability.json",
+      "jurisdiction": "EU",
+      "title": "EU AI Liability Directive and Amended Product Liability Directive",
+      "short_name": "EU AI Liability",
+      "status": "Mixed",
+      "priority": "high",
+      "doc_id_patterns": [
+        "EU-CELEX-32024L2853",
+        "ai.*liability",
+        "product.*liability.*ai",
+        "32024L2853"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "us_eo_14110",
+      "file": "us_eo_14110.json",
+      "jurisdiction": "Federal",
+      "title": "Executive Order 14110 \u2014 Safe, Secure, and Trustworthy AI",
+      "short_name": "EO 14110",
+      "status": "In Force",
+      "priority": "high",
+      "doc_id_patterns": [
+        "FR-2023-24283",
+        "EO-14110",
+        "executive.*order.*14110",
+        "14110"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "us_nist_ai_rmf",
+      "file": "us_nist_ai_rmf.json",
+      "jurisdiction": "Federal",
+      "title": "NIST AI Risk Management Framework (AI RMF 1.0)",
+      "short_name": "NIST AI RMF",
+      "status": "Published",
+      "priority": "high",
+      "doc_id_patterns": [
+        "NIST-AI-RMF",
+        "nist.*rmf",
+        "nist.*risk.*management",
+        "AI-100-1"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "us_ftc_ai",
+      "file": "us_ftc_ai.json",
+      "jurisdiction": "Federal",
+      "title": "FTC AI Guidance and Enforcement Framework",
+      "short_name": "FTC AI Guidance",
+      "status": "Active",
+      "priority": "high",
+      "doc_id_patterns": [
+        "FTC-AI",
+        "ftc.*ai",
+        "ftc.*algorithm",
+        "ftc.*automated"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "us_sector_ai",
+      "file": "us_sector_ai.json",
+      "jurisdiction": "Federal",
+      "title": "US Federal Sector-Specific AI Rules (CFPB, EEOC, FDA, OCC, HHS)",
+      "short_name": "US Sector AI Rules",
+      "status": "Active",
+      "priority": "high",
+      "doc_id_patterns": [
+        "CFPB-AI",
+        "EEOC-AI",
+        "FDA-AI",
+        "OCC-AI",
+        "SR-11-7",
+        "cfpb.*ai",
+        "eeoc.*ai",
+        "fda.*ai.*device",
+        "model.*risk.*management"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "uk_ai_framework",
+      "file": "uk_ai_framework.json",
+      "jurisdiction": "GB",
+      "title": "UK AI Regulatory Framework and ICO AI Guidance",
+      "short_name": "UK AI Framework",
+      "status": "Active",
+      "priority": "high",
+      "doc_id_patterns": [
+        "UK-AI",
+        "ICO-AI",
+        "uk.*ai.*regulation",
+        "uk.*data.*protection.*ai"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "canada_aida",
+      "file": "canada_aida.json",
+      "jurisdiction": "CA",
+      "title": "Artificial Intelligence and Data Act (Bill C-27 / AIDA)",
+      "short_name": "Canada AIDA",
+      "status": "Proposed",
+      "priority": "medium",
+      "doc_id_patterns": [
+        "CA-AIDA",
+        "CA-C27",
+        "canada.*aida",
+        "bill.*c-27"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "illinois_aipa",
+      "file": "illinois_aipa.json",
+      "jurisdiction": "IL",
+      "title": "Illinois Artificial Intelligence Policy Act (PA 103-0928)",
+      "short_name": "Illinois AIPA",
+      "status": "In Force",
+      "priority": "medium",
+      "doc_id_patterns": [
+        "IL-AIPA",
+        "illinois.*ai.*policy",
+        "103-0928"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "colorado_ai",
+      "file": "colorado_ai.json",
+      "jurisdiction": "CO",
+      "title": "Colorado AI Act (SB 24-205)",
+      "short_name": "Colorado AI Act",
+      "status": "In Force",
+      "priority": "medium",
+      "doc_id_patterns": [
+        "CO-SB205",
+        "CO-SB-205",
+        "colorado.*ai",
+        "sb.*24-205"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "nyc_ll144",
+      "file": "nyc_ll144.json",
+      "jurisdiction": "NY",
+      "title": "NYC Local Law 144 \u2014 Automated Employment Decision Tools",
+      "short_name": "NYC Local Law 144",
+      "status": "In Force",
+      "priority": "high",
+      "doc_id_patterns": [
+        "NYC-LL144",
+        "nyc.*ll.*144",
+        "local.*law.*144",
+        "automated.*employment.*decision"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "california_ai",
+      "file": "california_ai.json",
+      "jurisdiction": "CA_STATE",
+      "title": "California AI Legislation (AB 2013, SB 942, etc.)",
+      "short_name": "California AI Laws",
+      "status": "Multiple",
+      "priority": "high",
+      "doc_id_patterns": [
+        "CA-AB2013",
+        "CA-SB942",
+        "CA-SB1047",
+        "california.*ai",
+        "ab.*2013",
+        "sb.*942"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "singapore_ai",
+      "file": "singapore_ai.json",
+      "jurisdiction": "SG",
+      "title": "Singapore Model AI Governance Framework",
+      "short_name": "Singapore AI",
+      "status": "Active",
+      "priority": "medium",
+      "doc_id_patterns": [
+        "SG-AI",
+        "singapore.*ai",
+        "MAIGF",
+        "ai.*verify",
+        "pdpa.*ai"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "australia_ai",
+      "file": "australia_ai.json",
+      "jurisdiction": "AU",
+      "title": "Australia AI Governance Framework and Voluntary AI Safety Standard",
+      "short_name": "Australia AI",
+      "status": "Active",
+      "priority": "medium",
+      "doc_id_patterns": [
+        "AU-AI",
+        "australia.*ai",
+        "disr.*ai",
+        "voluntary.*ai.*safety"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "japan_ai",
+      "file": "japan_ai.json",
+      "jurisdiction": "JP",
+      "title": "Japan AI Governance Guidelines and AI Strategy",
+      "short_name": "Japan AI Guidelines",
+      "status": "Active",
+      "priority": "medium",
+      "doc_id_patterns": [
+        "JP-AI",
+        "japan.*ai",
+        "meti.*ai",
+        "aisi.*japan"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "brazil_ai",
+      "file": "brazil_ai.json",
+      "jurisdiction": "BR",
+      "title": "Brazil LGPD AI Provisions and AI Bill (PL 2338/2023)",
+      "short_name": "Brazil AI",
+      "status": "LGPD In Force; AI Bill Advancing",
+      "priority": "medium",
+      "doc_id_patterns": [
+        "BR-AI",
+        "brazil.*ai",
+        "lgpd.*ai",
+        "PL-2338",
+        "pl.*2338"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "oecd_ai_principles",
+      "file": "oecd_ai_principles.json",
+      "jurisdiction": "INTL",
+      "title": "OECD AI Principles and G7 Hiroshima AI Process",
+      "short_name": "OECD AI / G7",
+      "status": "Active",
+      "priority": "medium",
+      "doc_id_patterns": [
+        "OECD-AI",
+        "oecd.*ai",
+        "hiroshima.*ai",
+        "g7.*ai",
+        "LEGAL-0449"
+      ],
+      "domain": "ai"
+    },
+    {
+      "id": "eu_gdpr_full",
+      "file": "eu_gdpr_full.json",
+      "jurisdiction": "EU",
+      "title": "EU General Data Protection Regulation (Full \u2014 Regulation 2016/679)",
+      "short_name": "GDPR",
+      "status": "In Force",
+      "priority": "critical",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "EU-CELEX-32016R0679",
+        "gdpr",
+        "eu.*gdpr",
+        "general data protection"
+      ]
+    },
+    {
+      "id": "uk_gdpr_dpa",
+      "file": "uk_gdpr_dpa.json",
+      "jurisdiction": "GB",
+      "title": "UK GDPR and Data Protection Act 2018",
+      "short_name": "UK GDPR / DPA 2018",
+      "status": "In Force",
+      "priority": "high",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "uk.*gdpr",
+        "dpa.*2018",
+        "data protection act 2018",
+        "dpdi"
+      ]
+    },
+    {
+      "id": "ccpa_cpra",
+      "file": "ccpa_cpra.json",
+      "jurisdiction": "CA_STATE",
+      "title": "California Consumer Privacy Act / CPRA",
+      "short_name": "CCPA/CPRA",
+      "status": "In Force",
+      "priority": "critical",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "ccpa",
+        "cpra",
+        "california consumer privacy",
+        "1798.100"
+      ]
+    },
+    {
+      "id": "us_state_privacy",
+      "file": "us_state_privacy.json",
+      "jurisdiction": "Federal",
+      "title": "US State Privacy Law Tracker",
+      "short_name": "US State Privacy Laws",
+      "status": "Multiple laws in force",
+      "priority": "high",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "vcdpa",
+        "colorado privacy act",
+        "ctdpa",
+        "tdpsa",
+        "state privacy"
+      ]
+    },
+    {
+      "id": "us_privacy_federal",
+      "file": "us_privacy_federal.json",
+      "jurisdiction": "Federal",
+      "title": "US Federal Privacy Law Landscape",
+      "short_name": "US Federal Privacy",
+      "status": "In Force \u2014 multiple laws",
+      "priority": "high",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "ftc.*privacy",
+        "hipaa",
+        "coppa",
+        "ferpa",
+        "glba",
+        "fcra"
+      ]
+    },
+    {
+      "id": "canada_pipeda_c27",
+      "file": "canada_pipeda_c27.json",
+      "jurisdiction": "CA",
+      "title": "Canada PIPEDA / Bill C-27 Consumer Privacy Protection Act",
+      "short_name": "PIPEDA / CPPA",
+      "status": "PIPEDA in force; CPPA in legislative process",
+      "priority": "high",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "pipeda",
+        "cppa",
+        "bill c-27",
+        "canada.*privacy"
+      ]
+    },
+    {
+      "id": "brazil_lgpd",
+      "file": "brazil_lgpd.json",
+      "jurisdiction": "BR",
+      "title": "Brazil Lei Geral de Prote\u00e7\u00e3o de Dados (LGPD)",
+      "short_name": "LGPD",
+      "status": "In Force",
+      "priority": "high",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "lgpd",
+        "lei.*13709",
+        "brazil.*privacy",
+        "anpd"
+      ]
+    },
+    {
+      "id": "singapore_pdpa",
+      "file": "singapore_pdpa.json",
+      "jurisdiction": "SG",
+      "title": "Singapore Personal Data Protection Act (PDPA)",
+      "short_name": "Singapore PDPA",
+      "status": "In Force",
+      "priority": "medium",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "pdpa",
+        "singapore.*privacy",
+        "pdpc"
+      ]
+    },
+    {
+      "id": "japan_appi",
+      "file": "japan_appi.json",
+      "jurisdiction": "JP",
+      "title": "Japan Act on Protection of Personal Information (APPI)",
+      "short_name": "Japan APPI",
+      "status": "In Force",
+      "priority": "medium",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "appi",
+        "japan.*privacy",
+        "ppc.*japan",
+        "personal information.*japan"
+      ]
+    },
+    {
+      "id": "australia_privacy",
+      "file": "australia_privacy.json",
+      "jurisdiction": "AU",
+      "title": "Australia Privacy Act 1988 and Privacy Reform",
+      "short_name": "Australia Privacy Act",
+      "status": "In Force",
+      "priority": "medium",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "privacy act.*1988",
+        "australia.*privacy",
+        "oaic",
+        "australian privacy"
+      ]
+    },
+    {
+      "id": "eu_data_act",
+      "file": "eu_data_act.json",
+      "jurisdiction": "EU",
+      "title": "EU Data Act (Regulation 2023/2854)",
+      "short_name": "EU Data Act",
+      "status": "In Force",
+      "priority": "medium",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "EU-CELEX-32023R2854",
+        "eu.*data act",
+        "data act.*2023",
+        "32023R2854"
+      ]
+    },
+    {
+      "id": "eu_eprivacy",
+      "file": "eu_eprivacy.json",
+      "jurisdiction": "EU",
+      "title": "EU ePrivacy Directive and Proposed Regulation",
+      "short_name": "ePrivacy / Cookie Law",
+      "status": "Directive in force",
+      "priority": "medium",
+      "domain": "privacy",
+      "doc_id_patterns": [
+        "eprivacy",
+        "cookie.*law",
+        "directive.*2002/58",
+        "2002/58/EC"
+      ]
+    }
   ]
 }

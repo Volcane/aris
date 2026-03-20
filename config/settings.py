@@ -61,6 +61,18 @@ LOOKBACK_DAYS       = int(os.getenv("LOOKBACK_DAYS", "30"))
 MIN_RELEVANCE_SCORE = float(os.getenv("MIN_RELEVANCE_SCORE", "0.5"))
 LOG_LEVEL           = os.getenv("LOG_LEVEL", "INFO")
 
+# ── Domain configuration ──────────────────────────────────────────────────────
+# Controls which regulatory domains ARIS monitors.
+#   "ai"      — AI regulation only (default legacy behaviour)
+#   "privacy" — Data privacy regulation only
+#   "both"    — Both domains (recommended for full coverage)
+# Set in keys.env: ACTIVE_DOMAINS=both
+_domains_raw    = os.getenv("ACTIVE_DOMAINS", "both")
+ACTIVE_DOMAINS: list = [d.strip() for d in _domains_raw.split(",") if d.strip()]
+# Normalise: if someone sets "ai,privacy" treat as "both"
+if "ai" in ACTIVE_DOMAINS and "privacy" in ACTIVE_DOMAINS:
+    ACTIVE_DOMAINS = ["both"]
+
 # ── AI keywords used to filter documents ─────────────────────────────────────
 # ── AI keyword taxonomy ───────────────────────────────────────────────────────
 # The canonical list lives in utils/search.py (150+ terms with synonyms).

@@ -19,6 +19,7 @@ from config.settings import (
     FR_DOC_TYPES, AI_KEYWORDS, LOOKBACK_DAYS
 )
 from utils.cache import http_get, is_ai_relevant, keyword_score, get_logger
+from utils.search import is_privacy_relevant, detect_domain
 
 log = get_logger("aris.federal")
 
@@ -56,13 +57,22 @@ class FederalRegisterSource:
     BASE = FEDERAL_REGISTER_BASE
 
     # Short, focused terms — one request each, deduplicated by document_number.
-    SEARCH_TERMS = [
+    SEARCH_TERMS_AI = [
         "artificial intelligence",
         "machine learning",
         "automated decision",
         "algorithmic",
         "generative AI",
         "large language model",
+    ]
+
+    SEARCH_TERMS_PRIVACY = [
+        "personal data",
+        "data privacy",
+        "data protection",
+        "privacy notice",
+        "data breach",
+        "consumer privacy",
     ]
 
     # Fields to retrieve — sent as repeated fields[] params, not a dict value.
@@ -72,17 +82,25 @@ class FederalRegisterSource:
     ]
 
     def search(self, lookback_days: int = LOOKBACK_DAYS,
-               per_page: int = 20) -> List[Dict[str, Any]]:
+               per_page: int = 20,
+               domain: str = "ai") -> List[Dict[str, Any]]:
         """
-        Search for AI-related Federal Register documents published in the
-        last `lookback_days` days. Runs one request per search term and
-        deduplicates by document_number.
+        Search for Federal Register documents published in the last `lookback_days` days.
+        domain: "ai" | "privacy" | "both" — selects which term set to search.
+        Runs one request per search term and deduplicates by document_number.
         """
         seen:    set        = set()
         results: List[Dict] = []
         date_gte = _date_str(lookback_days)
 
-        for term in self.SEARCH_TERMS:
+        if domain == "privacy":
+            terms = self.SEARCH_TERMS_PRIVACY
+        elif domain == "both":
+            terms = self.SEARCH_TERMS_AI + self.SEARCH_TERMS_PRIVACY
+        else:
+            terms = self.SEARCH_TERMS_AI
+
+        for term in terms:
             # Build params as a list of tuples so fields[] is repeated correctly
             params = [
                 ("conditions[term]",                  term),
@@ -106,12 +124,18 @@ class FederalRegisterSource:
                 if doc_num in seen:
                     continue
                 text_blob = f"{item.get('title', '')} {item.get('abstract', '')}"
-                if not is_ai_relevant(text_blob):
+                # Accept if relevant to the requested domain
+                if domain == "privacy" and not is_privacy_relevant(text_blob):
+                    continue
+                elif domain == "both" and not (is_ai_relevant(text_blob) or is_privacy_relevant(text_blob)):
+                    continue
+                elif domain == "ai" and not is_ai_relevant(text_blob):
                     continue
                 seen.add(doc_num)
-                results.append(self._normalise(item))
+                doc_domain = detect_domain(text_blob)
+                results.append(self._normalise(item, domain=doc_domain))
 
-        log.info("Federal Register: %d AI-relevant documents found", len(results))
+        log.info("Federal Register: %d %s-relevant documents found", len(results), domain)
         return results
 
     def fetch_full_text(self, document_number: str) -> Optional[str]:
@@ -132,7 +156,7 @@ class FederalRegisterSource:
         return None
 
     @staticmethod
-    def _normalise(item: Dict) -> Dict[str, Any]:
+    def _normalise(item: Dict, domain: str = "ai") -> Dict[str, Any]:
         agencies = item.get("agency_names") or []
         return {
             "id":            f"FR-{item.get('document_number', '')}",
@@ -145,6 +169,7 @@ class FederalRegisterSource:
             "agency":        ", ".join(agencies) if agencies else None,
             "status":        _map_fr_status(item.get("type", "")),
             "full_text":     item.get("abstract", ""),
+            "domain":        domain,
             "raw_json":      item,
         }
 
@@ -346,14 +371,16 @@ class FederalAgent:
         self.rg  = RegulationsGovSource()
         self.cg  = CongressGovSource()
 
-    def fetch_all(self, lookback_days: int = LOOKBACK_DAYS) -> List[Dict[str, Any]]:
+    def fetch_all(self, lookback_days: int = LOOKBACK_DAYS,
+                  domain: str = "both") -> List[Dict[str, Any]]:
         """
-        Fetch AI-related documents from all federal sources.
+        Fetch regulatory documents from all federal sources.
+        domain: "ai" | "privacy" | "both" (default: both)
         Returns combined, de-duplicated list.
         """
-        log.info("Starting Federal fetch (lookback=%d days)…", lookback_days)
+        log.info("Starting Federal fetch (lookback=%d days, domain=%s)…", lookback_days, domain)
         docs = []
-        docs.extend(self.fr.search(lookback_days))
+        docs.extend(self.fr.search(lookback_days, domain=domain))
         docs.extend(self.rg.search(lookback_days))
         docs.extend(self.cg.search(lookback_days))
 

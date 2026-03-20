@@ -83,11 +83,13 @@ def _log(msg: str):
 # ── Pydantic request models ───────────────────────────────────────────────────
 
 class RunAgentsRequest(BaseModel):
-    sources:       List[str] = []          # empty = all
-    lookback_days: int       = 30
-    summarize:     bool      = True
-    run_diff:      bool      = True
-    limit:         int       = 50
+    sources:         List[str] = []          # empty = all
+    lookback_days:   int       = 30
+    summarize:       bool      = True
+    run_diff:        bool      = True
+    limit:           int       = 50
+    force_summarize: bool      = False       # bypass learning pre-filter
+    domain:          str       = "both"      # ai | privacy | both
 
 class DiffRequest(BaseModel):
     doc_id_a: str
@@ -369,6 +371,7 @@ def run_agents(req: RunAgentsRequest, background_tasks: BackgroundTasks):
                 sources=sources,
                 lookback_days=req.lookback_days,
                 run_diff=req.run_diff,
+                domain=req.domain,
             )
             _log(f"Fetched {fetch_result['fetched']} new/updated documents")
             if req.run_diff:
@@ -378,11 +381,14 @@ def run_agents(req: RunAgentsRequest, background_tasks: BackgroundTasks):
             summarized = 0
             if req.summarize:
                 _log(f"Summarizing up to {req.limit} documents with Claude…")
+                if req.force_summarize:
+                    _log("  (force mode: learning pre-filter bypassed)")
 
                 def _cb(current, total):
                     _log(f"  Summarizing {current}/{total}…")
 
-                summarized = orch.summarize(limit=req.limit, progress_callback=_cb)
+                summarized = orch.summarize(limit=req.limit, progress_callback=_cb,
+                                            force=req.force_summarize)
                 _log(f"Summarized {summarized} documents")
 
             _job_state["last_result"] = {
@@ -719,10 +725,10 @@ def baseline_status():
 
 
 @app.get("/api/baselines")
-def list_baselines():
-    """Return summary metadata for all loaded baseline regulations."""
+def list_baselines(domain: Optional[str] = None):
+    """Return summary metadata for all loaded baselines. Optional domain filter: ai | privacy"""
     from agents.baseline_agent import BaselineAgent
-    return BaselineAgent().get_all()
+    return BaselineAgent().get_all(domain=domain)
 
 
 @app.get("/api/baselines/coverage")

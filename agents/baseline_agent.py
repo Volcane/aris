@@ -96,8 +96,11 @@ class BaselineAgent:
 
     # ── Public queries ────────────────────────────────────────────────────────
 
-    def get_all(self) -> List[Dict[str, Any]]:
-        """Return summary metadata for all loaded baselines."""
+    def get_all(self, domain: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Return summary metadata for all loaded baselines.
+        domain: "ai" | "privacy" | None (all)
+        """
         return [
             {
                 "id":           b["id"],
@@ -107,28 +110,34 @@ class BaselineAgent:
                 "status":       b.get("status", "Unknown"),
                 "priority":     b.get("priority", "medium"),
                 "overview":     b.get("overview", ""),
+                "domain":       b.get("domain", "ai"),
             }
             for b in self._cache["baselines"].values()
+            if domain is None or b.get("domain", "ai") == domain
         ]
 
     def get_by_id(self, baseline_id: str) -> Optional[Dict[str, Any]]:
         """Return the full baseline for a given ID."""
         return self._cache["baselines"].get(baseline_id)
 
-    def get_for_jurisdiction(self, jurisdiction: str) -> List[Dict[str, Any]]:
-        """Return all baselines for a given jurisdiction code."""
+    def get_for_jurisdiction(self, jurisdiction: str,
+                              domain: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Return all baselines for a given jurisdiction code, optionally filtered by domain."""
         jur = jurisdiction.upper()
         return [
             b for b in self._cache["baselines"].values()
             if b.get("jurisdiction", "").upper() == jur
+            and (domain is None or b.get("domain", "ai") == domain)
         ]
 
-    def get_for_jurisdictions(self, jurisdictions: List[str]) -> List[Dict[str, Any]]:
-        """Return all baselines for a list of jurisdiction codes."""
+    def get_for_jurisdictions(self, jurisdictions: List[str],
+                               domain: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Return all baselines for a list of jurisdiction codes, optionally filtered by domain."""
         jurs = {j.upper() for j in jurisdictions}
         return [
             b for b in self._cache["baselines"].values()
             if b.get("jurisdiction", "").upper() in jurs
+            and (domain is None or b.get("domain", "ai") == domain)
         ]
 
     def match_document(self, doc: Dict[str, Any]) -> Optional[Dict[str, Any]]:

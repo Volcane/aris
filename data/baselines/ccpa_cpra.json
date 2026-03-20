@@ -1,0 +1,68 @@
+{
+  "id": "ccpa_cpra",
+  "domain": "privacy",
+  "jurisdiction": "CA_STATE",
+  "title": "California Consumer Privacy Act / California Privacy Rights Act (CCPA as amended by CPRA)",
+  "official_title": "California Consumer Privacy Act of 2018 (Cal. Civ. Code § 1798.100 et seq.) as amended by the California Privacy Rights Act of 2020 (Proposition 24)",
+  "short_name": "CCPA/CPRA",
+  "status": "In Force",
+  "effective_date": "2023-01-01",
+  "last_reviewed": "2025-03-01",
+  "overview": "The CCPA, as amended by the CPRA, is the most comprehensive US state privacy law. The CPRA amended CCPA in November 2020 (effective January 2023), adding new rights and obligations and creating the California Privacy Protection Agency (CPPA) as a dedicated enforcement body. The CCPA/CPRA applies to for-profit businesses doing business in California that meet certain thresholds. Unlike GDPR, it does not require a lawful basis for processing but gives consumers rights to know, delete, correct, and opt out.",
+  "applicability_thresholds": {
+    "annual_gross_revenue": "Over $25 million annual gross revenue (as of January 1)",
+    "data_volume": "Buys, sells, receives, or shares personal information of 100,000+ California consumers or households",
+    "revenue_from_selling": "Derives 50%+ of annual revenue from selling or sharing consumers' personal information",
+    "note": "Must meet ONE of the above three thresholds. Applies regardless of whether business is physically located in California."
+  },
+  "key_definitions": {
+    "personal_information": "Information that identifies, relates to, describes, is reasonably capable of being associated with, or could reasonably be linked with a particular consumer or household.",
+    "sensitive_personal_information": "Social security number, financial account info, precise geolocation, racial/ethnic origin, religious beliefs, union membership, health/sex life/sexual orientation data, biometric data, communications content, genetic data.",
+    "sale": "Selling, renting, releasing, disclosing, disseminating, making available, transferring, or otherwise communicating personal information to a third party for monetary or other valuable consideration.",
+    "sharing": "Disclosing personal information to a third party for cross-context behavioral advertising.",
+    "business": "For-profit entity collecting and determining purposes and means of processing consumers' personal information.",
+    "service_provider": "Entity processing personal information on behalf of a business under contract.",
+    "contractor": "Entity to whom the business makes available personal information for a business purpose under a written contract.",
+    "third_party": "Person not the business, consumer, or service provider/contractor."
+  },
+  "consumer_rights": [
+    {"right": "Right to know (§ 1798.100)", "description": "Consumers can request: categories of PI collected; specific PI collected; categories of sources; business/commercial purpose; categories of third parties; specific pieces of PI. Must respond within 45 days (extendable 45 days)."},
+    {"right": "Right to delete (§ 1798.105)", "description": "Consumers can request deletion of personal information. 9 exemptions apply (e.g., complete transactions, security, legal obligations, free speech, research, internal uses consistent with reasonable expectations)."},
+    {"right": "Right to correct (§ 1798.106 — CPRA addition)", "description": "Consumers can request correction of inaccurate personal information. Business must use commercially reasonable efforts to correct."},
+    {"right": "Right to opt out of sale/sharing (§ 1798.120)", "description": "Consumers can opt out of sale or sharing of their personal information. 'Do Not Sell or Share My Personal Information' link required on homepage. GPC (Global Privacy Control) signals must be honoured."},
+    {"right": "Right to limit use of sensitive PI (§ 1798.121 — CPRA addition)", "description": "Consumers can limit use of sensitive personal information to specified purposes (providing requested goods/services, security, legal compliance, short-term transient use). 'Limit the Use of My Sensitive Personal Information' link required."},
+    {"right": "Right to non-discrimination (§ 1798.125)", "description": "Businesses cannot discriminate against consumers for exercising privacy rights. Exception: financial incentive programs if reasonably related to value of consumer's data."},
+    {"right": "Right to opt out of automated decision-making (CPRA — pending regs)", "description": "Consumers have right to opt out of automated decision-making technology, including profiling. CPPA rulemaking in progress on this right."}
+  ],
+  "business_obligations": [
+    {"obligation": "Privacy notice at collection", "description": "Must inform consumers at or before collection of categories of PI collected and purposes."},
+    {"obligation": "Privacy policy", "description": "Must maintain comprehensive privacy policy updated at least annually. Must be accessible and include all required disclosures."},
+    {"obligation": "Opt-out mechanisms", "description": "'Do Not Sell or Share My Personal Information' link required. Must honour Global Privacy Control browser signals as opt-out requests."},
+    {"obligation": "Limit sensitive PI link", "description": "'Limit the Use of My Sensitive Personal Information' link required if sensitive PI is used for purposes beyond the specified limited uses."},
+    {"obligation": "Service provider contracts", "description": "Written contracts with service providers must include required provisions limiting their use of personal information."},
+    {"obligation": "Data minimisation (CPRA)", "description": "Collection, use, retention, and sharing must be reasonably necessary and proportionate to the disclosed purposes."},
+    {"obligation": "Purpose limitation (CPRA)", "description": "Personal information cannot be used for undisclosed purposes that are incompatible with original collection purpose."},
+    {"obligation": "Reasonable security", "description": "Businesses must implement and maintain reasonable security procedures appropriate to the nature of the personal information."},
+    {"obligation": "Risk assessments (CPRA — pending regs)", "description": "CPPA requires risk assessments for processing involving significant risk to consumers' privacy. Rules in development."},
+    {"obligation": "Cybersecurity audits (CPRA — pending regs)", "description": "Annual cybersecurity audits required for certain high-risk processing activities. Rules in development."}
+  ],
+  "enforcement": {
+    "cppa": "California Privacy Protection Agency — independent agency created by CPRA. Authority to issue regulations, investigate violations, and impose civil penalties.",
+    "ag_enforcement": "California Attorney General retains enforcement authority.",
+    "civil_penalties": "Up to $2,500 per unintentional violation; up to $7,500 per intentional violation or violation involving a minor's data.",
+    "private_right_of_action": "Limited private right of action for data breaches involving unencrypted/non-redacted PI — $100–$750 per consumer per incident or actual damages (whichever greater).",
+    "cure_period": "30-day cure period provided before CPPA can initiate enforcement (may be eliminated by CPPA in future)."
+  },
+  "penalty_structure": {
+    "unintentional": "$2,500 per violation",
+    "intentional": "$7,500 per violation",
+    "children_data": "$7,500 per violation (same as intentional for data of consumers under 16)",
+    "private_action_breach": "$100–$750 per consumer per incident"
+  },
+  "cross_references": [
+    {"regulation": "EU GDPR (2016/679)", "relevance": "CCPA/CPRA shares concepts with GDPR (rights to access, delete, portability) but differs significantly: no lawful basis requirement, opt-out rather than opt-in model for most processing, focused on 'sale' concept."},
+    {"regulation": "US State Privacy Laws (VA, CO, CT, TX, etc.)", "relevance": "CCPA/CPRA influenced a wave of state privacy laws. Many states model their laws on CCPA/CPRA with variations. A business complying with CCPA/CPRA covers many (but not all) requirements of other state laws."},
+    {"regulation": "California AI Laws (AB 2013, SB 942)", "relevance": "California AI laws interact with CCPA/CPRA. AI systems using personal information must comply with CCPA rights including the pending automated decision-making opt-out right."},
+    {"regulation": "COPPA", "relevance": "CCPA/CPRA has heightened protections for consumers under 16 (opt-in required for sale/sharing). COPPA covers children under 13."}
+  ]
+}

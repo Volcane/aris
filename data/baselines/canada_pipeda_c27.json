@@ -1,0 +1,70 @@
+{
+  "id": "canada_pipeda_c27",
+  "domain": "privacy",
+  "jurisdiction": "CA",
+  "title": "Canada — PIPEDA / Bill C-27 Consumer Privacy Protection Act (CPPA)",
+  "official_title": "Personal Information Protection and Electronic Documents Act (S.C. 2000, c. 5) and proposed Consumer Privacy Protection Act (Bill C-27, Part 1)",
+  "short_name": "PIPEDA / CPPA",
+  "status": "PIPEDA in force; CPPA (C-27) in legislative process",
+  "last_reviewed": "2025-03-01",
+  "overview": "Canada's current federal private-sector privacy law is PIPEDA (2000). In 2022, the government introduced Bill C-27 which would replace PIPEDA with the Consumer Privacy Protection Act (CPPA), introduce the Artificial Intelligence and Data Act (AIDA), and create a new Personal Information and Data Protection Tribunal. As of early 2026, C-27 has not received Royal Assent and PIPEDA remains the operative federal law. Quebec, British Columbia, and Alberta have substantially similar provincial laws that apply within their provinces.",
+  "pipeda_overview": {
+    "principles": [
+      "Accountability — designate responsible individual, implement privacy policies",
+      "Identifying purposes — identify purposes before or at time of collection",
+      "Consent — obtain knowledge and consent of individual (with exceptions)",
+      "Limiting collection — collect only what is necessary",
+      "Limiting use, disclosure, and retention — use only for identified purposes",
+      "Accuracy — keep personal information accurate, complete, up-to-date",
+      "Safeguards — protect by security safeguards appropriate to sensitivity",
+      "Openness — make policies and practices readily available",
+      "Individual access — right to access and challenge accuracy of personal information",
+      "Challenging compliance — individual can address non-compliance to the designated person"
+    ],
+    "consent_model": "Knowledge and consent required. Implied consent can be used for less sensitive information or where purpose is obvious. Express consent required for sensitive information. Withdrawal of consent must be allowed.",
+    "breach_notification": "Mandatory breach reporting to OPC and individuals where real risk of significant harm (since 2018).",
+    "enforcement": "Office of the Privacy Commissioner of Canada (OPC). OPC can investigate complaints and issue findings but cannot impose fines — must go to Federal Court for binding orders."
+  },
+  "cppa_key_changes": {
+    "rights": [
+      "Explicit right to data portability (new)",
+      "Enhanced right of access — electronic format, explain automated decisions",
+      "Right to erasure/de-indexing (new and broader than PIPEDA)",
+      "Right to withdraw consent with immediate effect"
+    ],
+    "consent_and_transparency": [
+      "Plain language privacy notices",
+      "Consent cannot be bundled with terms of service",
+      "Business contact information exemption maintained but narrowed",
+      "Exceptions for de-identified data without consent"
+    ],
+    "obligations": [
+      "Privacy management program required (similar to GDPR accountability)",
+      "Privacy impact assessments for high-impact processing",
+      "Algorithmic transparency — explain automated decision systems on request",
+      "Code of practice certification mechanism"
+    ],
+    "enforcement": {
+      "opc_powers": "Enhanced OPC investigative and compliance order powers",
+      "tribunal": "New Personal Information and Data Protection Tribunal for appeals and enforcement",
+      "fines": "Up to 5% of global revenue or $25M (whichever greater) for most serious violations; up to 3% or $10M for other violations",
+      "private_right_of_action": "Individuals can bring claims after OPC finding"
+    }
+  },
+  "provincial_laws": {
+    "quebec_law_25": "Loi modernisant des dispositions législatives en matière de protection des renseignements personnels (Law 25) — fully in force since September 2023. Most GDPR-like of Canadian laws: mandatory Privacy Impact Assessments, DPO equivalent, explicit consent requirements, right to portability and de-indexation, high penalties ($25M or 4% of worldwide turnover).",
+    "alberta": "Personal Information Protection Act (PIPA) — substantially similar to PIPEDA. Enforced by Alberta Information and Privacy Commissioner.",
+    "bc": "Personal Information Protection Act (PIPA BC) — substantially similar to PIPEDA. Enforced by BC Information and Privacy Commissioner."
+  },
+  "aida_status": "Artificial Intelligence and Data Act (Bill C-27, Part 3) — proposed alongside CPPA. Would regulate high-impact AI systems. As of early 2026, Bill C-27 has not passed. See canada_aida baseline for AI-specific provisions.",
+  "penalty_structure": {
+    "pipeda_current": "No fines — OPC cannot impose penalties. Federal Court can issue orders. Summary conviction offence: up to $100,000 per offence.",
+    "cppa_proposed": "Up to 5% of global revenue or C$25M for most serious violations. Up to 3% or C$10M for other violations.",
+    "quebec_law_25": "Up to C$25M or 4% of worldwide turnover."
+  },
+  "cross_references": [
+    {"regulation": "EU GDPR", "relevance": "Canada has EU adequacy status under GDPR. CPPA is designed to maintain this adequacy. Quebec Law 25 is closest in approach to GDPR."},
+    {"regulation": "Canada AIDA (Bill C-27 Part 3)", "relevance": "AIDA and CPPA are in the same Bill C-27. High-impact AI systems processing personal information must comply with both CPPA/PIPEDA and AIDA."},
+    {"regulation": "CCPA/CPRA", "relevance": "Both protect consumers' data from commercial use. PIPEDA/CPPA use an implied consent model for less sensitive data; CCPA uses opt-out model. Different rights and obligations."}
+  ]
+}

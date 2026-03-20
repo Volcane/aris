@@ -1,0 +1,58 @@
+{
+  "id": "eu_eprivacy",
+  "domain": "privacy",
+  "jurisdiction": "EU",
+  "title": "EU ePrivacy — Directive 2002/58/EC and Proposed ePrivacy Regulation",
+  "official_title": "Directive 2002/58/EC of the European Parliament and of the Council (ePrivacy Directive) and Proposal for a Regulation on Privacy and Electronic Communications (ePrivacy Regulation)",
+  "short_name": "ePrivacy / Cookie Law",
+  "status": "ePrivacy Directive in force; Regulation proposal stalled",
+  "last_reviewed": "2025-03-01",
+  "overview": "The ePrivacy Directive (2002/58/EC, amended 2009 by Directive 2009/136/EC) governs privacy in electronic communications — covering cookies, direct marketing, confidentiality of communications, and traffic/location data. It is a lex specialis to GDPR for electronic communications. The proposed ePrivacy Regulation (2017) would replace the Directive with a directly applicable regulation but has been stalled in negotiations for years. Member states have implemented the Directive differently, creating inconsistencies across the EU.",
+  "current_law_eprivacy_directive": {
+    "cookie_consent": {
+      "requirement": "Article 5(3): Storing or accessing information on a user's terminal equipment requires prior informed consent.",
+      "exceptions": "Strictly necessary cookies (no consent required): session cookies, security cookies, load-balancing cookies, authentication cookies.",
+      "implementation": "Member states implement differently — some require explicit click, others allow implied consent through browser settings. Enforcement varies significantly.",
+      "consent_banner_requirements": "Consent must be freely given, specific, informed, and unambiguous under GDPR (applicable to cookies). Pre-ticked boxes prohibited. Withdrawing consent must be as easy as giving it."
+    },
+    "direct_marketing": {
+      "email": "Opt-in required for electronic marketing to individuals. Soft opt-in exception: existing customer relationship, similar products/services, opt-out offered.",
+      "sms": "Same rules as email marketing.",
+      "calls": "Opt-out mechanism required for live calls. Automated calls require opt-in.",
+      "b2b": "Member state discretion — many allow opt-out model for B2B marketing."
+    },
+    "traffic_and_location_data": {
+      "traffic_data": "Must be erased or anonymised when no longer needed for transmission. Billing and interconnect exceptions.",
+      "location_data": "More restrictive — consent required or anonymisation. Users must be informed of type and purpose before consent.",
+      "retention": "Data retention laws vary by member state under national security exception."
+    },
+    "confidentiality": "Prohibition on interception and surveillance of communications without consent or legal authority."
+  },
+  "proposed_eprivacy_regulation": {
+    "status": "Proposed by Commission in January 2017. Still in negotiation as of 2026. No agreed text.",
+    "key_changes": [
+      "Expanded scope to cover OTT services (WhatsApp, Signal, iMessage) — 'internet-based communications'",
+      "Cookie consent: browser-level consent settings could replace per-website banners",
+      "Machine-to-machine communications covered",
+      "Harmonised enforcement — DPAs enforce alongside national telecom regulators",
+      "Penalties aligned with GDPR: up to €20M or 4% of global turnover",
+      "Abolish 'cookie walls' — cannot condition access to service on consent to non-necessary cookies"
+    ],
+    "obstacles": "Significant disagreement on: scope of OTT services, cookie consent mechanisms, business vs individual privacy, member state flexibility. Expected to remain stalled."
+  },
+  "enforcement_landscape": {
+    "national_variation": "Significant enforcement variation across EU. Germany, France, Netherlands most active on cookie enforcement.",
+    "dpa_enforcement": "GDPR DPAs enforce cookie consent violations in many member states.",
+    "telecom_regulators": "Separate telecom regulators enforce communications confidentiality provisions.",
+    "notable_cases": "Google (€150M France, 2022), Facebook/Meta (€60M France, 2022), Amazon (€35M France, 2021) — all for cookie consent failures."
+  },
+  "penalty_structure": {
+    "current_directive": "Member state rules — widely varying. Fines typically €100,000–€20M depending on member state.",
+    "proposed_regulation": "Up to €20M or 4% of global turnover (aligned with GDPR Tier 2)."
+  },
+  "cross_references": [
+    {"regulation": "EU GDPR (2016/679)", "relevance": "ePrivacy is lex specialis to GDPR for electronic communications. Cookie consent governed by both: ePrivacy Directive requires consent (mechanism); GDPR defines what valid consent means. For cookies, both laws apply simultaneously."},
+    {"regulation": "EU AI Act", "relevance": "AI-powered advertising targeting and profiling using cookies/tracking must comply with ePrivacy consent requirements and GDPR. AI systems processing communications data face ePrivacy confidentiality requirements."},
+    {"regulation": "EU Data Act", "relevance": "Data Act governs IoT/connected device data. ePrivacy governs electronic communications. Some IoT devices with communication functions overlap between both frameworks."}
+  ]
+}

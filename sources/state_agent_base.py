@@ -21,6 +21,7 @@ from typing import List, Dict, Any, Optional
 
 from config.settings import LEGISCAN_BASE, LEGISCAN_KEY, AI_KEYWORDS, LOOKBACK_DAYS
 from utils.cache import http_get, is_ai_relevant, get_logger
+from utils.search import is_privacy_relevant, detect_domain
 
 log = get_logger("aris.state")
 
@@ -65,13 +66,29 @@ class StateAgentBase(ABC):
             return []
 
         results    = []
-        search_kws = [
+        _ai_kws = [
             "artificial intelligence",
             "machine learning",
             "algorithmic",
             "deepfake",
             "automated decision",
         ]
+        _priv_kws = [
+            "personal data",
+            "consumer privacy",
+            "data protection",
+            "data privacy",
+            "privacy act",
+            "data broker",
+        ]
+        # Build search keywords based on domain
+        domain = getattr(self, '_domain', 'both')
+        if domain == 'privacy':
+            search_kws = _priv_kws
+        elif domain == 'both':
+            search_kws = _ai_kws + _priv_kws
+        else:
+            search_kws = _ai_kws
 
         session_id = self._get_current_session_id()
         if not session_id:
@@ -95,10 +112,19 @@ class StateAgentBase(ABC):
                     if bill_id in seen:
                         continue
                     title = item.get("title", "")
-                    if not is_ai_relevant(f"{title} {kw}"):
+                    blob = f"{title} {kw}"
+                    _dom = getattr(self, '_domain', 'both')
+                    if _dom == 'privacy' and not is_privacy_relevant(blob):
+                        continue
+                    elif _dom == 'ai' and not is_ai_relevant(blob):
+                        continue
+                    elif _dom == 'both' and not (is_ai_relevant(blob) or is_privacy_relevant(blob)):
                         continue
                     seen.add(bill_id)
-                    results.append(self._normalise_legiscan(item))
+                    doc_domain = detect_domain(blob)
+                    doc = self._normalise_legiscan(item)
+                    doc['domain'] = doc_domain
+                    results.append(doc)
             except Exception as e:
                 log.error("LegiScan search '%s' (%s) failed: %s", kw, self.state_code, e)
 
@@ -199,12 +225,15 @@ class StateAgentBase(ABC):
 
     # ── Main entry point ──────────────────────────────────────────────────────
 
-    def fetch_all(self, lookback_days: int = LOOKBACK_DAYS) -> List[Dict[str, Any]]:
+    def fetch_all(self, lookback_days: int = LOOKBACK_DAYS,
+                  domain: str = "both") -> List[Dict[str, Any]]:
         """
-        Fetch all AI-relevant legislation for this state.
+        Fetch relevant legislation for this state.
+        domain: "ai" | "privacy" | "both" — controls which keywords are searched.
         Combines LegiScan + native feed (if available).
         """
-        log.info("Starting %s state fetch…", self.state_name)
+        self._domain = domain   # used by search_legiscan
+        log.info("Starting %s state fetch (domain=%s)…", self.state_name, domain)
         docs = self.search_legiscan(lookback_days)
         docs.extend(self.fetch_native())
 

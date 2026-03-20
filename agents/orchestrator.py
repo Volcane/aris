@@ -141,10 +141,12 @@ class Orchestrator:
 
     def fetch(self, sources: Optional[List[str]] = None,
               lookback_days: int = LOOKBACK_DAYS,
-              run_diff: bool = True) -> Dict[str, int]:
+              run_diff: bool = True,
+              domain: str = "both") -> Dict[str, int]:
         """
         Fetch documents from selected sources and persist to DB.
         If run_diff=True, automatically runs change detection after fetching.
+        domain: "ai" | "privacy" | "both" — which regulatory domain to fetch.
 
         Returns a dict with counts: fetched, version_diffs, addenda_found.
         """
@@ -160,14 +162,14 @@ class Orchestrator:
 
         # ── Track 1: US Federal ───────────────────────────────────────────────
         if run_federal:
-            log.info("═══ Track 1: US Federal ═══")
-            all_docs.extend(self.federal_agent.fetch_all(lookback_days))
+            log.info("═══ Track 1: US Federal (domain=%s) ═══", domain)
+            all_docs.extend(self.federal_agent.fetch_all(lookback_days, domain=domain))
 
         # ── Track 2: US States ────────────────────────────────────────────────
         for agent in self.state_agents:
             if run_states or agent.state_code in specific:
                 log.info("═══ Track 2 (State): %s ═══", agent.state_name)
-                all_docs.extend(agent.fetch_all(lookback_days))
+                all_docs.extend(agent.fetch_all(lookback_days, domain=domain))
 
         # ── Track 3: International ────────────────────────────────────────────
         for agent in self.international_agents:
@@ -373,7 +375,16 @@ class Orchestrator:
 
     # ── Summarize ─────────────────────────────────────────────────────────────
 
-    def summarize(self, limit: int = 50, progress_callback=None) -> int:
+    def summarize(self, limit: int = 50, progress_callback=None,
+                  force: bool = False) -> int:
+        """
+        Summarise pending (unsummarised) documents.
+
+        force=True bypasses the learning pre-filter entirely — useful when
+        the quality filter has incorrectly learned to skip documents from
+        valid sources, or when the user explicitly wants every pending doc
+        processed regardless of source quality scores.
+        """
         pending = get_unsummarized_documents(limit=limit * 2)  # fetch more, then priority-sort
         if not pending:
             log.info("No pending documents to summarize")
@@ -404,7 +415,8 @@ class Orchestrator:
         doc_dicts = doc_dicts[:limit]
 
         log.info("Summarizing %d documents with Claude (priority-sorted)…", len(doc_dicts))
-        summaries = self.interpreter.analyse_batch(doc_dicts, progress_callback)
+        summaries = self.interpreter.analyse_batch(doc_dicts, progress_callback,
+                                                    force=force)
         saved = 0
         for summary in summaries:
             upsert_summary(summary)
@@ -429,9 +441,10 @@ class Orchestrator:
                  sources: Optional[List[str]] = None,
                  summarize_limit: int = 50,
                  run_diff: bool = True,
+                 domain: str = "both",
                  progress_callback=None) -> Dict[str, Any]:
         fetch_result = self.fetch(sources=sources, lookback_days=lookback_days,
-                                   run_diff=run_diff)
+                                   run_diff=run_diff, domain=domain)
         summarized   = self.summarize(limit=summarize_limit,
                                        progress_callback=progress_callback)
 

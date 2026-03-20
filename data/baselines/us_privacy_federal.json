@@ -1,0 +1,119 @@
+{
+  "id": "us_privacy_federal",
+  "domain": "privacy",
+  "jurisdiction": "Federal",
+  "title": "US Federal Privacy Law Landscape — FTC, HIPAA, GLBA, COPPA, FERPA, FCRA",
+  "official_title": "Overview of US Federal Privacy and Data Security Laws",
+  "short_name": "US Federal Privacy",
+  "status": "In Force — multiple laws",
+  "last_reviewed": "2025-03-01",
+  "overview": "The United States has no comprehensive federal privacy law. Instead, privacy regulation is sector-specific, regulated by a patchwork of laws covering healthcare, finance, children, education, and consumer credit. The FTC Act provides a backstop enforcement mechanism against deceptive and unfair privacy practices. Key federal laws are described below. Congress has repeatedly attempted to pass a comprehensive federal privacy law (most recently the American Privacy Rights Act in 2024) without success.",
+  "federal_privacy_laws": [
+    {
+      "law": "FTC Act Section 5",
+      "regulator": "Federal Trade Commission (FTC)",
+      "scope": "All for-profit entities in or affecting US commerce (with common carrier and non-profit exceptions)",
+      "key_provisions": [
+        "Prohibits unfair or deceptive acts or practices",
+        "FTC uses this authority to enforce against privacy policy violations, inadequate security, deceptive data practices",
+        "Section 5(n): Unfair practice must cause substantial consumer injury, not reasonably avoidable, not outweighed by benefits",
+        "FTC can issue orders, seek civil penalties for violations of orders ($51,744 per violation per day)"
+      ],
+      "ai_relevance": "FTC has taken action against algorithmic discrimination, AI fraud, and deceptive AI practices. 2023 Policy Statement applies Section 5 to AI. FTC v. Amazon (Alexa children's privacy), FTC v. Rite Aid (facial recognition)."
+    },
+    {
+      "law": "Health Insurance Portability and Accountability Act (HIPAA)",
+      "regulator": "HHS Office for Civil Rights (OCR)",
+      "scope": "Covered entities (healthcare providers, health plans, healthcare clearinghouses) and their business associates",
+      "key_provisions": [
+        "Privacy Rule: Standards for protected health information (PHI) use and disclosure",
+        "Security Rule: Administrative, physical, and technical safeguards for electronic PHI",
+        "Breach Notification Rule: Notify individuals, HHS, and media within 60 days of breach discovery",
+        "Minimum necessary standard: Disclose only minimum necessary PHI",
+        "Individual rights: Access, amendment, accounting of disclosures"
+      ],
+      "penalty_structure": "Tiered: $100–$50,000 per violation (up to $1.9M per violation category per year). Criminal penalties up to $250,000 and 10 years imprisonment.",
+      "ai_relevance": "AI systems processing PHI are subject to HIPAA. Clinical decision support software may be covered. HHS issued guidance on HIPAA and AI/ML tools."
+    },
+    {
+      "law": "Gramm-Leach-Bliley Act (GLBA) / Financial Privacy Rules",
+      "regulator": "FTC, CFPB, banking regulators (OCC, Fed, FDIC, NCUA)",
+      "scope": "Financial institutions — broadly defined to include any company significantly engaged in financial activities",
+      "key_provisions": [
+        "Privacy Rule: Annual privacy notices to customers about sharing practices",
+        "Opt-out right: Customers can opt out of sharing with non-affiliated third parties",
+        "Safeguards Rule (amended 2021): Comprehensive information security programs required. Specific technical safeguards (MFA, encryption, access controls, penetration testing)",
+        "Pretexting prohibition: Ban on fraudulent access to customer financial information"
+      ],
+      "penalty_structure": "FTC: Civil penalties up to $100,000 per violation. Officers/directors: up to $10,000 per violation and imprisonment. Banking regulators have additional authorities.",
+      "ai_relevance": "AI-driven lending, credit scoring, and financial products subject to GLBA. Safeguards Rule's technical requirements apply to AI systems handling financial data."
+    },
+    {
+      "law": "Children's Online Privacy Protection Act (COPPA)",
+      "regulator": "Federal Trade Commission (FTC)",
+      "scope": "Operators of websites or online services directed to children under 13, or with actual knowledge they collect data from children under 13",
+      "key_provisions": [
+        "Verifiable parental consent required before collecting personal information from children under 13",
+        "Privacy notice requirements — link on homepage",
+        "Parents' rights: access, delete, refuse further collection of child's data",
+        "Data retention limits: retain only as long as reasonably necessary",
+        "Reasonable security measures required",
+        "2024 COPPA 2.0 proposal would expand to cover 13–17 year olds"
+      ],
+      "penalty_structure": "Up to $51,744 per violation per day. FTC has assessed penalties exceeding $100M (Google/YouTube $170M, TikTok $5.7M, Epic Games $275M).",
+      "ai_relevance": "AI-powered apps, games, and services used by children subject to COPPA. Generative AI services with child users face heightened scrutiny."
+    },
+    {
+      "law": "Family Educational Rights and Privacy Act (FERPA)",
+      "regulator": "US Department of Education",
+      "scope": "Educational agencies and institutions receiving federal funding",
+      "key_provisions": [
+        "Students/parents have right to access education records",
+        "Schools cannot disclose education records without consent (with exceptions)",
+        "Directory information may be disclosed without consent unless opt-out exercised",
+        "Records of law enforcement, employment, alumni, treatment records excluded"
+      ],
+      "penalty_structure": "No private right of action. DOE can terminate federal funding (nuclear option — rarely used). Complaint-based enforcement.",
+      "ai_relevance": "EdTech AI tools processing student data subject to FERPA. AI-based assessment and proctoring tools face scrutiny."
+    },
+    {
+      "law": "Fair Credit Reporting Act (FCRA)",
+      "regulator": "CFPB and FTC",
+      "scope": "Consumer reporting agencies and users of consumer reports",
+      "key_provisions": [
+        "Consumers have right to access and dispute credit reports",
+        "Users of consumer reports must have permissible purpose",
+        "Adverse action notice required when using consumer report to make adverse decisions (credit, employment, housing)",
+        "Accuracy requirements: reasonable procedures to ensure maximum possible accuracy",
+        "Disposal rule: proper disposal of information derived from consumer reports"
+      ],
+      "penalty_structure": "Willful violations: actual damages or statutory damages $100–$1,000 per consumer; punitive damages. Negligent violations: actual damages only.",
+      "ai_relevance": "AI credit scoring and algorithmic underwriting subject to FCRA. CFPB has stated that AI 'black box' models cannot satisfy adverse action notice requirements — specific reasons must be provided."
+    }
+  ],
+  "ftc_privacy_enforcement_trends": [
+    "Increased focus on dark patterns and manipulative design",
+    "Enforcement against location data brokers (2024–2025)",
+    "AI and biometric data — facial recognition enforcement (Rite Aid, Clearview AI)",
+    "Children's privacy — COPPA enforcement escalating",
+    "Health data — enforcement against non-HIPAA health apps using tracking pixels",
+    "Algorithmic harm — 2023 Policy Statement on enforcement against AI discrimination"
+  ],
+  "pending_federal_legislation": {
+    "american_privacy_rights_act": "APRA introduced 2024 — bipartisan comprehensive federal privacy bill. Would preempt most state laws, create private right of action, require data minimisation, targeted advertising opt-out, and algorithm transparency. Did not pass in 119th Congress.",
+    "kids_online_safety_act": "KOSA passed Senate in 2024 — duty of care for minors online platforms. Status uncertain.",
+    "american_data_privacy_protection_act": "Prior comprehensive bill. Did not pass."
+  },
+  "penalty_structure": {
+    "ftc_section_5_orders": "Civil penalties up to $51,744/day/violation for violations of FTC orders",
+    "hipaa": "Up to $1.9M per violation category per year",
+    "coppa": "Up to $51,744 per violation per day",
+    "glba_safeguards": "Up to $100,000 per violation",
+    "fcra_willful": "$100–$1,000 per consumer per violation plus punitive damages"
+  },
+  "cross_references": [
+    {"regulation": "CCPA/CPRA (California)", "relevance": "California has the most comprehensive state law. Federal sectoral laws (HIPAA, GLBA, FCRA) preempt CCPA in their domains — regulated entities need to understand the interplay."},
+    {"regulation": "EU GDPR", "relevance": "US companies doing business in EU must comply with GDPR regardless of US law. US-EU Data Privacy Framework provides transfer mechanism for US companies that certify."},
+    {"regulation": "US AI Governance", "relevance": "FTC enforcement powers extend to AI practices. Section 5 applied to AI discrimination, deceptive AI claims, and AI-enabled dark patterns. CFPB has issued guidance on AI credit decisions."}
+  ]
+}

@@ -47,11 +47,13 @@ class Document(Base):
     fetched_at     = Column(DateTime, default=datetime.utcnow)
     content_hash   = Column(String)
     origin         = Column(String, default="api")   # api | pdf_auto | pdf_manual
+    domain         = Column(String, default="ai")    # ai | privacy | both
 
     __table_args__ = (
         Index("ix_doc_jurisdiction", "jurisdiction"),
         Index("ix_doc_source",       "source"),
         Index("ix_doc_published",    "published_date"),
+        Index("ix_doc_domain",       "domain"),
     )
 
 
@@ -93,6 +95,7 @@ class Summary(Base):
     relevance_score = Column(Float)
     model_used      = Column(String)
     summarized_at   = Column(DateTime, default=datetime.utcnow)
+    domain          = Column(String, default="ai")   # ai | privacy | both
 
 
 class DocumentDiff(Base):
@@ -249,11 +252,14 @@ def get_documents_by_title_pattern(pattern: str,
 
 
 def get_all_documents(jurisdiction: Optional[str] = None,
+                      domain: Optional[str] = None,
                       limit: int = 500) -> List[Dict[str, Any]]:
     with get_session() as session:
         q = session.query(Document)
         if jurisdiction:
             q = q.filter(Document.jurisdiction == jurisdiction)
+        if domain:
+            q = q.filter(Document.domain == domain)
         return [_doc_to_dict(d) for d in
                 q.order_by(Document.published_date.desc()).limit(limit).all()]
 
@@ -270,6 +276,7 @@ def _doc_to_dict(doc: Document) -> Dict[str, Any]:
         "agency":        doc.agency,
         "status":        doc.status,
         "full_text":     doc.full_text,
+        "domain":        doc.domain or "ai",
     }
 
 
@@ -321,22 +328,28 @@ def get_summary(doc_id: str) -> Optional[Dict[str, Any]]:
         }
 
 
-def get_unsummarized_documents(limit: int = 50) -> List[Document]:
+def get_unsummarized_documents(limit: int = 50,
+                               domain: Optional[str] = None) -> List[Document]:
     with get_session() as session:
         summarized_ids = session.execute(
             text("SELECT document_id FROM summaries")
         ).scalars().all()
-        return (
+        q = (
             session.query(Document)
             .filter(Document.id.notin_(summarized_ids))
-            .order_by(Document.published_date.desc())
+        )
+        if domain:
+            q = q.filter(Document.domain == domain)
+        return (
+            q.order_by(Document.published_date.desc())
             .limit(limit)
             .all()
         )
 
 
 def get_recent_summaries(days: int = 30,
-                          jurisdiction: Optional[str] = None) -> List[Dict]:
+                          jurisdiction: Optional[str] = None,
+                          domain: Optional[str] = None) -> List[Dict]:
     """
     Return documents joined with their summaries (if available).
 
@@ -356,14 +369,14 @@ def get_recent_summaries(days: int = 30,
             .outerjoin(Summary, Document.id == Summary.document_id)
             .filter(
                 # Include if published recently OR fetched recently
-                # Handles: null published_date, historically-dated pinned docs,
-                # and documents fetched today that have old publication dates
                 (Document.fetched_at >= since) |
                 (Document.published_date >= since)
             )
         )
         if jurisdiction:
             q = q.filter(Document.jurisdiction == jurisdiction)
+        if domain:
+            q = q.filter(Document.domain == domain)
 
         results = []
         for doc, summ in q.order_by(Document.fetched_at.desc()).all():
@@ -393,6 +406,7 @@ def get_recent_summaries(days: int = 30,
                 "published_date": doc.published_date.isoformat() if doc.published_date else None,
                 "fetched_at":     doc.fetched_at.isoformat() if doc.fetched_at else None,
                 "summarized":     summ is not None,
+                "domain":         doc.domain or "ai",
                 **summary_fields,
             })
         return results
@@ -606,23 +620,25 @@ class RegulatoryHorizon(Base):
     __tablename__ = "regulatory_horizon"
 
     id               = Column(Integer, primary_key=True, autoincrement=True)
-    source           = Column(String, nullable=False)   # unified_agenda | congress_hearings | eu_work_programme | uk_upcoming
-    external_id      = Column(String, nullable=False)   # stable ID from source
+    source           = Column(String, nullable=False)
+    external_id      = Column(String, nullable=False)
     jurisdiction     = Column(String, nullable=False)
     title            = Column(Text,   nullable=False)
     description      = Column(Text)
     agency           = Column(String)
-    stage            = Column(String)                   # planned | pre-rule | proposed | hearing | final | enacted
+    stage            = Column(String)
     anticipated_date = Column(DateTime)
     url              = Column(Text)
     ai_score         = Column(Float, default=0.0)
     fetched_at       = Column(DateTime, default=datetime.utcnow)
-    dismissed        = Column(Boolean,  default=False)  # user can dismiss items
+    dismissed        = Column(Boolean,  default=False)
+    domain           = Column(String, default="ai")   # ai | privacy | both
 
     __table_args__ = (
         Index("ix_horizon_source_eid",   "source", "external_id", unique=True),
         Index("ix_horizon_jurisdiction", "jurisdiction"),
         Index("ix_horizon_anticipated",  "anticipated_date"),
+        Index("ix_horizon_domain",       "domain"),
     )
 
 
@@ -1181,6 +1197,7 @@ def upsert_horizon_item(item: Dict[str, Any]) -> bool:
 def get_horizon_items(days_ahead: int = 365,
                        jurisdiction: Optional[str] = None,
                        stage: Optional[str] = None,
+                       domain: Optional[str] = None,
                        include_past: bool = False,
                        limit: int = 200) -> List[Dict[str, Any]]:
     """Return upcoming horizon items ordered by anticipated date."""
@@ -1206,6 +1223,9 @@ def get_horizon_items(days_ahead: int = 365,
 
         if stage:
             q = q.filter(RegulatoryHorizon.stage == stage)
+
+        if domain:
+            q = q.filter(RegulatoryHorizon.domain == domain)
 
         rows = q.order_by(
             RegulatoryHorizon.anticipated_date.asc().nullslast(),
@@ -1630,6 +1650,13 @@ def get_stats() -> Dict[str, Any]:
         total_analyses  = session.query(GapAnalysis).count()
         trend_snapshots = session.query(TrendSnapshot).count()
         horizon_items   = session.query(RegulatoryHorizon).filter_by(dismissed=False).count()
+        # Per-domain document counts
+        ai_docs      = session.query(Document).filter(
+            Document.domain.in_(["ai", "both"])
+        ).count()
+        privacy_docs = session.query(Document).filter(
+            Document.domain.in_(["privacy", "both"])
+        ).count()
         return {
             "total_documents":     total_docs,
             "total_summaries":     total_summaries,
@@ -1651,6 +1678,8 @@ def get_stats() -> Dict[str, Any]:
             "gap_analyses":        total_analyses,
             "trend_snapshots":     trend_snapshots,
             "horizon_items":       horizon_items,
+            "ai_documents":        ai_docs,
+            "privacy_documents":   privacy_docs,
         }
 
 
@@ -1709,30 +1738,32 @@ class EnforcementAction(Base):
     """
     __tablename__ = "enforcement_actions"
 
-    id               = Column(String, primary_key=True)   # source-prefixed e.g. "FTC-2025-001"
-    source           = Column(String, nullable=False)     # ftc | sec | cfpb | eeoc | ico | doj | courtlistener
-    action_type      = Column(String, nullable=False)     # enforcement | litigation | opinion | settlement | guidance
+    id               = Column(String, primary_key=True)
+    source           = Column(String, nullable=False)
+    action_type      = Column(String, nullable=False)
     title            = Column(Text, nullable=False)
     url              = Column(Text)
     published_date   = Column(DateTime)
-    agency           = Column(String)                     # enforcing agency / court
-    jurisdiction     = Column(String)                     # Federal | GB | EU | etc.
-    respondent       = Column(Text)                       # company/person subject to action
-    summary          = Column(Text)                       # brief description
-    full_text        = Column(Text)                       # extracted body text if available
-    related_regs     = Column(JSON)                       # list of baseline IDs or doc IDs this enforces
-    outcome          = Column(String)                     # fine | injunction | settlement | pending | dismissed
-    penalty_amount   = Column(String)                     # e.g. "$1.2M" or "€500K"
-    ai_concepts      = Column(JSON)                       # list of concepts: bias_fairness, transparency, etc.
+    agency           = Column(String)
+    jurisdiction     = Column(String)
+    respondent       = Column(Text)
+    summary          = Column(Text)
+    full_text        = Column(Text)
+    related_regs     = Column(JSON)
+    outcome          = Column(String)
+    penalty_amount   = Column(String)
+    ai_concepts      = Column(JSON)
     relevance_score  = Column(Float, default=0.0)
     fetched_at       = Column(DateTime, default=datetime.utcnow)
     raw_json         = Column(JSON)
+    domain           = Column(String, default="ai")   # ai | privacy | both
 
     __table_args__ = (
         Index("ix_ea_source",     "source"),
         Index("ix_ea_type",       "action_type"),
         Index("ix_ea_jur",        "jurisdiction"),
         Index("ix_ea_published",  "published_date"),
+        Index("ix_ea_domain",     "domain"),
     )
 
 
@@ -1760,6 +1791,7 @@ def get_enforcement_actions(
     jurisdiction: Optional[str]  = None,
     source:       Optional[str]  = None,
     action_type:  Optional[str]  = None,
+    domain:       Optional[str]  = None,
     days:         int             = 365,
     limit:        int             = 200,
 ) -> List[Dict]:
@@ -1771,6 +1803,8 @@ def get_enforcement_actions(
             q = q.filter(EnforcementAction.source == source)
         if action_type:
             q = q.filter(EnforcementAction.action_type == action_type)
+        if domain:
+            q = q.filter(EnforcementAction.domain == domain)
         if days:
             cutoff = datetime.utcnow() - timedelta(days=days)
             q = q.filter(EnforcementAction.published_date >= cutoff)
@@ -1792,6 +1826,7 @@ def get_enforcement_actions(
                 "penalty_amount": r.penalty_amount,
                 "ai_concepts":    r.ai_concepts or [],
                 "relevance_score":r.relevance_score,
+                "domain":         r.domain or "ai",
             }
             for r in q.all()
         ]
