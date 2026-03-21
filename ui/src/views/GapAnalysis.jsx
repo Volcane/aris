@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Building2, Plus, Trash2, Play, Star, StarOff,
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle2,
-  Edit3, RefreshCw, X, Bot, Shield, BarChart3, ListChecks
+  Edit3, RefreshCw, X, Bot, Shield, BarChart3, ListChecks, Download
 } from 'lucide-react'
 import { Spinner, EmptyState, SectionHeader, Badge, DomainFilter } from '../components.jsx'
 
@@ -331,6 +331,11 @@ function GapResults({ analysis, domain, onStar, onAnnotate, onRerun, running }) 
           <button className="btn-icon" onClick={() => setShowAnnotate(!showAnnotate)}>
             <span style={{ fontSize: 12 }}>Note</span>
           </button>
+          <a href={`/api/gap-analyses/${analysis.id}/export`} download>
+            <button className="btn-secondary btn-sm">
+              <Download size={12} /> Export .docx
+            </button>
+          </a>
           <button className="btn-secondary btn-sm" onClick={onRerun} disabled={running}>
             <RefreshCw size={12} /> Re-run
           </button>

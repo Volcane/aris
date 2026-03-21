@@ -1,27 +1,36 @@
 import { useState, useEffect, useRef } from 'react'
-import { Play, Square, RefreshCw, Check } from 'lucide-react'
+import { Play, RefreshCw, Check, AlertTriangle, ChevronRight, Info, Zap } from 'lucide-react'
 import { api } from '../api.js'
 import { Spinner, SectionHeader } from '../components.jsx'
 
 const ALL_SOURCES = [
   { id: 'federal',       label: 'US Federal',       sub: 'Federal Register · Regulations.gov · Congress.gov' },
-  { id: 'states',        label: 'US States',         sub: 'All enabled state legislatures (LegiScan + native feeds)' },
-  { id: 'PA',            label: 'Pennsylvania',      sub: 'PA General Assembly XML + LegiScan' },
+  { id: 'states',        label: 'US States',         sub: 'All enabled state legislatures (PA · CA · CO · IL)' },
+  { id: 'PA',            label: 'Pennsylvania',      sub: 'PA General Assembly ZIP + LegiScan' },
+  { id: 'CA',            label: 'California',        sub: 'CA Legislature API + LegiScan' },
+  { id: 'CO',            label: 'Colorado',          sub: 'leg.colorado.gov API + LegiScan' },
+  { id: 'IL',            label: 'Illinois',          sub: 'ILGA RSS feeds + LegiScan' },
   { id: 'international', label: 'International',     sub: 'EU · UK · Canada · Japan · China · Australia' },
   { id: 'EU',            label: 'European Union',    sub: 'EUR-Lex SPARQL · EU AI Office RSS' },
   { id: 'GB',            label: 'United Kingdom',    sub: 'UK Parliament Bills · legislation.gov.uk · GOV.UK' },
-  { id: 'CA',            label: 'Canada',            sub: 'OpenParliament · Canada Gazette · ISED feed' },
+  { id: 'CA_INTL',       label: 'Canada',            sub: 'OpenParliament · Canada Gazette · ISED feed' },
 ]
 
+const URGENCY_COLORS = {
+  Critical: 'var(--red)',
+  High:     'var(--orange)',
+  Medium:   'var(--yellow)',
+  Low:      'var(--green)',
+}
+
 export default function RunAgents({ onJobStart }) {
-  const [selectedSources, setSelectedSources] = useState([])   // empty = all
+  const [selectedSources, setSelectedSources] = useState([])
   const [lookbackDays,    setLookbackDays]    = useState(30)
   const [summarize,       setSummarize]       = useState(true)
   const [runDiff,         setRunDiff]         = useState(true)
   const [limit,           setLimit]           = useState(50)
   const [forceSummarize,  setForceSummarize]  = useState(false)
   const [domain,          setDomain]          = useState(() => {
-    // Inherit the most recently active view domain, or 'both' as default
     try {
       const recent = ['documents','changes','horizon','enforcement','baselines','trends','synthesis']
         .map(k => localStorage.getItem(`aris_domain_${k}`))
@@ -33,7 +42,18 @@ export default function RunAgents({ onJobStart }) {
   const [logLines,        setLogLines]        = useState([])
   const [logOffset,       setLogOffset]       = useState(0)
   const [lastResult,      setLastResult]      = useState(null)
+  const [isFirstRun,      setIsFirstRun]      = useState(false)
   const logRef = useRef(null)
+
+  // Check on mount if this is a first-run situation
+  useEffect(() => {
+    api.status().then(s => {
+      const stats = s?.stats || {}
+      const realSummaries = (stats.total_summaries || 0) - (stats.skipped_summaries || 0)
+      const hasDocs = (stats.total_documents || 0) > 0
+      setIsFirstRun(hasDocs && realSummaries === 0)
+    }).catch(() => {})
+  }, [])
 
   // Poll log while running
   useEffect(() => {
@@ -50,6 +70,10 @@ export default function RunAgents({ onJobStart }) {
           clearInterval(id)
           const status = await api.runStatus()
           setLastResult(status.last_result)
+          // Re-check first run state after run completes
+          const stats = status.last_result || {}
+          const realSummaries = (stats.total_summaries || 0) - (stats.skipped_summaries || 0)
+          setIsFirstRun(false)  // cleared after any run completes
         }
       } catch {}
     }, 1500)
@@ -58,9 +82,7 @@ export default function RunAgents({ onJobStart }) {
 
   // Auto-scroll log
   useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight
-    }
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [logLines])
 
   const handleRun = async () => {
@@ -86,14 +108,28 @@ export default function RunAgents({ onJobStart }) {
   }
 
   const toggleSource = (id) => {
-    setSelectedSources(prev =>
-      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-    )
+    setSelectedSources(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
   }
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 860 }}>
       <SectionHeader title="Run Agents" subtitle="Fetch new documents and run AI summarization" />
+
+      {/* First-run banner */}
+      {isFirstRun && !running && (
+        <div style={{
+          marginBottom: 20, padding: '12px 16px',
+          background: 'rgba(212,168,67,0.10)', border: '1px solid rgba(212,168,67,0.4)',
+          borderRadius: 'var(--radius)', display: 'flex', gap: 10, alignItems: 'flex-start',
+        }}>
+          <Zap size={15} style={{ color: 'var(--yellow)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+            <strong style={{ color: 'var(--yellow)' }}>First run detected.</strong>{' '}
+            Force Summarize will be enabled automatically so your first batch processes fully
+            without the relevance pre-filter. After this run, the pre-filter activates normally.
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 28 }}>
         {/* Source selection */}
@@ -107,12 +143,7 @@ export default function RunAgents({ onJobStart }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {ALL_SOURCES.map(src => (
               <label key={src.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 12px', background: selectedSources.includes(src.id) ? 'var(--bg-4)' : 'var(--bg-2)', border: `1px solid ${selectedSources.includes(src.id) ? 'var(--accent-dim)' : 'var(--border)'}`, borderRadius: 'var(--radius)', transition: 'all 0.15s' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedSources.includes(src.id)}
-                  onChange={() => toggleSource(src.id)}
-                  style={{ width: 'auto', marginTop: 2, accentColor: 'var(--accent)' }}
-                />
+                <input type="checkbox" checked={selectedSources.includes(src.id)} onChange={() => toggleSource(src.id)} style={{ width: 'auto', marginTop: 2, accentColor: 'var(--accent)' }} />
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{src.label}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{src.sub}</div>
@@ -162,40 +193,24 @@ export default function RunAgents({ onJobStart }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { val: summarize,      set: setSummarize,      label: 'Run AI summarization (Claude)' },
-                { val: runDiff,        set: setRunDiff,        label: 'Run change detection (diffs & addenda)' },
+                { val: summarize, set: setSummarize, label: 'Run AI summarization (Claude)' },
+                { val: runDiff,   set: setRunDiff,   label: 'Run change detection (diffs & addenda)' },
               ].map(({ val, set, label }) => (
                 <label key={label} className="flex items-center gap-3" style={{ cursor: 'pointer', fontSize: 13 }}>
-                  <input
-                    type="checkbox"
-                    checked={val}
-                    onChange={e => set(e.target.checked)}
-                    style={{ width: 'auto', accentColor: 'var(--accent)' }}
-                  />
+                  <input type="checkbox" checked={val} onChange={e => set(e.target.checked)} style={{ width: 'auto', accentColor: 'var(--accent)' }} />
                   <span style={{ color: 'var(--text-2)' }}>{label}</span>
                 </label>
               ))}
               {summarize && (
                 <div style={{ padding: '10px 12px', background: 'var(--bg-3)', borderRadius: 'var(--radius)', border: `1px solid ${forceSummarize ? 'var(--yellow)' : 'var(--border)'}` }}>
-                  <label className="flex items-center gap-3" style={{ cursor: 'pointer', fontSize: 13, marginBottom: forceSummarize ? 6 : 0 }}>
-                    <input
-                      type="checkbox"
-                      checked={forceSummarize}
-                      onChange={e => setForceSummarize(e.target.checked)}
-                      style={{ width: 'auto', accentColor: 'var(--yellow)' }}
-                    />
-                    <span style={{ color: forceSummarize ? 'var(--yellow)' : 'var(--text-2)', fontWeight: 500 }}>
-                      Force Summarize
-                    </span>
-                    {forceSummarize && <span style={{ marginLeft: 'auto', fontSize: 10,
-                      background: 'rgba(212,168,67,0.15)', color: 'var(--yellow)',
-                      padding: '1px 6px', borderRadius: 3, fontFamily: 'var(--font-mono)' }}>
-                      ON
-                    </span>}
+                  <label className="flex items-center gap-3" style={{ cursor: 'pointer', fontSize: 13, marginBottom: 6 }}>
+                    <input type="checkbox" checked={forceSummarize} onChange={e => setForceSummarize(e.target.checked)} style={{ width: 'auto', accentColor: 'var(--yellow)' }} />
+                    <span style={{ color: forceSummarize ? 'var(--yellow)' : 'var(--text-2)', fontWeight: 500 }}>Force Summarize</span>
+                    {forceSummarize && <span style={{ marginLeft: 'auto', fontSize: 10, background: 'rgba(212,168,67,0.15)', color: 'var(--yellow)', padding: '1px 6px', borderRadius: 3, fontFamily: 'var(--font-mono)' }}>ON</span>}
                   </label>
                   <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
-                    Bypasses the relevance pre-filter. Use this if documents show as "Skipped" in the Documents view
-                    or if fewer documents are being summarized than expected.
+                    Bypasses the relevance pre-filter. Use this if documents show as "Skipped"
+                    in the Documents view or if fewer documents are being summarized than expected.
                   </div>
                 </div>
               )}
@@ -204,12 +219,8 @@ export default function RunAgents({ onJobStart }) {
 
           {/* Run button */}
           <div style={{ marginTop: 28 }}>
-            <button
-              className="btn-primary"
-              onClick={handleRun}
-              disabled={running}
-              style={{ width: '100%', justifyContent: 'center', padding: '11px 16px', fontSize: 14 }}
-            >
+            <button className="btn-primary" onClick={handleRun} disabled={running}
+              style={{ width: '100%', justifyContent: 'center', padding: '11px 16px', fontSize: 14 }}>
               {running
                 ? <><Spinner size={14} /> Running…</>
                 : <><Play size={14} /> Run {selectedSources.length > 0 ? selectedSources.join(', ') : 'All Sources'}</>
@@ -217,20 +228,9 @@ export default function RunAgents({ onJobStart }) {
             </button>
           </div>
 
-          {/* Last result */}
+          {/* Post-run summary card */}
           {lastResult && !running && (
-            <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--green-dim)', border: '1px solid var(--green)', borderRadius: 'var(--radius)', fontSize: 12 }}>
-              <div className="flex items-center gap-2" style={{ color: 'var(--green)', marginBottom: 6, fontWeight: 500 }}>
-                <Check size={14} /> Run complete
-              </div>
-              <div style={{ color: 'var(--text-2)', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span>Fetched: {lastResult.fetched ?? '—'} new documents</span>
-                <span>Summarized: {lastResult.summarized ?? '—'}</span>
-                {lastResult.version_diffs != null && <span>Version diffs: {lastResult.version_diffs}</span>}
-                {lastResult.addenda_found != null && <span>Addenda found: {lastResult.addenda_found}</span>}
-                <span>Total in DB: {lastResult.total_documents ?? '—'}</span>
-              </div>
-            </div>
+            <RunResultCard result={lastResult} />
           )}
         </div>
       </div>
@@ -240,39 +240,126 @@ export default function RunAgents({ onJobStart }) {
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
           Agent Log {running && <Spinner size={11} />}
         </div>
-        <div
-          ref={logRef}
-          style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            padding: '14px 16px',
-            height: 280,
-            overflow: 'auto',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 12,
-            lineHeight: 1.8,
-            color: 'var(--text-3)',
-          }}
-        >
-          {logLines.length === 0 ? (
-            <span style={{ color: 'var(--text-3)', fontStyle: 'italic' }}>Run an agent to see live output…</span>
-          ) : (
-            logLines.map((line, i) => (
-              <div
-                key={i}
-                style={{
-                  color: line.includes('ERROR') ? 'var(--red)'
-                    : line.includes('complete') || line.includes('✓') ? 'var(--green)'
-                    : line.includes('Summariz') ? 'var(--accent)'
-                    : 'var(--text-2)',
-                }}
-              >
-                {line}
-              </div>
-            ))
-          )}
+        <div ref={logRef} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px 16px', height: 280, overflow: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1.8, color: 'var(--text-3)' }}>
+          {logLines.length === 0
+            ? <span style={{ color: 'var(--text-3)', fontStyle: 'italic' }}>Run an agent to see live output…</span>
+            : logLines.map((line, i) => (
+                <div key={i} style={{
+                  color: line.includes('ERROR')    ? 'var(--red)'
+                       : line.includes('complete') || line.includes('✓') ? 'var(--green)'
+                       : line.includes('Summariz') || line.includes('Force') ? 'var(--accent)'
+                       : line.includes('skipped')  ? 'var(--yellow)'
+                       : 'var(--text-2)',
+                }}>{line}</div>
+              ))
+          }
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Post-run summary card ─────────────────────────────────────────────────────
+
+function RunResultCard({ result }) {
+  const fetched    = result.fetched    ?? 0
+  const summarized = result.summarized ?? 0
+  const skipped    = result.skipped    ?? 0
+  const diffs      = result.version_diffs ?? 0
+  const addenda    = result.addenda_found ?? 0
+  const totalChanges = diffs + addenda
+  const urgency    = result.urgency_dist || {}
+  const critical   = urgency.Critical || 0
+  const high       = urgency.High     || 0
+  const firstRun   = result.first_run  || false
+
+  const rows = [
+    {
+      label: 'Fetched',
+      value: fetched,
+      sub: 'new documents',
+      color: 'var(--text)',
+    },
+    {
+      label: 'Summarised',
+      value: summarized,
+      sub: firstRun ? 'first run — force mode' : undefined,
+      color: 'var(--green)',
+      link: '/documents',
+    },
+    skipped > 0 && {
+      label: 'Skipped',
+      value: skipped,
+      sub: 'relevance pre-filter',
+      color: 'var(--yellow)',
+      link: '/documents',
+      warn: true,
+    },
+    totalChanges > 0 && {
+      label: 'Changes',
+      value: totalChanges,
+      sub: critical > 0 ? `${critical} critical` : high > 0 ? `${high} high` : undefined,
+      color: critical > 0 ? 'var(--red)' : high > 0 ? 'var(--orange)' : 'var(--text-2)',
+      link: '/changes',
+    },
+  ].filter(Boolean)
+
+  return (
+    <div style={{ marginTop: 16, background: 'var(--bg-2)', border: '1px solid var(--green-dim)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ padding: '10px 14px', background: 'var(--green-dim)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Check size={14} style={{ color: 'var(--green)' }} />
+        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--green)' }}>Run complete</span>
+        {firstRun && (
+          <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--yellow)', fontFamily: 'var(--font-mono)', background: 'rgba(212,168,67,0.15)', padding: '1px 6px', borderRadius: 3 }}>
+            FIRST RUN
+          </span>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {rows.map((row, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 300, color: row.color, minWidth: 28, textAlign: 'right' }}>
+              {row.value}
+            </span>
+            <span style={{ color: 'var(--text-2)' }}>{row.label}</span>
+            {row.sub && (
+              <span style={{ fontSize: 11, color: row.warn ? 'var(--yellow)' : 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                {row.sub}
+              </span>
+            )}
+            {row.link && (
+              <a href={row.link} style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--accent)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2 }}>
+                View <ChevronRight size={11} />
+              </a>
+            )}
+          </div>
+        ))}
+
+        {/* Urgency pills — only if we have urgency data */}
+        {Object.keys(urgency).length > 0 && (
+          <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--border)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['Critical','High','Medium','Low'].filter(u => urgency[u] > 0).map(u => (
+              <span key={u} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', padding: '2px 7px', borderRadius: 4, background: URGENCY_COLORS[u] + '18', color: URGENCY_COLORS[u] }}>
+                {urgency[u]} {u}
+              </span>
+            ))}
+            <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 'auto' }}>
+              {result.total_documents ?? 0} total in DB
+            </span>
+          </div>
+        )}
+
+        {/* Skipped hint */}
+        {skipped > 0 && (
+          <div style={{ marginTop: 4, padding: '8px 10px', background: 'rgba(212,168,67,0.08)', border: '1px solid rgba(212,168,67,0.25)', borderRadius: 'var(--radius)', fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
+            <Info size={11} style={{ color: 'var(--yellow)', verticalAlign: 'middle', marginRight: 4 }} />
+            {skipped} document{skipped > 1 ? 's' : ''} were filtered by the relevance pre-filter and show as "Skipped" in Documents.
+            Check <strong style={{ color: 'var(--text-2)' }}>Force Summarize</strong> to process them regardless of score.
+          </div>
+        )}
       </div>
     </div>
   )

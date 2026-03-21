@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Layers, Play, Star, StarOff, Trash2, ChevronDown, ChevronUp,
-         AlertTriangle, CheckCircle2, TrendingUp, Globe, Plus, X } from 'lucide-react'
+         AlertTriangle, CheckCircle2, TrendingUp, Globe, Plus, X, Download } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { api } from '../api.js'
 import { Badge, Spinner, EmptyState, Modal, SectionHeader, RequirementList, DomainFilter } from '../components.jsx'
@@ -246,6 +246,9 @@ function SynthesisDetail({ detail, onStar, onDelete, onAnnotate }) {
       <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
         <h2 style={{ fontWeight: 300, fontSize: '1.3rem', flex: 1, paddingRight: 16 }}>{detail.topic}</h2>
         <div className="flex gap-2">
+          <a href={`/api/synthesis/${detail.id}/export`} download>
+            <button className="btn-secondary btn-sm"><Download size={12} /> Export .docx</button>
+          </a>
           <button className="btn-icon" title={detail.starred ? 'Unstar' : 'Star'} onClick={onStar}>
             {detail.starred
               ? <Star size={15} style={{ color: 'var(--accent)' }} />

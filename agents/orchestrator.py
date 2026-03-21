@@ -376,7 +376,7 @@ class Orchestrator:
     # ── Summarize ─────────────────────────────────────────────────────────────
 
     def summarize(self, limit: int = 50, progress_callback=None,
-                  force: bool = False) -> int:
+                  force: bool = False) -> dict:
         """
         Summarise pending (unsummarised) documents.
 
@@ -384,11 +384,27 @@ class Orchestrator:
         the quality filter has incorrectly learned to skip documents from
         valid sources, or when the user explicitly wants every pending doc
         processed regardless of source quality scores.
+
+        Returns a dict: {"saved": N, "skipped": N, "first_run": bool}
         """
+        # ── First-run detection ───────────────────────────────────────────────
+        # If the system has no real summaries yet (only Skipped stubs or nothing),
+        # auto-enable force mode so the first batch processes fully without the
+        # pre-filter blocking everything.
+        stats = get_stats()
+        real_summaries = stats.get("total_summaries", 0) - stats.get("skipped_summaries", 0)
+        is_first_run = real_summaries == 0 and stats.get("total_documents", 0) > 0
+        if is_first_run and not force:
+            log.info(
+                "First run detected — Force Summarize enabled automatically "
+                "(no real summaries exist yet; pre-filter bypassed for initial batch)"
+            )
+            force = True
+
         pending = get_unsummarized_documents(limit=limit * 2)  # fetch more, then priority-sort
         if not pending:
             log.info("No pending documents to summarize")
-            return 0
+            return {"saved": 0, "skipped": 0, "first_run": is_first_run}
 
         # Convert to dicts for priority scoring
         doc_dicts = [
@@ -441,7 +457,7 @@ class Orchestrator:
             )
         else:
             log.info("Summarization complete — %d summaries saved", saved)
-        return saved
+        return {"saved": saved, "skipped": skipped_count, "first_run": is_first_run}
 
     # ── Full run ──────────────────────────────────────────────────────────────
 
@@ -455,6 +471,7 @@ class Orchestrator:
                                    run_diff=run_diff, domain=domain)
         summarized   = self.summarize(limit=summarize_limit,
                                        progress_callback=progress_callback)
+        sum_saved = summarized.get("saved", 0) if isinstance(summarized, dict) else summarized
 
         # Refresh trend snapshots after every full run (no API calls)
         try:
@@ -482,7 +499,7 @@ class Orchestrator:
         except Exception as e:
             log.debug("Q&A index rebuild skipped: %s", e)
 
-        return {**fetch_result, "summarized": summarized, **get_stats()}
+        return {**fetch_result, "summarized": sum_saved, **get_stats()}
 
     # ── Introspection ─────────────────────────────────────────────────────────
 

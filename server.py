@@ -48,10 +48,59 @@ log = get_logger("aris.server")
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
+# ── Startup: index baselines into RAG if not already done ─────────────────────
+
+from contextlib import asynccontextmanager
+import threading
+
+def _startup_index_baselines():
+    """
+    Index baseline passages into the Q&A RAG store on server startup.
+    Runs in a background thread so it never blocks the server from starting.
+    Only indexes if baselines are not already present (idempotent).
+    """
+    try:
+        from utils.db import get_session
+        import sqlite3 as _sq
+        from config.settings import DB_PATH
+        conn = _sq.connect(DB_PATH)
+        try:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM qa_passages WHERE source_type = 'baseline'"
+            ).fetchone()[0]
+        except Exception:
+            count = 0
+        finally:
+            conn.close()
+
+        if count > 0:
+            log.debug("Q&A baseline passages already indexed (%d passages) — skipping", count)
+            return
+
+        log.info("Q&A index: indexing baseline passages on startup…")
+        from utils.rag import build_passage_index
+        result = build_passage_index(force=False)
+        log.info("Q&A index: startup indexing complete — %s", result)
+    except Exception as e:
+        log.warning("Q&A startup indexing skipped: %s", e)
+
+
+@asynccontextmanager
+async def lifespan(application):
+    # Index baselines in background — non-blocking
+    t = threading.Thread(target=_startup_index_baselines, daemon=True)
+    t.start()
+    # Start scheduled monitoring thread
+    _start_schedule_thread()
+    yield
+    # (shutdown cleanup could go here if needed)
+
+
 app = FastAPI(
     title="ARIS — Automated Regulatory Intelligence System",
     description="REST API for the ARIS dashboard",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -60,6 +109,69 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Scheduled monitoring ─────────────────────────────────────────────────────
+
+import time as _time
+
+_schedule_thread = None
+_schedule_stop   = threading.Event()
+
+
+def _schedule_loop():
+    """Background thread: checks schedule config and fires runs at the right time."""
+    import math
+    log.info("Schedule monitor started")
+    while not _schedule_stop.is_set():
+        try:
+            from utils.db import get_schedule_config, update_schedule_last_run
+            cfg = get_schedule_config()
+            if cfg["enabled"] and cfg["next_run"] and not _job_state["running"]:
+                from datetime import datetime as _dt
+                next_run = _dt.fromisoformat(cfg["next_run"])
+                if _dt.utcnow() >= next_run:
+                    log.info("Scheduled run triggered")
+                    update_schedule_last_run()
+                    try:
+                        from agents.orchestrator import Orchestrator
+                        orch = Orchestrator()
+                        _job_state["running"] = True
+                        _job_state["log"]     = []
+                        _log("Scheduled run started")
+                        fetch_result = orch.fetch(
+                            lookback_days=cfg["lookback_days"],
+                            domain=cfg["domain"],
+                        )
+                        _log(f"Fetched {fetch_result['fetched']} documents")
+                        sum_result = orch.summarize(limit=100)
+                        _log(f"Summarized {sum_result.get('saved', sum_result) if isinstance(sum_result, dict) else sum_result} documents")
+                        _job_state["last_result"] = {**fetch_result, "summarized": sum_result.get("saved", 0) if isinstance(sum_result, dict) else sum_result, **get_stats()}
+                        _log("Scheduled run complete ✓")
+                        # Trigger notifications if configured
+                        try:
+                            from utils.notifier import send_digest_if_warranted
+                            send_digest_if_warranted(_job_state["last_result"])
+                        except Exception as ne:
+                            log.debug("Notification skipped: %s", ne)
+                    except Exception as e:
+                        _log(f"ERROR in scheduled run: {e}")
+                        log.error("Scheduled run error: %s", e)
+                    finally:
+                        _job_state["running"]  = False
+                        _job_state["last_run"] = __import__("datetime").datetime.utcnow().isoformat()
+        except Exception as e:
+            log.debug("Schedule loop error: %s", e)
+        _schedule_stop.wait(60)   # check every 60 seconds
+
+
+def _start_schedule_thread():
+    global _schedule_thread
+    if _schedule_thread and _schedule_thread.is_alive():
+        return
+    _schedule_stop.clear()
+    _schedule_thread = threading.Thread(target=_schedule_loop, daemon=True, name="aris-scheduler")
+    _schedule_thread.start()
+
 
 # ── Background job state ──────────────────────────────────────────────────────
 
@@ -147,6 +259,80 @@ def _match_watchlist(doc: Dict, watch_items: List[Dict]) -> List[str]:
 # ── API Routes ────────────────────────────────────────────────────────────────
 
 # ·· System status ·············································
+
+@app.get("/api/notifications/config")
+def get_notification_config():
+    """Return current notification configuration (keys masked)."""
+    try:
+        from utils.notifier import get_config
+        return get_config()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/notifications/test")
+def test_notifications():
+    """Send a test notification to all configured channels."""
+    try:
+        from utils.notifier import send_test_notification
+        results = send_test_notification()
+        return {"results": results, "any_sent": any(results.values())}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/schedule")
+def get_schedule():
+    """Return the current schedule configuration."""
+    from utils.db import get_schedule_config
+    return get_schedule_config()
+
+
+@app.post("/api/schedule")
+def save_schedule(req: dict):
+    """Save schedule configuration. Restarts the scheduler thread."""
+    from utils.db import save_schedule_config
+    result = save_schedule_config(
+        enabled       = bool(req.get("enabled", False)),
+        interval_hours= int(req.get("interval_hours", 24)),
+        domain        = str(req.get("domain", "both")),
+        lookback_days = int(req.get("lookback_days", 7)),
+    )
+    _start_schedule_thread()
+    return result
+
+
+@app.post("/api/schedule/trigger")
+def trigger_schedule_now(background_tasks: BackgroundTasks):
+    """Manually trigger a scheduled run now."""
+    if _job_state["running"]:
+        raise HTTPException(status_code=409, detail="A job is already running")
+    from utils.db import get_schedule_config
+    cfg = get_schedule_config()
+
+    def _run():
+        _job_state["running"] = True
+        _job_state["log"]     = []
+        _log("Manual scheduled run started")
+        try:
+            from agents.orchestrator import Orchestrator
+            orch = Orchestrator()
+            fetch_result = orch.fetch(lookback_days=cfg.get("lookback_days", 7), domain=cfg.get("domain", "both"))
+            _log(f"Fetched {fetch_result['fetched']} documents")
+            sum_result = orch.summarize(limit=100)
+            saved = sum_result.get("saved", sum_result) if isinstance(sum_result, dict) else sum_result
+            _log(f"Summarized {saved} documents")
+            _job_state["last_result"] = {**fetch_result, "summarized": saved, **get_stats()}
+            _log("Scheduled run complete ✓")
+        except Exception as e:
+            _log(f"ERROR: {e}")
+        finally:
+            _job_state["running"]  = False
+            _job_state["last_run"] = __import__("datetime").datetime.utcnow().isoformat()
+
+    background_tasks.add_task(_run)
+    return {"status": "started"}
+
 
 @app.get("/api/status")
 def get_status():
@@ -395,7 +581,7 @@ def run_agents(req: RunAgentsRequest, background_tasks: BackgroundTasks):
                 _log(f"Version diffs: {fetch_result.get('version_diffs', 0)}")
                 _log(f"Addenda found: {fetch_result.get('addenda_found', 0)}")
 
-            summarized = 0
+            sum_result = {"saved": 0, "skipped": 0, "first_run": False}
             if req.summarize:
                 _log(f"Summarizing up to {req.limit} documents with Claude…")
                 if req.force_summarize:
@@ -404,14 +590,40 @@ def run_agents(req: RunAgentsRequest, background_tasks: BackgroundTasks):
                 def _cb(current, total):
                     _log(f"  Summarizing {current}/{total}…")
 
-                summarized = orch.summarize(limit=req.limit, progress_callback=_cb,
+                sum_result = orch.summarize(limit=req.limit, progress_callback=_cb,
                                             force=req.force_summarize)
-                _log(f"Summarized {summarized} documents")
+                saved   = sum_result["saved"]
+                skipped = sum_result["skipped"]
+                if sum_result.get("first_run"):
+                    _log(f"  First run — Force Summarize was auto-enabled")
+                _log(f"Summarized {saved} documents" +
+                     (f", {skipped} skipped by pre-filter" if skipped else ""))
+
+            # Urgency breakdown for the result card
+            stats_now = get_stats()
+            from utils.db import get_session
+            from utils.db import Summary as _Summary, Document as _Document
+            try:
+                with get_session() as _sess:
+                    from sqlalchemy import func as _func
+                    urgency_rows = _sess.query(
+                        _Summary.urgency, _func.count(_Summary.document_id)
+                    ).group_by(_Summary.urgency).all()
+                    urgency_dist = {u: n for u, n in urgency_rows if u and u != "Skipped"}
+                    # Domain split for docs fetched this run
+                    ai_fetched  = fetch_result.get("fetched_ai", 0)
+                    priv_fetched = fetch_result.get("fetched_privacy", 0)
+            except Exception:
+                urgency_dist = {}
+                ai_fetched = priv_fetched = 0
 
             _job_state["last_result"] = {
                 **fetch_result,
-                "summarized": summarized,
-                **get_stats(),
+                "summarized":      sum_result["saved"],
+                "skipped":         sum_result["skipped"],
+                "first_run":       sum_result.get("first_run", False),
+                "urgency_dist":    urgency_dist,
+                **stats_now,
             }
             _log("Pipeline complete ✓")
         except Exception as e:
@@ -996,6 +1208,118 @@ def annotate_analysis_endpoint(analysis_id: int, req: GapAnnotateRequest):
     from utils.db import annotate_gap_analysis
     annotate_gap_analysis(analysis_id, req.notes)
     return {"ok": True}
+
+
+# ── DOCX Export ──────────────────────────────────────────────────────────────
+
+def _run_docx_generator(payload: dict) -> bytes:
+    """Call the Node.js docx generator, return the file bytes."""
+    import json
+    import subprocess
+    import tempfile
+
+    script = Path(__file__).parent / "scripts" / "generate_docx.js"
+    if not script.exists():
+        raise RuntimeError(f"DOCX generator script not found: {script}")
+
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    payload["outpath"] = tmp_path
+    result = subprocess.run(
+        ["node", str(script)],
+        input=json.dumps(payload),
+        capture_output=True, text=True, timeout=30,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"DOCX generation failed: {result.stderr}")
+
+    data = Path(tmp_path).read_bytes()
+    Path(tmp_path).unlink(missing_ok=True)
+    return data
+
+
+@app.get("/api/gap-analyses/{analysis_id}/export")
+def export_gap_analysis(analysis_id: int):
+    """Export a gap analysis as a formatted .docx file."""
+    try:
+        from utils.db import get_session, GapAnalysis as _GA
+        with get_session() as sess:
+            row = sess.query(_GA).filter(_GA.id == analysis_id).first()
+            if not row:
+                raise HTTPException(status_code=404, detail="Analysis not found")
+            data = {
+                "profile_name":    row.profile_name,
+                "jurisdictions":   row.jurisdictions or [],
+                "docs_examined":   row.docs_examined,
+                "applicable_count":row.applicable_count,
+                "gap_count":       row.gap_count,
+                "critical_count":  row.critical_count,
+                "posture_score":   row.posture_score,
+                "model_used":      row.model_used,
+                "generated_at":    row.generated_at.isoformat() if row.generated_at else None,
+                "gaps_result":     row.gaps_json or {},
+                "notes":           row.notes,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        docx_bytes = _run_docx_generator({"type": "gap_analysis", "data": data})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Export failed: {e}")
+
+    safe_name = (data["profile_name"] or "gap_analysis").replace(" ", "_")[:40]
+    date_str  = (data["generated_at"] or "")[:10]
+    filename  = f"ARIS_GapAnalysis_{safe_name}_{date_str}.docx"
+
+    return StreamingResponse(
+        iter([docx_bytes]),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/api/synthesis/{synthesis_id}/export")
+def export_synthesis(synthesis_id: int):
+    """Export a synthesis as a formatted .docx file."""
+    try:
+        from utils.db import get_session, ThematicSynthesis as _TS
+        with get_session() as sess:
+            row = sess.query(_TS).filter(_TS.id == synthesis_id).first()
+            if not row:
+                raise HTTPException(status_code=404, detail="Synthesis not found")
+            data = {
+                "topic":          row.topic,
+                "jurisdictions":  row.jurisdictions or [],
+                "docs_used":      row.docs_used,
+                "model_used":     row.model_used,
+                "generated_at":   row.generated_at.isoformat() if row.generated_at else None,
+                "synthesis_json": row.synthesis_json or {},
+                "conflicts_json": row.conflicts_json or {},
+                "notes":          row.notes,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        docx_bytes = _run_docx_generator({"type": "synthesis", "data": data})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Export failed: {e}")
+
+    safe_topic = (data["topic"] or "synthesis").replace(" ", "_")[:40]
+    date_str   = (data["generated_at"] or "")[:10]
+    filename   = f"ARIS_Synthesis_{safe_topic}_{date_str}.docx"
+
+    return StreamingResponse(
+        iter([docx_bytes]),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ·· PDF Ingestion ·············································

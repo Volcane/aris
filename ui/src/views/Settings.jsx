@@ -1,5 +1,7 @@
-import { useState } from 'react'
-import { CheckCircle2, XCircle, ExternalLink, AlertTriangle, Info } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { CheckCircle2, XCircle, ExternalLink, AlertTriangle, Info,
+  Bell, Clock, Send, Check, RefreshCw } from 'lucide-react'
+import { Spinner } from '../components.jsx'
 import { SectionHeader } from '../components.jsx'
 
 // What you lose without each key — shown when key is not configured
@@ -45,9 +47,68 @@ const KEY_IMPACT = {
 }
 
 export default function SettingsView({ status }) {
-  const [expandedKey, setExpandedKey] = useState(null)
+  const [expandedKey,      setExpandedKey]      = useState(null)
+  const [schedule,         setSchedule]         = useState(null)
+  const [schedSaving,      setSchedSaving]       = useState(false)
+  const [schedSaved,       setSchedSaved]        = useState(false)
+  const [schedEnabled,     setSchedEnabled]      = useState(false)
+  const [schedInterval,    setSchedInterval]     = useState(24)
+  const [schedDomain,      setSchedDomain]       = useState('both')
+  const [schedLookback,    setSchedLookback]     = useState(7)
+  const [notifConfig,      setNotifConfig]       = useState(null)
+  const [testSending,      setTestSending]       = useState(false)
+  const [testResult,       setTestResult]        = useState(null)
   const keys  = status?.api_keys || {}
   const stats = status?.stats    || {}
+
+  // Load schedule and notification config on mount
+  useEffect(() => {
+    fetch('/api/schedule').then(r => r.json()).then(cfg => {
+      setSchedule(cfg)
+      setSchedEnabled(cfg.enabled || false)
+      setSchedInterval(cfg.interval_hours || 24)
+      setSchedDomain(cfg.domain || 'both')
+      setSchedLookback(cfg.lookback_days || 7)
+    }).catch(() => {})
+    fetch('/api/notifications/config').then(r => r.json()).then(cfg => {
+      setNotifConfig(cfg)
+    }).catch(() => {})
+  }, [])
+
+  const saveSchedule = async () => {
+    setSchedSaving(true)
+    setSchedSaved(false)
+    try {
+      const res = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: schedEnabled, interval_hours: schedInterval, domain: schedDomain, lookback_days: schedLookback }),
+      })
+      const updated = await res.json()
+      setSchedule(updated)
+      setSchedSaved(true)
+      setTimeout(() => setSchedSaved(false), 3000)
+    } catch {}
+    setSchedSaving(false)
+  }
+
+  const triggerNow = async () => {
+    await fetch('/api/schedule/trigger', { method: 'POST' })
+    window.location.href = '/run'
+  }
+
+  const sendTest = async () => {
+    setTestSending(true)
+    setTestResult(null)
+    try {
+      const res = await fetch('/api/notifications/test', { method: 'POST' })
+      const data = await res.json()
+      setTestResult(data)
+    } catch (e) {
+      setTestResult({ error: e.message })
+    }
+    setTestSending(false)
+  }
 
   const apiKeyDefs = [
     {
@@ -287,6 +348,147 @@ export default function SettingsView({ status }) {
               <span style={{ fontFamily: 'var(--font-mono)', color: color || 'var(--text)' }}>{val ?? '—'}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Scheduled Monitoring */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Clock size={12} /> Scheduled Monitoring
+        </div>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+              <input type="checkbox" checked={schedEnabled} onChange={e => setSchedEnabled(e.target.checked)}
+                style={{ width: 'auto', accentColor: 'var(--accent)' }} />
+              <span style={{ color: schedEnabled ? 'var(--text)' : 'var(--text-3)' }}>
+                {schedEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+            </label>
+            {schedule?.last_triggered && (
+              <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginLeft: 'auto' }}>
+                Last run: {new Date(schedule.last_triggered).toLocaleString()}
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Run every</label>
+              <select value={schedInterval} onChange={e => setSchedInterval(Number(e.target.value))} disabled={!schedEnabled} style={{ width: '100%' }}>
+                <option value={6}>6 hours</option>
+                <option value={12}>12 hours</option>
+                <option value={24}>24 hours</option>
+                <option value={48}>48 hours</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Domain</label>
+              <select value={schedDomain} onChange={e => setSchedDomain(e.target.value)} disabled={!schedEnabled} style={{ width: '100%' }}>
+                <option value="both">Both</option>
+                <option value="ai">AI Regulation</option>
+                <option value="privacy">Data Privacy</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Lookback</label>
+              <select value={schedLookback} onChange={e => setSchedLookback(Number(e.target.value))} disabled={!schedEnabled} style={{ width: '100%' }}>
+                <option value={3}>3 days</option>
+                <option value={7}>7 days</option>
+                <option value={14}>14 days</option>
+              </select>
+            </div>
+          </div>
+          {schedEnabled && schedule?.next_run && (
+            <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12, fontFamily: 'var(--font-mono)' }}>
+              Next run: {new Date(schedule.next_run).toLocaleString()}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-primary btn-sm" onClick={saveSchedule} disabled={schedSaving}>
+              {schedSaving ? <><Spinner size={11} /> Saving…</> : schedSaved ? <><Check size={11} /> Saved</> : 'Save'}
+            </button>
+            <button className="btn-secondary btn-sm" onClick={triggerNow}>
+              <RefreshCw size={11} /> Run now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Notifications */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Bell size={12} /> Notifications
+        </div>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
+          {notifConfig ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div style={{ padding: '10px 12px', background: 'var(--bg-3)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {notifConfig.email_configured
+                    ? <CheckCircle2 size={13} style={{ color: 'var(--green)', flexShrink: 0 }} />
+                    : <XCircle size={13} style={{ color: 'var(--text-3)', flexShrink: 0 }} />}
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: notifConfig.email_configured ? 'var(--text)' : 'var(--text-3)' }}>Email</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      {notifConfig.email_configured ? notifConfig.recipient_email : 'Set NOTIFY_EMAIL in keys.env'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ padding: '10px 12px', background: 'var(--bg-3)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {notifConfig.slack_configured
+                    ? <CheckCircle2 size={13} style={{ color: 'var(--green)', flexShrink: 0 }} />
+                    : <XCircle size={13} style={{ color: 'var(--text-3)', flexShrink: 0 }} />}
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: notifConfig.slack_configured ? 'var(--text)' : 'var(--text-3)' }}>Slack</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      {notifConfig.slack_configured ? 'Webhook configured' : 'Set SLACK_WEBHOOK_URL in keys.env'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {(notifConfig.email_configured || notifConfig.slack_configured) ? (
+                <>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 10 }}>Notify when:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                    {[
+                      { key: 'notify_critical', label: 'Critical findings' },
+                      { key: 'notify_high',     label: 'High-urgency docs' },
+                      { key: 'notify_digest',   label: 'Daily digest' },
+                    ].map(({ key, label }) => (
+                      <div key={key} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 20,
+                        background: notifConfig[key] ? 'var(--accent-dim)' : 'var(--bg-4)',
+                        border: `1px solid ${notifConfig[key] ? 'var(--accent)' : 'var(--border)'}`,
+                        color: notifConfig[key] ? 'var(--accent)' : 'var(--text-3)' }}>
+                        {label}
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', alignSelf: 'center', marginLeft: 4 }}>
+                      Configure with NOTIFY_ON_* in keys.env
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <button className="btn-secondary btn-sm" onClick={sendTest} disabled={testSending}>
+                      {testSending ? <><Spinner size={11} /> Sending…</> : <><Send size={11} /> Send test</>}
+                    </button>
+                    {testResult && (
+                      <span style={{ fontSize: 12, color: testResult.any_sent ? 'var(--green)' : 'var(--red)' }}>
+                        {testResult.any_sent ? '✓ Sent successfully' : testResult.error || 'No channels configured'}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.6 }}>
+                  Add <code style={{ background: 'var(--bg-4)', padding: '1px 4px', borderRadius: 3 }}>NOTIFY_EMAIL</code> or{' '}
+                  <code style={{ background: 'var(--bg-4)', padding: '1px 4px', borderRadius: 3 }}>SLACK_WEBHOOK_URL</code> to{' '}
+                  <code style={{ background: 'var(--bg-4)', padding: '1px 4px', borderRadius: 3 }}>config/keys.env</code> to enable notifications.
+                  See README for SMTP setup.
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Loading…</div>
+          )}
         </div>
       </div>
 

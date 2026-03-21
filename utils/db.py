@@ -788,6 +788,23 @@ class FetchHistory(Base):
     )
 
 
+class ScheduleConfig(Base):
+    """
+    Persistent configuration for scheduled monitoring runs.
+    Only one row exists — upserted on every save.
+    """
+    __tablename__ = "schedule_config"
+
+    id              = Column(Integer, primary_key=True, default=1)
+    enabled         = Column(Boolean, default=False)
+    interval_hours  = Column(Integer, default=24)
+    domain          = Column(String, default="both")
+    lookback_days   = Column(Integer, default=7)
+    last_triggered  = Column(DateTime, nullable=True)
+    next_run        = Column(DateTime, nullable=True)
+    updated_at      = Column(DateTime, default=datetime.utcnow)
+
+
 class QAPassage(Base):
     """
     A retrievable passage from the document corpus or a baseline file.
@@ -1645,10 +1662,65 @@ def _synthesis_to_dict(row: ThematicSynthesis,
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
+def get_schedule_config() -> Dict[str, Any]:
+    """Return the current schedule configuration (creates default if missing)."""
+    with get_session() as session:
+        row = session.query(ScheduleConfig).filter_by(id=1).first()
+        if not row:
+            return {
+                "enabled": False, "interval_hours": 24, "domain": "both",
+                "lookback_days": 7, "last_triggered": None, "next_run": None,
+            }
+        return {
+            "enabled":        row.enabled,
+            "interval_hours": row.interval_hours,
+            "domain":         row.domain,
+            "lookback_days":  row.lookback_days,
+            "last_triggered": row.last_triggered.isoformat() if row.last_triggered else None,
+            "next_run":       row.next_run.isoformat() if row.next_run else None,
+        }
+
+
+def save_schedule_config(enabled: bool, interval_hours: int = 24,
+                          domain: str = "both", lookback_days: int = 7) -> Dict[str, Any]:
+    """Upsert the schedule configuration. Returns the updated config."""
+    from datetime import timedelta
+    with get_session() as session:
+        row = session.query(ScheduleConfig).filter_by(id=1).first()
+        if not row:
+            row = ScheduleConfig(id=1)
+            session.add(row)
+        row.enabled        = enabled
+        row.interval_hours = interval_hours
+        row.domain         = domain
+        row.lookback_days  = lookback_days
+        row.updated_at     = datetime.utcnow()
+        if enabled:
+            row.next_run = datetime.utcnow() + timedelta(hours=interval_hours)
+        else:
+            row.next_run = None
+        session.commit()
+        return get_schedule_config()
+
+
+def update_schedule_last_run() -> None:
+    """Mark the schedule as having just run and set next_run."""
+    from datetime import timedelta
+    with get_session() as session:
+        row = session.query(ScheduleConfig).filter_by(id=1).first()
+        if row and row.enabled:
+            row.last_triggered = datetime.utcnow()
+            row.next_run       = datetime.utcnow() + timedelta(hours=row.interval_hours)
+            session.commit()
+
+
 def get_stats() -> Dict[str, Any]:
     with get_session() as session:
         total_docs      = session.query(Document).count()
         total_summaries = session.query(Summary).count()
+        skipped_summaries = session.query(Summary).filter(
+            Summary.urgency == "Skipped"
+        ).count()
         federal_docs    = session.query(Document).filter_by(jurisdiction="Federal").count()
         total_diffs     = session.query(DocumentDiff).count()
         unreviewed      = session.query(DocumentDiff).filter_by(reviewed=False).count()
@@ -1675,6 +1747,7 @@ def get_stats() -> Dict[str, Any]:
         return {
             "total_documents":     total_docs,
             "total_summaries":     total_summaries,
+            "skipped_summaries":   skipped_summaries,
             "federal_documents":   federal_docs,
             "state_documents":     total_docs - federal_docs,
             "pending_summaries":   total_docs - total_summaries,

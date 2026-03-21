@@ -128,6 +128,18 @@ NEW_TABLES = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS schedule_config (
+        id              INTEGER PRIMARY KEY DEFAULT 1,
+        enabled         INTEGER DEFAULT 0,
+        interval_hours  INTEGER DEFAULT 24,
+        domain          TEXT DEFAULT 'both',
+        lookback_days   INTEGER DEFAULT 7,
+        last_triggered  TEXT,
+        next_run        TEXT,
+        updated_at      TEXT
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS thematic_syntheses (
         id             INTEGER PRIMARY KEY AUTOINCREMENT,
         topic_key      TEXT NOT NULL,
