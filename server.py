@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Elastic-2.0
+# Copyright (c) [YEAR] [YOUR NAME]
+# ARIS — Automated Regulatory Intelligence System
+# Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS — FastAPI Server
 
@@ -621,6 +625,7 @@ def run_agents(req: RunAgentsRequest, background_tasks: BackgroundTasks):
                 **fetch_result,
                 "summarized":      sum_result["saved"],
                 "skipped":         sum_result["skipped"],
+                "auto_archived":   sum_result.get("auto_archived", 0),
                 "first_run":       sum_result.get("first_run", False),
                 "urgency_dist":    urgency_dist,
                 **stats_now,
@@ -2187,9 +2192,15 @@ if __name__ == "__main__":
     print("  API docs:  http://localhost:8000/docs")
     print("  Dashboard: http://localhost:8000\n")
 
+    # Bind to localhost only by default — no authentication layer exists.
+    # Set ARIS_HOST=0.0.0.0 in keys.env only if you need LAN access and
+    # understand the implications (no auth, full API access to anyone on the network).
+    import os as _os
+    host = _os.getenv("ARIS_HOST", "127.0.0.1")
+
     uvicorn.run(
         "server:app",
-        host="0.0.0.0",
+        host=host,
         port=8000,
         reload=True,
         log_level="info",

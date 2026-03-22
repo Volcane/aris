@@ -13,3 +13,9 @@ tenacity>=8.2.3
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 python-multipart>=0.0.9
+
+# ── Optional: PDF extraction ──────────────────────────────────────────────────
+# Install for PDF ingestion support (PDF Ingest view, auto-download from Federal Register):
+#   pip install pdfplumber pypdf
+# pdfplumber>=0.10.0
+# pypdf>=4.0.0

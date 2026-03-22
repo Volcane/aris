@@ -1,0 +1,17 @@
+[project]
+name = "aris"
+version = "1.0.0"
+description = "Automated Regulatory Intelligence System — monitors AI regulation and data privacy law across 18 US states, 10 international jurisdictions, and US Federal agencies."
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+readme = "README.md"
+
+[project.urls]
+Repository = "https://github.com/[YOUR-GITHUB-USERNAME]/aris"
+Issues     = "https://github.com/[YOUR-GITHUB-USERNAME]/aris/issues"
+
+[tool.pytest.ini_options]
+testpaths   = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
