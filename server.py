@@ -1724,13 +1724,16 @@ def delete_watchlist_item(name: str):
 
 
 @app.get("/api/watchlist/{name}/matches")
-def get_watchlist_matches(name: str, days: int = 30):
+def get_watchlist_matches(name: str, days: int = 30,
+                          domain: Optional[str] = None):
     items = _load_watchlist()
     item  = next((i for i in items if i["name"] == name), None)
     if not item:
         raise HTTPException(status_code=404, detail="Watch item not found")
     all_docs = get_all_documents(limit=500)
     matches  = [d for d in all_docs if _match_watchlist(d, [item])]
+    if domain and domain != "both":
+        matches = [d for d in matches if d.get("domain") == domain]
     return {"name": name, "matches": matches, "total": len(matches)}
 
 

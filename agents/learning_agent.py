@@ -155,6 +155,19 @@ class LearningAgent:
         profile["last_updated"]    = datetime.utcnow().isoformat()
         upsert_source_profile(source, profile)
 
+        # Also update domain-specific profile so AI and privacy sources
+        # accrue quality scores independently
+        doc_domain = doc.get("domain", "ai")
+        if doc_domain and doc_domain != "ai":
+            domain_key = f"{source}::{doc_domain}"
+            dprofile   = get_source_profile(domain_key) or _default_profile(domain_key)
+            dprofile["total_count"]    += 1
+            dprofile["positive_count"] += (1 if is_positive else 0)
+            dprofile["negative_count"] += (1 if is_negative else 0)
+            dprofile["quality_score"]  = _compute_quality_score(dprofile)
+            dprofile["last_updated"]   = datetime.utcnow().isoformat()
+            upsert_source_profile(domain_key, dprofile)
+
         # Update agency quality profile
         if agency:
             agency_key = f"agency::{agency[:80]}"
@@ -214,12 +227,16 @@ class LearningAgent:
             priv_title_kws = sum(1 for kw in PRIVACY_TERMS_EXPANDED if kw in title)
             title_boost    = min(priv_title_kws * 0.08, 0.3)
 
-        src_profile = get_source_profile(source)
-        src_quality = src_profile["quality_score"] if src_profile else 0.7
+        # Use domain-keyed profile when available, fall back to shared profile
+        # This ensures privacy sources aren't penalised by AI keyword feedback
+        domain_src_key = f"{source}::{doc_domain}" if doc_domain != "ai" else source
+        src_profile    = get_source_profile(domain_src_key) or get_source_profile(source)
+        src_quality    = src_profile["quality_score"] if src_profile else 0.7
 
-        agency_key  = f"agency::{agency}"
-        ag_profile  = get_source_profile(agency_key)
-        ag_quality  = ag_profile["quality_score"] if ag_profile else 0.7
+        agency_key     = f"agency::{agency}"
+        domain_ag_key  = f"{agency_key}::{doc_domain}" if doc_domain != "ai" else agency_key
+        ag_profile     = get_source_profile(domain_ag_key) or get_source_profile(agency_key)
+        ag_quality     = ag_profile["quality_score"] if ag_profile else 0.7
 
         kw_weights  = self._get_keyword_weights()
         weighted_kw = _weighted_keyword_score(combined, kw_weights)

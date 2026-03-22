@@ -53,7 +53,7 @@ export default function Dashboard({ status }) {
   useEffect(() => {
     Promise.all([
       api.changes({ days: 30, severity: 'Critical' }).catch(() => []),
-      fetch('/api/horizon?days_ahead=60&limit=8').then(r => r.json()).catch(() => []),
+      fetch('/api/horizon?days_ahead=730&limit=30').then(r => r.json()).catch(() => []),
       fetch('/api/horizon/stats').then(r => r.json()).catch(() => null),
       fetch('/api/trends').then(r => r.json()).catch(() => null),
       fetch('/api/enforcement?days=30&limit=4').then(r => r.json()).catch(() => { return { items: [] } }),
@@ -151,6 +151,13 @@ export default function Dashboard({ status }) {
               navigate={navigate}
             />
           </div>
+
+          {/* ── Zone 2c: Horizon widget ── */}
+          <HorizonWidget
+            items={horizonItems}
+            stats={horizonStats}
+            navigate={navigate}
+          />
 
           {/* ── Zone 3: System health ── */}
           <SystemHealth stats={stats} apiKeys={apiKeys} status={status} job={job} navigate={navigate} />
@@ -525,6 +532,191 @@ function ActivePanel({ trends, enforcement, horizonItems, horizonStats, navigate
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+
+// ── Horizon Widget ─────────────────────────────────────────────────────────────
+
+const STAGE_COLORS = {
+  'enacted':    { bg: 'rgba(224,82,82,0.10)',  border: 'rgba(224,82,82,0.3)',  text: 'var(--red)',    label: 'Deadline' },
+  'final':      { bg: 'rgba(224,82,82,0.08)',  border: 'rgba(224,82,82,0.25)', text: 'var(--red)',    label: 'Final Rule' },
+  'hearing':    { bg: 'rgba(212,168,67,0.10)', border: 'rgba(212,168,67,0.3)', text: 'var(--yellow)', label: 'Hearing' },
+  'proposed':   { bg: 'rgba(93,158,234,0.10)', border: 'rgba(93,158,234,0.3)', text: 'var(--accent)', label: 'Proposed' },
+  'pre-rule':   { bg: 'rgba(93,158,234,0.08)', border: 'rgba(93,158,234,0.2)', text: 'var(--accent)', label: 'Pre-Rule' },
+  'planned':    { bg: 'var(--bg-3)',            border: 'var(--border)',        text: 'var(--text-3)', label: 'Planned' },
+}
+
+const JUR_COLORS = {
+  EU: '#3B82F6', GB: '#8B5CF6', Federal: '#22C55E',
+  CA: '#F59E0B', CO: '#F97316', IL: '#EC4899',
+  TX: '#EF4444', WA: '#06B6D4', NY: '#A78BFA',
+  BR: '#10B981', IN: '#F59E0B', SG: '#14B8A6',
+  KR: '#6366F1', JP: '#F97316', AU: '#84CC16',
+}
+
+function HorizonWidget({ items, stats, navigate }) {
+  const [filter, setFilter] = useState('upcoming')   // upcoming | all | by_jurisdiction
+
+  if (!items || items.length === 0) {
+    return (
+      <div className="card" style={{ padding: '16px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CalendarDays size={14} style={{ color: 'var(--accent)' }} />
+            <span style={{ fontSize: 13, fontWeight: 500 }}>Regulatory Horizon</span>
+          </div>
+          <button className="btn-ghost btn-sm" style={{ fontSize: 10 }} onClick={() => navigate('/horizon')}>
+            Open full view <ChevronRight size={10} />
+          </button>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-3)', fontStyle: 'italic', paddingTop: 8 }}>
+          No horizon items yet. Run agents to fetch upcoming regulatory events.
+        </div>
+      </div>
+    )
+  }
+
+  // Group by urgency
+  const now = new Date()
+  const urgent  = items.filter(h => { const d = daysUntil(h.anticipated_date); return d !== null && d >= 0 && d <= 30 })
+  const near    = items.filter(h => { const d = daysUntil(h.anticipated_date); return d !== null && d > 30 && d <= 180 })
+  const distant = items.filter(h => { const d = daysUntil(h.anticipated_date); return d !== null && d > 180 })
+  const undated = items.filter(h => !h.anticipated_date || daysUntil(h.anticipated_date) === null)
+
+  const displayed = filter === 'upcoming'
+    ? [...urgent, ...near, ...distant].slice(0, 12)
+    : items.slice(0, 20)
+
+  return (
+    <div className="card" style={{ padding: '16px 18px', marginBottom: 0 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CalendarDays size={14} style={{ color: 'var(--accent)' }} />
+          <span style={{ fontSize: 13, fontWeight: 500 }}>Regulatory Horizon</span>
+          <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)',
+            background: 'var(--bg-4)', padding: '1px 6px', borderRadius: 3 }}>
+            {items.length}
+          </span>
+          {urgent.length > 0 && (
+            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--red)',
+              background: 'rgba(224,82,82,0.10)', padding: '1px 6px', borderRadius: 3,
+              border: '1px solid rgba(224,82,82,0.25)' }}>
+              {urgent.length} within 30d
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['upcoming', 'all'].map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              style={{ fontSize: 10, padding: '2px 7px', borderRadius: 3, cursor: 'pointer',
+                background: filter === f ? 'var(--accent-dim)' : 'var(--bg-4)',
+                border: `1px solid ${filter === f ? 'var(--accent)' : 'var(--border)'}`,
+                color: filter === f ? 'var(--accent)' : 'var(--text-3)' }}>
+              {f}
+            </button>
+          ))}
+          <button className="btn-ghost btn-sm" style={{ fontSize: 10 }} onClick={() => navigate('/horizon')}>
+            Full view <ChevronRight size={10} />
+          </button>
+        </div>
+      </div>
+
+      {/* Urgency summary bar */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
+        {[
+          { label: 'Within 30d',  count: urgent.length,  color: 'var(--red)',    bg: 'rgba(224,82,82,0.08)',  border: 'rgba(224,82,82,0.2)'  },
+          { label: '30–180d',     count: near.length,    color: 'var(--yellow)', bg: 'rgba(212,168,67,0.08)', border: 'rgba(212,168,67,0.2)' },
+          { label: '180d+',       count: distant.length, color: 'var(--accent)', bg: 'var(--accent-glow)',    border: 'var(--accent-dim)'    },
+          { label: 'TBD',         count: undated.length, color: 'var(--text-3)', bg: 'var(--bg-3)',           border: 'var(--border)'        },
+        ].map(s => (
+          <div key={s.label} style={{ padding: '8px 10px', background: s.bg,
+            border: `1px solid ${s.border}`, borderRadius: 'var(--radius)', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.3rem', fontFamily: 'var(--font-display)', fontWeight: 300,
+              color: s.color, lineHeight: 1 }}>{s.count}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 2 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Item list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {displayed.map((h, i) => {
+          const d     = daysUntil(h.anticipated_date)
+          const stage = (h.stage || 'planned').toLowerCase()
+          const sc    = STAGE_COLORS[stage] || STAGE_COLORS.planned
+          const jurColor = JUR_COLORS[h.jurisdiction] || 'var(--text-3)'
+
+          const urgencyColor = d === null ? 'var(--text-3)'
+            : d < 0   ? 'var(--text-3)'
+            : d <= 14 ? 'var(--red)'
+            : d <= 30 ? 'var(--orange)'
+            : d <= 90 ? 'var(--yellow)'
+            : 'var(--text-3)'
+
+          const dateLabel = d === null ? 'TBD'
+            : d < 0   ? `${Math.abs(d)}d ago`
+            : d === 0 ? 'Today'
+            : d <= 365 ? `${d}d`
+            : h.anticipated_date ? new Date(h.anticipated_date).getFullYear().toString() : 'TBD'
+
+          return (
+            <div key={h.id || i}
+              onClick={() => navigate('/horizon')}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+                background: 'var(--bg-2)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)', cursor: 'pointer', transition: 'border-color 0.1s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              {/* Date countdown */}
+              <div style={{ width: 36, flexShrink: 0, textAlign: 'right' }}>
+                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: urgencyColor, fontWeight: d !== null && d <= 30 ? 600 : 400 }}>
+                  {dateLabel}
+                </span>
+              </div>
+
+              {/* Stage badge */}
+              <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
+                background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text,
+                fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {sc.label}
+              </span>
+
+              {/* Jurisdiction */}
+              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: jurColor,
+                background: jurColor + '18', padding: '1px 5px', borderRadius: 3, flexShrink: 0,
+                border: `1px solid ${jurColor}30` }}>
+                {h.jurisdiction}
+              </span>
+
+              {/* Title */}
+              <span style={{ flex: 1, fontSize: 12, color: 'var(--text-2)', minWidth: 0 }} className="truncate">
+                {h.title}
+              </span>
+
+              {/* Agency (optional, show if space) */}
+              {h.agency && (
+                <span style={{ fontSize: 10, color: 'var(--text-3)', flexShrink: 0, maxWidth: 120,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {h.agency}
+                </span>
+              )}
+            </div>
+          )
+        })}
+        {displayed.length < items.length && (
+          <button
+            className="btn-ghost btn-sm"
+            style={{ width: '100%', justifyContent: 'center', fontSize: 11 }}
+            onClick={() => navigate('/horizon')}
+          >
+            +{items.length - displayed.length} more in full Horizon view
+          </button>
+        )}
+      </div>
     </div>
   )
 }

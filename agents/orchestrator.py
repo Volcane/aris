@@ -150,6 +150,8 @@ class Orchestrator:
 
         Returns a dict with counts: fetched, version_diffs, addenda_found.
         """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
         all_docs: List[Dict[str, Any]] = []
         sources_lower = [s.lower() for s in sources] if sources else []
         run_all     = not sources
@@ -160,44 +162,62 @@ class Orchestrator:
             "FEDERAL", "STATES", "INTERNATIONAL"
         }
 
-        # ── Track 1: US Federal ───────────────────────────────────────────────
-        if run_federal:
-            log.info("═══ Track 1: US Federal (domain=%s) ═══", domain)
-            all_docs.extend(self.federal_agent.fetch_all(lookback_days, domain=domain))
+        # Build a list of (label, callable) tasks to run concurrently
+        tasks: List[tuple] = []
 
-        # ── Track 2: US States ────────────────────────────────────────────────
+        if run_federal:
+            tasks.append(("Federal", lambda: self.federal_agent.fetch_all(lookback_days, domain=domain)))
+
         for agent in self.state_agents:
             if run_states or agent.state_code in specific:
-                log.info("═══ Track 2 (State): %s ═══", agent.state_name)
-                all_docs.extend(agent.fetch_all(lookback_days, domain=domain))
+                _agent = agent  # capture loop variable
+                tasks.append((f"State:{_agent.state_name}",
+                               lambda a=_agent: a.fetch_all(lookback_days, domain=domain)))
 
-        # ── Track 3: International ────────────────────────────────────────────
         for agent in self.international_agents:
             if run_intl or agent.jurisdiction_code in specific:
-                log.info("═══ Track 3 (International): %s (%s) ═══",
-                         agent.jurisdiction_name, agent.jurisdiction_code)
-                all_docs.extend(agent.fetch_all(lookback_days))
+                _agent = agent
+                tasks.append((f"Intl:{_agent.jurisdiction_code}",
+                               lambda a=_agent: a.fetch_all(lookback_days)))
 
-        # ── Track 4: Horizon Scanning ─────────────────────────────────────────
         run_horizon = run_all or "horizon" in sources_lower
         if run_horizon:
-            log.info("═══ Track 4: Horizon Scanning ═══")
-            try:
+            def _horizon():
                 from sources.horizon_agent import HorizonAgent
-                h_counts = HorizonAgent().run(days_ahead=365)
-                log.info("Horizon fetch complete: %s", h_counts)
-            except Exception as e:
-                log.warning("Horizon fetch failed: %s", e)
+                return HorizonAgent().run(days_ahead=365) or []
+            tasks.append(("Horizon", _horizon))
 
         run_enforcement = run_all or "enforcement" in sources_lower
         if run_enforcement:
-            log.info("═══ Track 5: Enforcement & Litigation ═══")
-            try:
+            def _enforcement():
                 from sources.enforcement_agent import EnforcementAgent
-                e_counts = EnforcementAgent().fetch_all(lookback_days=lookback_days)
-                log.info("Enforcement fetch complete: %s", e_counts)
-            except Exception as e:
-                log.warning("Enforcement fetch failed: %s", e)
+                return EnforcementAgent().fetch_all(lookback_days=lookback_days) or []
+            tasks.append(("Enforcement", _enforcement))
+
+        log.info("Fetching %d source tracks concurrently…", len(tasks))
+
+        # Run all fetch tracks in parallel (max 8 workers — network bound)
+        horizon_result     = None
+        enforcement_result = None
+        with ThreadPoolExecutor(max_workers=8, thread_name_prefix="aris-fetch") as pool:
+            future_map = {pool.submit(fn): label for label, fn in tasks}
+            for future in as_completed(future_map):
+                label = future_map[future]
+                try:
+                    result = future.result()
+                    if label == "Horizon":
+                        horizon_result = result
+                        log.info("═══ %s complete: %s ═══", label, result)
+                    elif label == "Enforcement":
+                        enforcement_result = result
+                        log.info("═══ %s complete: %s ═══", label, result)
+                    elif isinstance(result, list):
+                        all_docs.extend(result)
+                        log.info("═══ %s complete: %d docs ═══", label, len(result))
+                    else:
+                        log.info("═══ %s complete ═══", label)
+                except Exception as e:
+                    log.warning("Track %s failed (continuing): %s", label, e)
 
         # ── Persist & detect version changes ─────────────────────────────────
         new_count      = 0

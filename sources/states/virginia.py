@@ -14,7 +14,7 @@ from sources.state_agent_base import StateAgentBase
 
 class VirginiaAgent(StateAgentBase):
     """
-    Virginia AI legislation monitor.
+    Virginia AI regulation and privacy legislation monitor.
     Uses LegiScan API (free tier, 30k calls/month).
     """
 

@@ -345,13 +345,21 @@ def get_summary(doc_id: str) -> Optional[Dict[str, Any]]:
 
 def get_unsummarized_documents(limit: int = 50,
                                domain: Optional[str] = None) -> List[Document]:
+    """
+    Return documents that have no summary yet (or only a Skipped stub).
+    Uses LEFT JOIN instead of NOT IN subquery for O(n) rather than O(n^2)
+    performance at scale.
+    """
     with get_session() as session:
-        summarized_ids = session.execute(
-            text("SELECT document_id FROM summaries")
-        ).scalars().all()
+        # LEFT JOIN + IS NULL is dramatically faster than NOT IN(subquery)
+        # at large corpus sizes — avoids loading all summarized IDs into Python
         q = (
             session.query(Document)
-            .filter(Document.id.notin_(summarized_ids))
+            .outerjoin(Summary, Document.id == Summary.document_id)
+            .filter(
+                (Summary.document_id == None) |   # no summary at all
+                (Summary.urgency == "Skipped")     # only a skipped stub — re-eligible
+            )
         )
         if domain:
             q = q.filter(Document.domain == domain)

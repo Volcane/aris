@@ -48,6 +48,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from utils.cache import http_get, http_get_text, keyword_score, is_ai_relevant, get_logger
+from utils.search import is_privacy_relevant, detect_domain
 from config.settings import CONGRESS_GOV_KEY, CONGRESS_BASE, AI_KEYWORDS
 
 log = get_logger("aris.horizon")
@@ -74,8 +75,202 @@ STAGES = {
     "enacted":  "Enacted",
 }
 
-# Minimum keyword score to store a horizon item
-MIN_SCORE = 0.15
+
+# ── Seeded horizon items ──────────────────────────────────────────────────────
+# Known upcoming regulatory events with confirmed dates or strong signals.
+# These seed the horizon view so it always has meaningful content, and serve
+# as the test baseline for the horizon feature.
+# Sources: reginfo.gov Unified Agenda, EUR-Lex prep, UK Parliament, ANPD, PIPC
+# Last verified: March 2026
+
+SEEDED_HORIZON = [
+    # ── US Federal ────────────────────────────────────────────────────────────
+    {
+        "source": "seeded", "external_id": "seed-ftc-ai-surveillance-2026",
+        "jurisdiction": "Federal", "stage": "proposed",
+        "title": "FTC Commercial Surveillance and Data Security Rulemaking",
+        "description": "FTC rulemaking on commercial data surveillance practices, including AI-driven profiling and automated decision-making. Anticipated NPRM 2026.",
+        "agency": "Federal Trade Commission (FTC)",
+        "anticipated_date": "2026-06-01",
+        "url": "https://www.ftc.gov/legal-library/browse/rules/commercial-surveillance-rulemaking",
+        "ai_score": 0.45,
+    },
+    {
+        "source": "seeded", "external_id": "seed-cfpb-ai-credit-2026",
+        "jurisdiction": "Federal", "stage": "proposed",
+        "title": "CFPB AI/Automated Underwriting Fair Lending Guidance",
+        "description": "CFPB guidance on use of AI in credit underwriting under ECOA and Fair Housing Act. Addresses explainability and adverse action requirements.",
+        "agency": "Consumer Financial Protection Bureau (CFPB)",
+        "anticipated_date": "2026-04-01",
+        "url": "https://www.consumerfinance.gov/",
+        "ai_score": 0.40,
+    },
+    {
+        "source": "seeded", "external_id": "seed-hhs-ai-health-2026",
+        "jurisdiction": "Federal", "stage": "proposed",
+        "title": "HHS Algorithmic Decision-Making in Healthcare Coverage Rules",
+        "description": "HHS proposed rule restricting use of AI/algorithms in prior authorisation and coverage determinations for Medicare/Medicaid managed care.",
+        "agency": "Dept of Health and Human Services (HHS) / CMS",
+        "anticipated_date": "2026-07-01",
+        "url": "https://www.cms.gov/",
+        "ai_score": 0.38,
+    },
+    {
+        "source": "seeded", "external_id": "seed-eeoc-ai-employment-2026",
+        "jurisdiction": "Federal", "stage": "planned",
+        "title": "EEOC AI and Automated Employment Decision Tools Guidance",
+        "description": "EEOC guidance on employer liability for AI hiring tools under Title VII and ADA. Addresses adverse impact, validation, and candidate notice.",
+        "agency": "Equal Employment Opportunity Commission (EEOC)",
+        "anticipated_date": "2026-09-01",
+        "url": "https://www.eeoc.gov/ai",
+        "ai_score": 0.42,
+    },
+    {
+        "source": "seeded", "external_id": "seed-nist-ai-rmf-2-2026",
+        "jurisdiction": "Federal", "stage": "planned",
+        "title": "NIST AI Risk Management Framework 2.0",
+        "description": "NIST update to the AI RMF 1.0 (2023), incorporating lessons learned and addressing generative AI, agentic AI, and synthetic content risks.",
+        "agency": "National Institute of Standards and Technology (NIST)",
+        "anticipated_date": "2026-12-01",
+        "url": "https://www.nist.gov/artificial-intelligence",
+        "ai_score": 0.50,
+    },
+    # ── Colorado ──────────────────────────────────────────────────────────────
+    {
+        "source": "seeded", "external_id": "seed-co-ai-act-effective-2026",
+        "jurisdiction": "CO", "stage": "enacted",
+        "title": "Colorado AI Act (SB 24-205) — Compliance Effective Date",
+        "description": "Colorado Artificial Intelligence Act enters full enforcement. Developers and deployers of high-risk AI systems must have impact assessments, consumer disclosures, and governance programmes in place.",
+        "agency": "Colorado Attorney General",
+        "anticipated_date": "2026-06-30",
+        "url": "https://leg.colorado.gov/bills/sb24-205",
+        "ai_score": 0.60,
+    },
+    # ── California ────────────────────────────────────────────────────────────
+    {
+        "source": "seeded", "external_id": "seed-ca-sb942-effective-2026",
+        "jurisdiction": "CA", "stage": "enacted",
+        "title": "California AI Transparency Act (SB 942) — Effective Date",
+        "description": "SB 942 requires generative AI providers with 1M+ monthly visitors to implement watermarks, latent disclosures, and AI content detection tools. Effective August 2, 2026.",
+        "agency": "California Attorney General",
+        "anticipated_date": "2026-08-02",
+        "url": "https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240SB942",
+        "ai_score": 0.55,
+    },
+    # ── EU ────────────────────────────────────────────────────────────────────
+    {
+        "source": "seeded", "external_id": "seed-eu-ai-act-gp-ai-2026",
+        "jurisdiction": "EU", "stage": "enacted",
+        "title": "EU AI Act — GPAI Model Obligations Apply",
+        "description": "General Purpose AI (GPAI) model provisions of the EU AI Act become applicable. Providers of GPAI models must publish technical documentation, comply with copyright law, and publish training data summaries.",
+        "agency": "EU AI Office / European Commission",
+        "anticipated_date": "2026-08-02",
+        "url": "https://artificialintelligenceact.eu/",
+        "ai_score": 0.65,
+    },
+    {
+        "source": "seeded", "external_id": "seed-eu-ai-act-highrisk-2027",
+        "jurisdiction": "EU", "stage": "enacted",
+        "title": "EU AI Act — High-Risk AI System Obligations Apply",
+        "description": "Annex III high-risk AI system requirements become fully applicable. Conformity assessments, technical documentation, human oversight, and CE marking required for covered systems.",
+        "agency": "EU AI Office / European Commission",
+        "anticipated_date": "2027-08-02",
+        "url": "https://artificialintelligenceact.eu/",
+        "ai_score": 0.65,
+    },
+    {
+        "source": "seeded", "external_id": "seed-eu-eidas2-ai-2026",
+        "jurisdiction": "EU", "stage": "enacted",
+        "title": "EU eIDAS 2.0 — European Digital Identity Wallet Deployment",
+        "description": "EU member states must make European Digital Identity Wallet available to all citizens. AI-relevant for identity verification, authentication systems, and automated KYC.",
+        "agency": "European Commission / Member States",
+        "anticipated_date": "2026-11-01",
+        "url": "https://ec.europa.eu/digital-single-market/en/trust-services-and-eid",
+        "ai_score": 0.35,
+    },
+    {
+        "source": "seeded", "external_id": "seed-eu-data-act-dataspc-2026",
+        "jurisdiction": "EU", "stage": "enacted",
+        "title": "EU Data Act — Data Sharing Obligations Apply",
+        "description": "EU Data Act fully applicable. Connected product manufacturers must provide data access. AI services using connected device data must comply with sharing and switching obligations.",
+        "agency": "European Commission",
+        "anticipated_date": "2026-09-12",
+        "url": "https://digital-strategy.ec.europa.eu/en/policies/data-act",
+        "ai_score": 0.40,
+    },
+    # ── UK ────────────────────────────────────────────────────────────────────
+    {
+        "source": "seeded", "external_id": "seed-uk-ai-bill-2026",
+        "jurisdiction": "GB", "stage": "proposed",
+        "title": "UK Artificial Intelligence (Regulation) Bill — Parliamentary Progress",
+        "description": "Private member's bill establishing sector-specific AI regulatory framework progressing through Parliament. Builds on the government's pro-innovation approach with targeted safety duties.",
+        "agency": "UK Parliament",
+        "anticipated_date": "2026-06-01",
+        "url": "https://bills.parliament.uk/",
+        "ai_score": 0.52,
+    },
+    {
+        "source": "seeded", "external_id": "seed-uk-dpdi-2026",
+        "jurisdiction": "GB", "stage": "enacted",
+        "title": "UK Data Protection and Digital Information Act — Secondary Legislation",
+        "description": "Secondary legislation and ICO codes of practice under the DPDI Act covering AI and automated decision-making, including updated Article 22 equivalent provisions.",
+        "agency": "ICO / DSIT",
+        "anticipated_date": "2026-10-01",
+        "url": "https://www.gov.uk/government/collections/data-protection-and-digital-information-bill",
+        "ai_score": 0.45,
+    },
+    # ── Brazil ────────────────────────────────────────────────────────────────
+    {
+        "source": "seeded", "external_id": "seed-br-ai-bill-vote-2026",
+        "jurisdiction": "BR", "stage": "proposed",
+        "title": "Brazil AI Bill (PL 2338/2023) — Full Senate Vote Expected",
+        "description": "Brazil's comprehensive AI regulation bill expected to reach full Senate floor vote. Risk-based classification, prohibited uses, high-risk obligations, and creation of National AI Authority.",
+        "agency": "Senado Federal do Brasil",
+        "anticipated_date": "2026-06-01",
+        "url": "https://www25.senado.leg.br/web/atividade/materias/-/materia/157233",
+        "ai_score": 0.50,
+    },
+    # ── India ─────────────────────────────────────────────────────────────────
+    {
+        "source": "seeded", "external_id": "seed-in-dpdp-rules-2026",
+        "jurisdiction": "IN", "stage": "proposed",
+        "title": "India DPDP Rules — Draft Rules Under Digital Personal Data Protection Act",
+        "description": "Ministry of Electronics and IT expected to finalise draft rules under the DPDP Act 2023, covering consent managers, data fiduciary obligations, children's data, and the Data Protection Board constitution.",
+        "agency": "Ministry of Electronics and IT (MEITY)",
+        "anticipated_date": "2026-06-30",
+        "url": "https://www.meity.gov.in/",
+        "ai_score": 0.42,
+    },
+    # ── South Korea ───────────────────────────────────────────────────────────
+    {
+        "source": "seeded", "external_id": "seed-kr-ai-act-vote-2026",
+        "jurisdiction": "KR", "stage": "proposed",
+        "title": "South Korea AI Promotion Act — National Assembly Vote",
+        "description": "Korea's comprehensive AI bill expected to pass National Assembly in 2026. Mandatory risk assessment for high-impact AI, transparency for generative AI, National AI Commission establishment.",
+        "agency": "Korean National Assembly / MSIT",
+        "anticipated_date": "2026-09-01",
+        "url": "https://www.msit.go.kr/eng/",
+        "ai_score": 0.48,
+    },
+    # ── Singapore ─────────────────────────────────────────────────────────────
+    {
+        "source": "seeded", "external_id": "seed-sg-model-ai-v3-2026",
+        "jurisdiction": "SG", "stage": "planned",
+        "title": "Singapore Model AI Governance Framework 3rd Edition",
+        "description": "IMDA/PDPC expected to release updated Model AI Governance Framework covering generative AI, agentic AI, and updated accountability structures for AI developers and deployers.",
+        "agency": "IMDA / PDPC Singapore",
+        "anticipated_date": "2026-12-01",
+        "url": "https://www.imda.gov.sg/",
+        "ai_score": 0.45,
+    },
+]
+
+# Minimum keyword score to store a horizon item.
+# Intentionally low — horizon items are short titles; the keyword scorer
+# normalises against a large vocabulary so even "artificial intelligence"
+# alone scores ~0.10. We use is_ai_relevant / is_privacy_relevant as the
+# primary gate and keep MIN_SCORE as a backstop against total irrelevance.
+MIN_SCORE = 0.04
 
 
 # ── Horizon Agent ─────────────────────────────────────────────────────────────
@@ -93,6 +288,7 @@ class HorizonAgent:
         counts: Dict[str, int] = {}
 
         for name, method in [
+            ("seeded",              self._fetch_seeded_items),
             ("unified_agenda",      self._fetch_unified_agenda),
             ("congress_hearings",   self._fetch_congress_hearings),
             ("eu_work_programme",   self._fetch_eu_work_programme),
@@ -109,6 +305,34 @@ class HorizonAgent:
                 counts[name] = 0
 
         return counts
+
+    # ── Seeded known items ────────────────────────────────────────────────────
+
+    def _fetch_seeded_items(self, days_ahead: int = 365) -> List[Dict]:
+        """
+        Return curated known upcoming regulatory events.
+        These seed the horizon view so it is always meaningful and testable,
+        regardless of external API availability.
+        Updates should be made to SEEDED_HORIZON when new major events are confirmed.
+        """
+        items = []
+        for seed in SEEDED_HORIZON:
+            date_val = seed.get("anticipated_date")
+            if isinstance(date_val, str):
+                date_val = _parse_date(date_val)
+            items.append({
+                "source":          seed["source"],
+                "external_id":     seed["external_id"],
+                "jurisdiction":    seed["jurisdiction"],
+                "title":           seed["title"],
+                "description":     seed["description"],
+                "agency":          seed["agency"],
+                "stage":           seed["stage"],
+                "anticipated_date": date_val,
+                "url":             seed.get("url", ""),
+                "ai_score":        seed.get("ai_score", 0.5),
+            })
+        return items
 
     # ── Source 1: Unified Regulatory Agenda ──────────────────────────────────
 
@@ -178,8 +402,9 @@ class HorizonAgent:
         title = (entry.get("title") or entry.get("rule_title") or "").strip()
         if not title:
             return None
-        score = keyword_score(title + " " + (entry.get("abstract") or ""))
-        if score < MIN_SCORE:
+        combined = title + " " + (entry.get("abstract") or "")
+        score = keyword_score(combined)
+        if score < MIN_SCORE and not is_ai_relevant(combined) and not is_privacy_relevant(combined):
             return None
 
         eid = entry.get("rin") or entry.get("id") or _make_id("agenda", title)
@@ -223,8 +448,9 @@ class HorizonAgent:
             link  = _xml_text(block, "link")
             if not title:
                 continue
-            score = keyword_score(title + " " + desc)
-            if score < MIN_SCORE:
+            combined = title + " " + desc
+            score = keyword_score(combined)
+            if score < MIN_SCORE and not is_ai_relevant(combined) and not is_privacy_relevant(combined):
                 continue
 
             # Try to extract a date from description
@@ -405,8 +631,9 @@ LIMIT 30
             pubdate = _xml_text(block, "pubDate")
             if not title:
                 continue
-            score = keyword_score(title + " " + desc)
-            if score < MIN_SCORE:
+            combined = title + " " + desc
+            score = keyword_score(combined)
+            if score < MIN_SCORE and not is_ai_relevant(combined) and not is_privacy_relevant(combined):
                 continue
             items.append({
                 "source":         "eu_work_programme",
@@ -453,8 +680,9 @@ LIMIT 30
                     ev.get("House") or "",
                     ev.get("Note") or "",
                 ]))
-                score = keyword_score(title + " " + desc)
-                if score < MIN_SCORE:
+                combined_uk = title + " " + desc
+                score = keyword_score(combined_uk)
+                if score < MIN_SCORE and not is_ai_relevant(combined_uk) and not is_privacy_relevant(combined_uk):
                     continue
 
                 items.append({
@@ -487,8 +715,9 @@ LIMIT 30
                     pubdate = _xml_text(block, "pubDate")
                     if not title:
                         continue
-                    score = keyword_score(title + " " + desc)
-                    if score < MIN_SCORE:
+                    combined_ukb = title + " " + desc
+                    score = keyword_score(combined_ukb)
+                    if score < MIN_SCORE and not is_ai_relevant(combined_ukb) and not is_privacy_relevant(combined_ukb):
                         continue
                     items.append({
                         "source":         "uk_upcoming",
