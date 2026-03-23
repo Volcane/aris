@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
-# ARIS � Automated Regulatory Intelligence System
+# ARIS — Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS — Database Layer (updated)
@@ -357,18 +358,28 @@ def get_unsummarized_documents(limit: int = 50,
     with get_session() as session:
         # LEFT JOIN + IS NULL is dramatically faster than NOT IN(subquery)
         # at large corpus sizes — avoids loading all summarized IDs into Python
+        # Subquery approach: find document IDs that have ONLY Skipped summaries
+        # or no summary at all. This avoids the outerjoin duplicate-row problem
+        # and correctly excludes documents that have any real (non-Skipped) summary.
+        from sqlalchemy import exists, and_
+        real_summary_exists = (
+            session.query(Summary.document_id)
+            .filter(
+                Summary.document_id == Document.id,
+                Summary.urgency != "Skipped",
+                Summary.urgency != None,
+            )
+            .correlate(Document)
+            .exists()
+        )
         q = (
             session.query(Document)
-            .outerjoin(Summary, Document.id == Summary.document_id)
-            .filter(
-                (Summary.document_id == None) |   # no summary at all
-                (Summary.urgency == "Skipped")     # only a skipped stub — re-eligible
-            )
+            .filter(~real_summary_exists)          # no real summary exists
         )
         if domain:
             q = q.filter(Document.domain == domain)
         return (
-            q.order_by(Document.published_date.desc())
+            q.order_by(Document.fetched_at.desc())  # most recently fetched first
             .limit(limit)
             .all()
         )
