@@ -3,37 +3,49 @@ import { Play, RefreshCw, Check, AlertTriangle, ChevronRight, Info, Zap } from '
 import { api } from '../api.js'
 import { Spinner, SectionHeader } from '../components.jsx'
 
+// ── Source definitions grouped for compact rendering ─────────────────────────
+
+const SOURCE_FEDERAL = { id: 'federal', label: 'US Federal', sub: 'Federal Register · Regulations.gov · Congress.gov' }
+
+const SOURCES_STATES = [
+  { id: 'PA', label: 'Pennsylvania', sub: 'PA ZIP + LegiScan' },
+  { id: 'CA', label: 'California',   sub: 'CA API + LegiScan' },
+  { id: 'CO', label: 'Colorado',     sub: 'CO API + LegiScan' },
+  { id: 'IL', label: 'Illinois',     sub: 'ILGA + LegiScan'   },
+  { id: 'TX', label: 'Texas',        sub: 'TLO + LegiScan'    },
+  { id: 'WA', label: 'Washington',   sub: 'WSL + LegiScan'    },
+  { id: 'NY', label: 'New York',     sub: 'NY Senate + LegiScan' },
+  { id: 'FL', label: 'Florida',      sub: 'FL Senate + LegiScan' },
+  { id: 'MN', label: 'Minnesota',    sub: 'MN RSS + LegiScan' },
+  { id: 'CT', label: 'Connecticut',  sub: 'LegiScan' },
+  { id: 'VA', label: 'Virginia',     sub: 'LegiScan' },
+  { id: 'NJ', label: 'New Jersey',   sub: 'LegiScan' },
+  { id: 'MA', label: 'Massachusetts',sub: 'LegiScan' },
+  { id: 'OR', label: 'Oregon',       sub: 'LegiScan' },
+  { id: 'MD', label: 'Maryland',     sub: 'LegiScan' },
+  { id: 'GA', label: 'Georgia',      sub: 'LegiScan' },
+  { id: 'AZ', label: 'Arizona',      sub: 'LegiScan' },
+  { id: 'NC', label: 'North Carolina', sub: 'LegiScan' },
+]
+
+const SOURCES_INTL = [
+  { id: 'EU',     label: 'EU',           sub: 'EUR-Lex · AI Office' },
+  { id: 'GB',     label: 'UK',           sub: 'Parliament · legislation.gov.uk' },
+  { id: 'CA_INTL',label: 'Canada',       sub: 'OpenParl · Gazette' },
+  { id: 'SG',     label: 'Singapore',    sub: 'PDPC · IMDA' },
+  { id: 'IN',     label: 'India',        sub: 'PIB · MEITY' },
+  { id: 'BR',     label: 'Brazil',       sub: 'ANPD · Senate' },
+  { id: 'JP',     label: 'Japan',        sub: 'METI RSS' },
+  { id: 'KR',     label: 'South Korea',  sub: 'MSIT' },
+  { id: 'AU',     label: 'Australia',    sub: 'AI Safety Standard' },
+]
+
 const ALL_SOURCES = [
-  { id: 'federal',       label: 'US Federal',       sub: 'Federal Register · Regulations.gov · Congress.gov' },
-  { id: 'states',        label: 'US States',         sub: 'All 18 enabled states' },
-  { id: 'PA',            label: 'Pennsylvania',      sub: 'PA General Assembly ZIP + LegiScan' },
-  { id: 'CA',            label: 'California',        sub: 'CA Legislature API + LegiScan' },
-  { id: 'CO',            label: 'Colorado',          sub: 'leg.colorado.gov API + LegiScan' },
-  { id: 'IL',            label: 'Illinois',          sub: 'ILGA RSS feeds + LegiScan' },
-  { id: 'TX',            label: 'Texas',             sub: 'TLO RSS + LegiScan' },
-  { id: 'WA',            label: 'Washington',        sub: 'WSL web services + LegiScan' },
-  { id: 'NY',            label: 'New York',          sub: 'NY Senate API + LegiScan' },
-  { id: 'FL',            label: 'Florida',           sub: 'FL Senate API + LegiScan' },
-  { id: 'MN',            label: 'Minnesota',         sub: 'MN Senate RSS + LegiScan' },
-  { id: 'CT',            label: 'Connecticut',       sub: 'LegiScan' },
-  { id: 'VA',            label: 'Virginia',          sub: 'LegiScan' },
-  { id: 'NJ',            label: 'New Jersey',        sub: 'LegiScan' },
-  { id: 'MA',            label: 'Massachusetts',     sub: 'LegiScan' },
-  { id: 'OR',            label: 'Oregon',            sub: 'LegiScan' },
-  { id: 'MD',            label: 'Maryland',          sub: 'LegiScan' },
-  { id: 'GA',            label: 'Georgia',           sub: 'LegiScan' },
-  { id: 'AZ',            label: 'Arizona',           sub: 'LegiScan' },
-  { id: 'NC',            label: 'North Carolina',    sub: 'LegiScan' },
-  { id: 'international', label: 'International',     sub: 'EU · UK · Canada · SG · IN · BR · JP · KR · AU' },
-  { id: 'EU',            label: 'European Union',    sub: 'EUR-Lex SPARQL · EU AI Office RSS' },
-  { id: 'GB',            label: 'United Kingdom',    sub: 'UK Parliament Bills · legislation.gov.uk' },
-  { id: 'CA_INTL',       label: 'Canada',            sub: 'OpenParliament · Canada Gazette · ISED' },
-  { id: 'SG',            label: 'Singapore',         sub: 'PDPC RSS · IMDA RSS · pinned frameworks' },
-  { id: 'IN',            label: 'India',             sub: 'PIB RSS (MEITY) · DPDP Act · IndiaAI' },
-  { id: 'BR',            label: 'Brazil',            sub: 'ANPD RSS · Senate RSS · LGPD · AI Bill' },
-  { id: 'JP',            label: 'Japan',             sub: 'METI English RSS · pinned guidelines' },
-  { id: 'KR',            label: 'South Korea',       sub: 'MSIT press releases · PIPA · AI Act draft' },
-  { id: 'AU',            label: 'Australia',         sub: 'Voluntary AI Safety Standard · pinned docs' },
+  SOURCE_FEDERAL,
+  { id: 'states', label: 'US States', sub: 'All 18 enabled states' },
+  ...SOURCES_STATES,
+  { id: 'international', label: 'International', sub: 'EU · UK · Canada · SG · IN · BR · JP · KR · AU' },
+  ...SOURCES_INTL,
 ]
 
 const URGENCY_COLORS = {
@@ -42,6 +54,54 @@ const URGENCY_COLORS = {
   Medium:   'var(--yellow)',
   Low:      'var(--green)',
 }
+
+// ── Compact source checkbox ───────────────────────────────────────────────────
+
+function SourceChip({ src, selected, onToggle }) {
+  return (
+    <label style={{
+      display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer',
+      padding: '6px 8px',
+      background: selected ? 'var(--bg-4)' : 'var(--bg-2)',
+      border: `1px solid ${selected ? 'var(--accent-dim)' : 'var(--border)'}`,
+      borderRadius: 'var(--radius)', transition: 'all 0.12s',
+    }}>
+      <input
+        type="checkbox" checked={selected} onChange={onToggle}
+        style={{ width: 'auto', marginTop: 0, accentColor: 'var(--accent)', flexShrink: 0 }}
+      />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.label}</div>
+        <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.sub}</div>
+      </div>
+    </label>
+  )
+}
+
+// ── Aggregate row (US States / International) ─────────────────────────────────
+
+function GroupHeader({ label, sub, selected, onToggle }) {
+  return (
+    <label style={{
+      display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+      padding: '7px 10px',
+      background: selected ? 'var(--bg-4)' : 'var(--bg-3)',
+      border: `1px solid ${selected ? 'var(--accent-dim)' : 'var(--border)'}`,
+      borderRadius: 'var(--radius)', marginBottom: 6,
+    }}>
+      <input
+        type="checkbox" checked={selected} onChange={onToggle}
+        style={{ width: 'auto', accentColor: 'var(--accent)', flexShrink: 0 }}
+      />
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{label}</div>
+        <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{sub}</div>
+      </div>
+    </label>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function RunAgents({ onJobStart }) {
   const [selectedSources, setSelectedSources] = useState([])
@@ -65,7 +125,6 @@ export default function RunAgents({ onJobStart }) {
   const [isFirstRun,      setIsFirstRun]      = useState(false)
   const logRef = useRef(null)
 
-  // Check on mount if this is a first-run situation
   useEffect(() => {
     api.status().then(s => {
       const stats = s?.stats || {}
@@ -75,105 +134,133 @@ export default function RunAgents({ onJobStart }) {
     }).catch(() => {})
   }, [])
 
-  // Poll log while running
   useEffect(() => {
     if (!running) return
-    const id = setInterval(async () => {
+    const iv = setInterval(async () => {
       try {
-        const res = await api.runLog(logOffset)
-        if (res.lines.length > 0) {
-          setLogLines(prev => [...prev, ...res.lines])
-          setLogOffset(res.total)
+        const data = await api.get(`/api/log?offset=${logOffset}&limit=50`)
+        if (data?.lines?.length) {
+          setLogLines(prev => [...prev, ...data.lines])
+          setLogOffset(prev => prev + data.lines.length)
         }
-        if (!res.running) {
+        if (data?.done) {
           setRunning(false)
-          clearInterval(id)
-          const status = await api.runStatus()
-          setLastResult(status.last_result)
-          // Re-check first run state after run completes
-          const stats = status.last_result || {}
-          const realSummaries = (stats.total_summaries || 0) - (stats.skipped_summaries || 0)
-          setIsFirstRun(false)  // cleared after any run completes
+          clearInterval(iv)
+          const status = await api.status()
+          if (status?.last_result) setLastResult(status.last_result)
         }
       } catch {}
-    }, 1500)
-    return () => clearInterval(id)
+    }, 1200)
+    return () => clearInterval(iv)
   }, [running, logOffset])
 
-  // Auto-scroll log
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [logLines])
+
+  const toggleSource = id => setSelectedSources(prev =>
+    prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+  )
+
+  const isSelected = id => selectedSources.includes(id)
 
   const handleRun = async () => {
     setRunning(true)
     setLogLines([])
     setLogOffset(0)
     setLastResult(null)
-    onJobStart?.()
     try {
-      await api.runAgents({
-        sources:         selectedSources,
-        lookback_days:   lookbackDays,
-        summarize,
-        run_diff:        runDiff,
-        limit,
-        force_summarize: forceSummarize,
+      await api.post('/api/run', {
+        sources: selectedSources,
+        lookback_days: lookbackDays,
+        summarize, run_diff: runDiff, limit,
+        force_summarize: forceSummarize || isFirstRun,
         domain,
       })
+      if (onJobStart) onJobStart()
     } catch (e) {
       setLogLines([`ERROR: ${e.message}`])
       setRunning(false)
     }
   }
 
-  const toggleSource = (id) => {
-    setSelectedSources(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
-  }
-
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 860 }}>
-      <SectionHeader title="Run Agents" subtitle="Fetch new documents and run AI summarization" />
+    <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
+      <SectionHeader title="Run Agents" subtitle="Fetch and analyse regulatory documents" />
 
       {/* First-run banner */}
-      {isFirstRun && !running && (
-        <div style={{
-          marginBottom: 20, padding: '12px 16px',
-          background: 'rgba(212,168,67,0.10)', border: '1px solid rgba(212,168,67,0.4)',
-          borderRadius: 'var(--radius)', display: 'flex', gap: 10, alignItems: 'flex-start',
-        }}>
-          <Zap size={15} style={{ color: 'var(--yellow)', flexShrink: 0, marginTop: 1 }} />
-          <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
-            <strong style={{ color: 'var(--yellow)' }}>First run detected.</strong>{' '}
-            Force Summarize will be enabled automatically so your first batch processes fully
-            without the relevance pre-filter. After this run, the pre-filter activates normally.
+      {isFirstRun && (
+        <div style={{ marginBottom: 20, padding: '12px 16px', background: 'rgba(212,168,67,0.08)', border: '1px solid rgba(212,168,67,0.3)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <Zap size={14} style={{ color: 'var(--yellow)', marginTop: 1, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5 }}>
+            <strong style={{ color: 'var(--yellow)' }}>First run detected</strong> — Force Summarize will be enabled automatically so your first batch processes fully without the relevance pre-filter.
           </div>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 28 }}>
-        {/* Source selection */}
+      {/* ── Main grid: sources (left) + options (right) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 28, alignItems: 'start' }}>
+
+        {/* ── Sources column ── */}
         <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
             Sources
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12 }}>
             Leave all unchecked to run everything.
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {ALL_SOURCES.map(src => (
-              <label key={src.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 12px', background: selectedSources.includes(src.id) ? 'var(--bg-4)' : 'var(--bg-2)', border: `1px solid ${selectedSources.includes(src.id) ? 'var(--accent-dim)' : 'var(--border)'}`, borderRadius: 'var(--radius)', transition: 'all 0.15s' }}>
-                <input type="checkbox" checked={selectedSources.includes(src.id)} onChange={() => toggleSource(src.id)} style={{ width: 'auto', marginTop: 2, accentColor: 'var(--accent)' }} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{src.label}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{src.sub}</div>
-                </div>
-              </label>
-            ))}
+
+          {/* Federal — single full-width chip */}
+          <div style={{ marginBottom: 14 }}>
+            <SourceChip
+              src={SOURCE_FEDERAL}
+              selected={isSelected('federal')}
+              onToggle={() => toggleSource('federal')}
+            />
+          </div>
+
+          {/* US States */}
+          <div style={{ marginBottom: 14 }}>
+            <GroupHeader
+              label="US States"
+              sub="All 18 enabled states"
+              selected={isSelected('states')}
+              onToggle={() => toggleSource('states')}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+              {SOURCES_STATES.map(src => (
+                <SourceChip
+                  key={src.id}
+                  src={src}
+                  selected={isSelected(src.id)}
+                  onToggle={() => toggleSource(src.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* International */}
+          <div>
+            <GroupHeader
+              label="International"
+              sub="EU · UK · Canada · SG · IN · BR · JP · KR · AU"
+              selected={isSelected('international')}
+              onToggle={() => toggleSource('international')}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+              {SOURCES_INTL.map(src => (
+                <SourceChip
+                  key={src.id}
+                  src={src}
+                  selected={isSelected(src.id)}
+                  onToggle={() => toggleSource(src.id)}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Options */}
+        {/* ── Options column ── */}
         <div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
             Options
@@ -292,41 +379,18 @@ function RunResultCard({ result }) {
   const critical   = urgency.Critical || 0
   const high       = urgency.High     || 0
   const firstRun   = result.first_run  || false
+  const autoArchived = result.auto_archived ?? 0
 
   const rows = [
-    {
-      label: 'Fetched',
-      value: fetched,
-      sub: 'new documents',
-      color: 'var(--text)',
-    },
-    {
-      label: 'Summarised',
-      value: summarized,
-      sub: firstRun ? 'first run - force mode' : undefined,
-      color: 'var(--green)',
-      link: '/documents',
-    },
-    skipped > 0 && {
-      label: 'Skipped',
-      value: skipped,
-      sub: 'relevance pre-filter',
-      color: 'var(--yellow)',
-      link: '/documents',
-      warn: true,
-    },
-    totalChanges > 0 && {
-      label: 'Changes',
-      value: totalChanges,
-      sub: critical > 0 ? `${critical} critical` : high > 0 ? `${high} high` : undefined,
-      color: critical > 0 ? 'var(--red)' : high > 0 ? 'var(--orange)' : 'var(--text-2)',
-      link: '/changes',
-    },
+    { label: 'Fetched',    value: fetched,    sub: 'new documents',       color: 'var(--text)' },
+    { label: 'Summarised', value: summarized, sub: firstRun ? 'first run — force mode' : undefined, color: 'var(--green)', link: '/documents' },
+    skipped > 0 && { label: 'Skipped', value: skipped, sub: 'relevance pre-filter', color: 'var(--yellow)', link: '/documents', warn: true },
+    autoArchived > 0 && { label: 'Auto-archived', value: autoArchived, sub: 'Claude score ≤ 0.15', color: 'var(--text-3)', link: '/documents' },
+    totalChanges > 0 && { label: 'Changes', value: totalChanges, sub: critical > 0 ? `${critical} critical` : high > 0 ? `${high} high` : undefined, color: critical > 0 ? 'var(--red)' : high > 0 ? 'var(--orange)' : 'var(--text-2)', link: '/changes' },
   ].filter(Boolean)
 
   return (
     <div style={{ marginTop: 16, background: 'var(--bg-2)', border: '1px solid var(--green-dim)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-      {/* Header */}
       <div style={{ padding: '10px 14px', background: 'var(--green-dim)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Check size={14} style={{ color: 'var(--green)' }} />
         <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--green)' }}>Run complete</span>
@@ -336,8 +400,6 @@ function RunResultCard({ result }) {
           </span>
         )}
       </div>
-
-      {/* Stats */}
       <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
         {rows.map((row, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
@@ -357,8 +419,6 @@ function RunResultCard({ result }) {
             )}
           </div>
         ))}
-
-        {/* Urgency pills - only if we have urgency data */}
         {Object.keys(urgency).length > 0 && (
           <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--border)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {['Critical','High','Medium','Low'].filter(u => urgency[u] > 0).map(u => (
@@ -371,8 +431,6 @@ function RunResultCard({ result }) {
             </span>
           </div>
         )}
-
-        {/* Skipped hint */}
         {skipped > 0 && (
           <div style={{ marginTop: 4, padding: '8px 10px', background: 'rgba(212,168,67,0.08)', border: '1px solid rgba(212,168,67,0.25)', borderRadius: 'var(--radius)', fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
             <Info size={11} style={{ color: 'var(--yellow)', verticalAlign: 'middle', marginRight: 4 }} />
