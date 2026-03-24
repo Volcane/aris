@@ -379,7 +379,7 @@ export default function Documents() {
               {detail.summary && (
                 <>
                   <RequirementList items={detail.summary.requirements}    label="Mandatory Requirements" color="var(--red)" />
-                  <RequirementList items={detail.summary.recommendations} label="Recommendations"        color="var(--yellow)" />
+                  <RequirementList items={detail.summary.recommendations ?? []} label="Recommendations"        color="var(--yellow)" />
                   <RequirementList items={detail.summary.action_items}    label="Action Items"           color="var(--accent)" />
                 </>
               )}
