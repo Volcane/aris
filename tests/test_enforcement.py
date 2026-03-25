@@ -429,6 +429,163 @@ class TestCourtListenerSource(unittest.TestCase):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# NEWS SOURCES: IAPP, REGULATORY OVERSIGHT, COURTHOUSE NEWS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+NEWS_MOCK_RSS = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Test Feed</title>
+    <item>
+      <title>FTC Settles with AI Company Over Deceptive Algorithmic Claims for $3.2 Million</title>
+      <description>The Federal Trade Commission reached a settlement with an AI startup
+        over allegations the company made deceptive claims about its machine learning algorithms
+        used in automated hiring decisions. The consent order requires bias audits.</description>
+      <link>https://example.com/ftc-ai-settlement</link>
+      <pubDate>Mon, 10 Mar 2025 12:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>State AG Files Lawsuit Against Data Broker for Privacy Violations</title>
+      <description>The state attorney general filed a complaint against a data broker alleging
+        violations of the state consumer privacy act for selling personal data without consent.
+        Civil penalties of up to $500,000 sought.</description>
+      <link>https://example.com/state-ag-privacy-lawsuit</link>
+      <pubDate>Fri, 07 Mar 2025 12:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>AI Startup Raises $50 Million Series B Funding Round</title>
+      <description>A generative AI startup announced a major funding round led by venture capital
+        firms to expand its large language model capabilities.</description>
+      <link>https://example.com/ai-funding</link>
+      <pubDate>Thu, 06 Mar 2025 12:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>"""
+
+
+class TestNewsEnforcementFilter(unittest.TestCase):
+    """Test the stricter news enforcement relevance filter."""
+
+    def test_passes_enforcement_with_domain(self):
+        from sources.enforcement_agent import _is_news_enforcement_relevant
+        text = "FTC settles with AI company over deceptive algorithmic bias claims $2.5 million"
+        self.assertTrue(_is_news_enforcement_relevant(text))
+
+    def test_blocks_general_ai_news(self):
+        from sources.enforcement_agent import _is_news_enforcement_relevant
+        text = "AI startup raises $50 million to expand large language model capabilities"
+        self.assertFalse(_is_news_enforcement_relevant(text))
+
+    def test_blocks_policy_only_news(self):
+        from sources.enforcement_agent import _is_news_enforcement_relevant
+        text = "New AI regulation proposed in Congress focusing on transparency requirements"
+        self.assertFalse(_is_news_enforcement_relevant(text))
+
+    def test_passes_privacy_violation(self):
+        from sources.enforcement_agent import _is_news_enforcement_relevant
+        text = "Data broker fined for GDPR violation sharing personal data without consent"
+        self.assertTrue(_is_news_enforcement_relevant(text))
+
+    def test_passes_class_action(self):
+        from sources.enforcement_agent import _is_news_enforcement_relevant
+        text = "Class action lawsuit filed against company for biometric data collection"
+        self.assertTrue(_is_news_enforcement_relevant(text))
+
+
+class TestIAPPNewsSource(unittest.TestCase):
+
+    def _source(self):
+        from sources.enforcement_agent import IAPPNewsSource
+        return IAPPNewsSource()
+
+    def _fetch(self, days=3650):
+        with patch("sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS):
+            return self._source().fetch(lookback_days=days)
+
+    def test_filters_non_enforcement_items(self):
+        self.assertFalse(any("Series B" in r["title"] for r in self._fetch()))
+
+    def test_passes_enforcement_items(self):
+        self.assertGreater(len(self._fetch()), 0)
+
+    def test_source_name(self):
+        for r in self._fetch():
+            self.assertEqual(r["source"], "iapp")
+
+    def test_required_fields_present(self):
+        results = self._fetch()
+        if results:
+            for field in ("id", "source", "action_type", "title", "url", "relevance_score"):
+                self.assertIn(field, results[0])
+
+    def test_html_response_skipped(self):
+        with patch("sources.enforcement_agent.http_get_text",
+                   return_value="<!DOCTYPE html><html><body>Blocked</body></html>"):
+            self.assertEqual(self._source().fetch(), [])
+
+    def test_feed_failure_returns_empty(self):
+        with patch("sources.enforcement_agent.http_get_text",
+                   side_effect=Exception("Connection refused")):
+            self.assertEqual(self._source().fetch(), [])
+
+
+class TestRegulatoryOversightSource(unittest.TestCase):
+
+    def _source(self):
+        from sources.enforcement_agent import RegulatoryOversightSource
+        return RegulatoryOversightSource()
+
+    def _fetch(self, days=3650):
+        with patch("sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS):
+            return self._source().fetch(lookback_days=days)
+
+    def test_filters_non_enforcement_items(self):
+        self.assertFalse(any("Series B" in r["title"] for r in self._fetch()))
+
+    def test_passes_enforcement_items(self):
+        self.assertGreater(len(self._fetch()), 0)
+
+    def test_source_name(self):
+        for r in self._fetch():
+            self.assertEqual(r["source"], "regulatory_oversight")
+
+    def test_feed_failure_returns_empty(self):
+        with patch("sources.enforcement_agent.http_get_text",
+                   side_effect=Exception("timeout")):
+            self.assertEqual(self._source().fetch(), [])
+
+
+class TestCourthouseNewsSource(unittest.TestCase):
+
+    def _source(self):
+        from sources.enforcement_agent import CourthouseNewsSource
+        return CourthouseNewsSource()
+
+    def _fetch(self, days=3650):
+        with patch("sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS):
+            return self._source().fetch(lookback_days=days)
+
+    def test_filters_non_enforcement_items(self):
+        self.assertFalse(any("Series B" in r["title"] for r in self._fetch()))
+
+    def test_passes_enforcement_items(self):
+        self.assertGreater(len(self._fetch()), 0)
+
+    def test_action_type_is_litigation(self):
+        for r in self._fetch():
+            self.assertEqual(r["action_type"], "litigation")
+
+    def test_source_name(self):
+        for r in self._fetch():
+            self.assertEqual(r["source"], "courthouse_news")
+
+    def test_feed_failure_returns_empty(self):
+        with patch("sources.enforcement_agent.http_get_text",
+                   side_effect=Exception("timeout")):
+            self.assertEqual(self._source().fetch(), [])
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ENFORCEMENT AGENT
 # ═══════════════════════════════════════════════════════════════════════════════
 

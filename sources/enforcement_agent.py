@@ -7,30 +7,51 @@
 ARIS — Enforcement & Litigation Agent
 
 Monitors AI-related enforcement actions, court cases, and regulatory
-sanctions from seven free public sources:
+sanctions from ten free public sources:
 
 US FEDERAL AGENCIES (all RSS/JSON, no key required)
   FTC    — Algorithmic bias, dark patterns, AI fraud, ROSCA violations
-             https://www.ftc.gov/rss.xml
+             https://www.ftc.gov/feeds/press-release.xml
   SEC    — AI fraud, algorithmic manipulation, AI-generated disclosures
-             https://www.sec.gov/rss/litigation/litreleases.xml
              https://efts.sec.gov/LATEST/search-index (EDGAR full-text)
   CFPB   — Automated underwriting, credit scoring, BNPL algorithm enforcement
-             https://www.consumerfinance.gov/activity-log/rss/
+             https://www.consumerfinance.gov/about-us/newsroom/feed/
   EEOC   — Employment AI discrimination (hiring, promotion, performance)
-             https://www.eeoc.gov/newsroom/rss
+             https://www.eeoc.gov/rss/newsroom
   DOJ    — Civil rights AI discrimination in housing, lending, criminal justice
-             https://www.justice.gov/crt/rss
+             https://www.justice.gov/news/rss
 
 INTERNATIONAL (RSS, no key required)
-  ICO    — UK GDPR Article 22 automated decisions, AI data processing
-  (UK)     https://ico.org.uk/action-weve-taken/enforcement/rss/
+  ICO    — UK GDPR / data protection enforcement actions
+  (UK)     https://ico.org.uk/about-the-ico/media-centre/news-and-blogs/rss/
 
 US COURTS (free REST API, optional free token for higher rate limits)
   CourtListener — Federal court opinions and dockets from PACER/RECAP
   (Free Open Law  https://www.courtlistener.com/api/rest/v4/
    Project)       Optional: COURTLISTENER_KEY env var (free registration)
                   5,000 req/day without token, more with free token
+
+NEWS & LEGAL INTELLIGENCE (RSS, no key required)
+  IAPP            — IAPP Daily Dashboard: curated global privacy & AI
+                    governance news, editorially filtered. Covers enforcement
+                    actions, court decisions, and regulatory settlements.
+                    https://iapp.org/rss/daily-dashboard/
+                    https://iapp.org/rss/united-states-dashboard-digest/
+
+  Regulatory      — Troutman Pepper "Regulatory Oversight" blog: dedicated
+  Oversight         to tracking enforcement actions across consumer protection,
+                    privacy, and AI. Strong state AG coverage.
+                    https://www.regulatoryoversight.com/feed/
+
+  Courthouse      — Courthouse News Service: federal and state court filings
+  News              (complaints, settlements, verdicts) the day they are filed.
+                    https://www.courthousenews.com/feed/
+
+News sources use a stricter two-signal relevance filter
+(_is_news_enforcement_relevant) that requires both a domain keyword
+(AI/privacy) AND an enforcement action term (settlement, fine, lawsuit,
+violation, etc.) to pass. This prevents general policy commentary,
+opinion, and legislative news from appearing in the enforcement view.
 
 Architecture
 ------------
@@ -144,6 +165,74 @@ def _is_enforcement_relevant(text: str) -> bool:
     """Check if text is relevant to AI or privacy enforcement/litigation."""
     lower = text.lower()
     return any(term in lower for term in _ALL_ENFORCEMENT_TERMS)
+
+
+# Terms that signal an actual enforcement/litigation action rather than
+# general news, opinion, or policy coverage. Used to filter news RSS feeds
+# (IAPP, Regulatory Oversight, Courthouse News) where _is_enforcement_relevant
+# alone is too broad.
+_ENFORCEMENT_ACTION_SIGNALS = [
+    "settlement", "settled", "settles",
+    "fine", "fined", "fines",
+    "penalty", "penalties",
+    "consent order", "consent decree",
+    "lawsuit", "suit filed", "sues", "sued",
+    "complaint filed", "files complaint",
+    "enforcement action", "enforcement notice",
+    "civil penalty", "monetary penalty",
+    "injunction", "enjoined",
+    "investigation", "investigates",
+    "class action", "class-action",
+    "violation", "violations",
+    "charges", "charged",
+    "verdict", "ruled", "ruling",
+    "judgment", "judgement",
+    "sanctions", "sanctioned",
+    "subpoena", "order to",
+    "liable", "liability",
+    "breach", "data breach",
+    "regulatory action",
+]
+
+
+def _is_news_enforcement_relevant(text: str) -> bool:
+    """
+    Stricter relevance check for news/blog RSS feeds.
+    Requires BOTH a domain signal (AI/privacy) AND an enforcement action signal.
+    This prevents general policy commentary, opinion, and legislative news from
+    passing through sources like IAPP and Regulatory Oversight.
+    """
+    lower = text.lower()
+    has_domain    = any(term in lower for term in _ALL_ENFORCEMENT_TERMS)
+    has_action    = any(term in lower for term in _ENFORCEMENT_ACTION_SIGNALS)
+    return has_domain and has_action
+
+
+def _detect_jurisdiction(text: str) -> str:
+    """Infer jurisdiction from news/blog text for non-agency sources."""
+    lower = text.lower()
+    if any(t in lower for t in ["european union", " eu ", "gdpr", "eu ai act", "eur-lex", "european commission"]):
+        return "EU"
+    if any(t in lower for t in ["united kingdom", " uk ", "ico", "information commissioner", "uk gdpr"]):
+        return "GB"
+    if any(t in lower for t in ["california", " ca ", "ccpa", "cppa", "cpra"]):
+        return "CA_STATE"
+    if any(t in lower for t in ["new york", " ny ", "nyc"]):
+        return "NY"
+    if any(t in lower for t in ["texas", " tx "]):
+        return "TX"
+    if any(t in lower for t in ["illinois", " il ", "bipa"]):
+        return "IL"
+    if any(t in lower for t in ["federal trade commission", " ftc ", "sec ", "cfpb", "eeoc", "doj", "federal court",
+                                  "u.s. district", "federal", "congress", "senate", "house of representatives"]):
+        return "Federal"
+    if any(t in lower for t in ["canada", "pipeda", "cppa"]):
+        return "CA"
+    if any(t in lower for t in ["brazil", "lgpd", "anpd"]):
+        return "BR"
+    if any(t in lower for t in ["india", "dpdp", "meity"]):
+        return "IN"
+    return "Federal"   # default for US-centric news sources
 
 
 def _detect_enforcement_domain(text: str) -> str:
@@ -808,6 +897,194 @@ class CourtListenerSource:
 # ENFORCEMENT AGENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
+class IAPPNewsSource:
+    """
+    IAPP Daily Dashboard RSS — curated privacy & AI governance news.
+
+    The IAPP (International Association of Privacy Professionals) editorial
+    team publishes a daily digest of the most significant privacy and AI
+    governance stories globally. Because it is editorially curated it carries
+    a high density of enforcement actions, court decisions, regulatory
+    settlements, and agency announcements alongside some policy/legislative
+    news.
+
+    Uses the stricter _is_news_enforcement_relevant() filter (requires both
+    a domain signal and an enforcement action signal) to pass through
+    enforcement items while blocking general commentary.
+
+    No API key required.
+    """
+    NAME  = "iapp"
+    FEEDS = [
+        "https://iapp.org/rss/daily-dashboard/",         # global daily digest
+        "https://iapp.org/rss/united-states-dashboard-digest/",  # US-focused
+    ]
+
+    def fetch(self, lookback_days: int = 90) -> List[Dict]:
+        results = []
+        cutoff  = datetime.utcnow() - timedelta(days=lookback_days)
+        seen: set = set()
+        for feed_url in self.FEEDS:
+            try:
+                raw = http_get_text(feed_url, use_cache=True)
+                if not raw or raw.strip().startswith('<!DOCTYPE') or '<html' in raw[:200].lower():
+                    log.debug("IAPP feed %s returned HTML — skipping", feed_url)
+                    continue
+                for item in _parse_rss_feed(raw):
+                    if item["link"] in seen:
+                        continue
+                    seen.add(item["link"])
+                    blob = f"{item['title']} {item['description']}"
+                    if not _is_news_enforcement_relevant(blob):
+                        continue
+                    pub = _parse_rss_date(item["date"])
+                    if pub and pub < cutoff:
+                        continue
+                    results.append({
+                        "id":             _action_id("IAPP", item["link"] or item["title"]),
+                        "source":         self.NAME,
+                        "action_type":    "news",
+                        "title":          item["title"],
+                        "url":            item["link"],
+                        "published_date": pub,
+                        "agency":         "IAPP / Various",
+                        "jurisdiction":   _detect_jurisdiction(blob),
+                        "respondent":     FTCEnforcementSource._extract_respondent(item["title"]),
+                        "summary":        item["description"][:500],
+                        "related_regs":   _find_related_regs(blob),
+                        "outcome":        FTCEnforcementSource._infer_outcome(blob),
+                        "penalty_amount": _extract_penalty(blob),
+                        "ai_concepts":    FTCEnforcementSource._infer_concepts(blob),
+                        "relevance_score":_score_relevance(blob),
+                        "domain":         _detect_enforcement_domain(blob),
+                        "raw_json":       item,
+                    })
+            except Exception as e:
+                log.debug("IAPP feed %s failed: %s", feed_url, e)
+        return FTCEnforcementSource._dedup(results)
+
+
+class RegulatoryOversightSource:
+    """
+    Troutman Pepper "Regulatory Oversight" blog RSS.
+
+    A law firm blog dedicated to tracking regulatory enforcement actions
+    across consumer protection, privacy, and AI. Nearly every post covers
+    an enforcement action, investigation, settlement, or litigation
+    development — very low noise-to-signal ratio. Strong coverage of
+    state AG actions that no government RSS feed captures.
+
+    Uses the stricter _is_news_enforcement_relevant() filter as a secondary
+    check, though most posts will pass regardless given the blog's tight focus.
+
+    No API key required.
+    """
+    NAME  = "regulatory_oversight"
+    FEEDS = [
+        "https://www.regulatoryoversight.com/feed/",
+    ]
+
+    def fetch(self, lookback_days: int = 90) -> List[Dict]:
+        results = []
+        cutoff  = datetime.utcnow() - timedelta(days=lookback_days)
+        for feed_url in self.FEEDS:
+            try:
+                raw = http_get_text(feed_url, use_cache=True)
+                if not raw or raw.strip().startswith('<!DOCTYPE') or '<html' in raw[:200].lower():
+                    log.debug("RegulatoryOversight feed returned HTML — skipping")
+                    continue
+                for item in _parse_rss_feed(raw):
+                    blob = f"{item['title']} {item['description']}"
+                    if not _is_news_enforcement_relevant(blob):
+                        continue
+                    pub = _parse_rss_date(item["date"])
+                    if pub and pub < cutoff:
+                        continue
+                    results.append({
+                        "id":             _action_id("REGOV", item["link"] or item["title"]),
+                        "source":         self.NAME,
+                        "action_type":    "enforcement",
+                        "title":          item["title"],
+                        "url":            item["link"],
+                        "published_date": pub,
+                        "agency":         "Various / State AG",
+                        "jurisdiction":   _detect_jurisdiction(blob),
+                        "respondent":     FTCEnforcementSource._extract_respondent(item["title"]),
+                        "summary":        item["description"][:500],
+                        "related_regs":   _find_related_regs(blob),
+                        "outcome":        FTCEnforcementSource._infer_outcome(blob),
+                        "penalty_amount": _extract_penalty(blob),
+                        "ai_concepts":    FTCEnforcementSource._infer_concepts(blob),
+                        "relevance_score":_score_relevance(blob),
+                        "domain":         _detect_enforcement_domain(blob),
+                        "raw_json":       item,
+                    })
+            except Exception as e:
+                log.debug("RegulatoryOversight feed failed: %s", e)
+        return FTCEnforcementSource._dedup(results)
+
+
+class CourthouseNewsSource:
+    """
+    Courthouse News Service RSS — federal and state court filings.
+
+    Courthouse News is a legal newswire covering court filings (complaints,
+    motions, settlements, verdicts) the day they are filed. It provides
+    litigation coverage that CourtListener misses — state courts, newly-filed
+    complaints before they appear in PACER/RECAP, and fast-breaking cases.
+
+    High volume source: the general feed covers all litigation, so the
+    _is_news_enforcement_relevant() filter is essential here. Only items
+    that contain both a domain signal (AI/privacy) AND an enforcement action
+    term (lawsuit, complaint, settlement, etc.) will pass through.
+
+    No API key required.
+    """
+    NAME  = "courthouse_news"
+    FEEDS = [
+        "https://www.courthousenews.com/feed/",
+    ]
+
+    def fetch(self, lookback_days: int = 90) -> List[Dict]:
+        results = []
+        cutoff  = datetime.utcnow() - timedelta(days=lookback_days)
+        for feed_url in self.FEEDS:
+            try:
+                raw = http_get_text(feed_url, use_cache=True)
+                if not raw or raw.strip().startswith('<!DOCTYPE') or '<html' in raw[:200].lower():
+                    log.debug("CourthouseNews feed returned HTML — skipping")
+                    continue
+                for item in _parse_rss_feed(raw):
+                    blob = f"{item['title']} {item['description']}"
+                    if not _is_news_enforcement_relevant(blob):
+                        continue
+                    pub = _parse_rss_date(item["date"])
+                    if pub and pub < cutoff:
+                        continue
+                    results.append({
+                        "id":             _action_id("CNS", item["link"] or item["title"]),
+                        "source":         self.NAME,
+                        "action_type":    "litigation",
+                        "title":          item["title"],
+                        "url":            item["link"],
+                        "published_date": pub,
+                        "agency":         "Federal/State Court",
+                        "jurisdiction":   _detect_jurisdiction(blob),
+                        "respondent":     FTCEnforcementSource._extract_respondent(item["title"]),
+                        "summary":        item["description"][:500],
+                        "related_regs":   _find_related_regs(blob),
+                        "outcome":        FTCEnforcementSource._infer_outcome(blob),
+                        "penalty_amount": _extract_penalty(blob),
+                        "ai_concepts":    FTCEnforcementSource._infer_concepts(blob),
+                        "relevance_score":_score_relevance(blob),
+                        "domain":         _detect_enforcement_domain(blob),
+                        "raw_json":       item,
+                    })
+            except Exception as e:
+                log.debug("CourthouseNews feed failed: %s", e)
+        return FTCEnforcementSource._dedup(results)
+
+
 class EnforcementAgent:
     """
     Aggregates all enforcement and litigation sources into a single interface.
@@ -823,6 +1100,9 @@ class EnforcementAgent:
             DOJEnforcementSource(),
             ICOEnforcementSource(),
             CourtListenerSource(),
+            IAPPNewsSource(),
+            RegulatoryOversightSource(),
+            CourthouseNewsSource(),
         ]
 
     def fetch_all(self, lookback_days: int = 90) -> Dict[str, Any]:
