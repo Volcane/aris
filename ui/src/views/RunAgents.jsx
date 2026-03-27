@@ -50,7 +50,7 @@ const SOURCES_INTL = [
   { id: 'GB',     label: 'UK',           sub: 'Parliament · legislation.gov.uk' },
   { id: 'CA_INTL',label: 'Canada',       sub: 'OpenParl · Gazette' },
   { id: 'SG',     label: 'Singapore',    sub: 'PDPC · IMDA' },
-  { id: 'IN',     label: 'India',        sub: 'PIB · MEITY' },
+  { id: 'IN_INTL',label: 'India',        sub: 'PIB · MEITY' },
   { id: 'BR',     label: 'Brazil',       sub: 'ANPD · Senate' },
   { id: 'JP',     label: 'Japan',        sub: 'METI RSS' },
   { id: 'KR',     label: 'South Korea',  sub: 'MSIT' },

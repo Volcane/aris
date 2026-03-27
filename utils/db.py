@@ -848,17 +848,39 @@ class ScheduleConfig(Base):
     """
     Persistent configuration for scheduled monitoring runs.
     Only one row exists — upserted on every save.
+
+    Two independent tracks:
+      Jurisdiction: runs on specific days-of-week at a set time (e.g. Mon/Wed at 08:00)
+      Enforcement:  runs on a repeating interval in hours (e.g. every 4 hours)
     """
     __tablename__ = "schedule_config"
 
     id              = Column(Integer, primary_key=True, default=1)
+
+    # ── Legacy / shared ───────────────────────────────────────────────────────
     enabled         = Column(Boolean, default=False)
     interval_hours  = Column(Integer, default=24)
-    domain          = Column(String, default="both")
+    domain          = Column(String,  default="both")
     lookback_days   = Column(Integer, default=7)
     last_triggered  = Column(DateTime, nullable=True)
     next_run        = Column(DateTime, nullable=True)
     updated_at      = Column(DateTime, default=datetime.utcnow)
+
+    # ── Jurisdiction track ────────────────────────────────────────────────────
+    jur_enabled     = Column(Boolean, default=False)
+    jur_days        = Column(String,  default="0,1,2,3,4")  # CSV: 0=Mon … 6=Sun
+    jur_time        = Column(String,  default="08:00")       # HH:MM local server time
+    jur_domain      = Column(String,  default="both")
+    jur_lookback    = Column(Integer, default=7)
+    jur_last_run    = Column(DateTime, nullable=True)
+    jur_next_run    = Column(DateTime, nullable=True)
+
+    # ── Enforcement track ─────────────────────────────────────────────────────
+    enf_enabled     = Column(Boolean, default=False)
+    enf_interval_hours = Column(Integer, default=6)   # every N hours
+    enf_lookback    = Column(Integer, default=2)       # days back for enforcement
+    enf_last_run    = Column(DateTime, nullable=True)
+    enf_next_run    = Column(DateTime, nullable=True)
 
 
 class QAPassage(Base):
@@ -1726,19 +1748,48 @@ def get_schedule_config() -> Dict[str, Any]:
             return {
                 "enabled": False, "interval_hours": 24, "domain": "both",
                 "lookback_days": 7, "last_triggered": None, "next_run": None,
+                # Jurisdiction track
+                "jur_enabled": False, "jur_days": "0,1,2,3,4", "jur_time": "08:00",
+                "jur_domain": "both", "jur_lookback": 7,
+                "jur_last_run": None, "jur_next_run": None,
+                # Enforcement track
+                "enf_enabled": False, "enf_interval_hours": 6, "enf_lookback": 2,
+                "enf_last_run": None, "enf_next_run": None,
             }
         return {
+            # Legacy
             "enabled":        row.enabled,
             "interval_hours": row.interval_hours,
             "domain":         row.domain,
             "lookback_days":  row.lookback_days,
             "last_triggered": row.last_triggered.isoformat() if row.last_triggered else None,
             "next_run":       row.next_run.isoformat() if row.next_run else None,
+            # Jurisdiction track
+            "jur_enabled":    bool(row.jur_enabled),
+            "jur_days":       row.jur_days or "0,1,2,3,4",
+            "jur_time":       row.jur_time or "08:00",
+            "jur_domain":     row.jur_domain or "both",
+            "jur_lookback":   row.jur_lookback or 7,
+            "jur_last_run":   row.jur_last_run.isoformat() if row.jur_last_run else None,
+            "jur_next_run":   row.jur_next_run.isoformat() if row.jur_next_run else None,
+            # Enforcement track
+            "enf_enabled":    bool(row.enf_enabled),
+            "enf_interval_hours": row.enf_interval_hours or 6,
+            "enf_lookback":   row.enf_lookback or 2,
+            "enf_last_run":   row.enf_last_run.isoformat() if row.enf_last_run else None,
+            "enf_next_run":   row.enf_next_run.isoformat() if row.enf_next_run else None,
         }
 
 
 def save_schedule_config(enabled: bool, interval_hours: int = 24,
-                          domain: str = "both", lookback_days: int = 7) -> Dict[str, Any]:
+                          domain: str = "both", lookback_days: int = 7,
+                          # Jurisdiction track
+                          jur_enabled: bool = False, jur_days: str = "0,1,2,3,4",
+                          jur_time: str = "08:00", jur_domain: str = "both",
+                          jur_lookback: int = 7,
+                          # Enforcement track
+                          enf_enabled: bool = False, enf_interval_hours: int = 6,
+                          enf_lookback: int = 2) -> Dict[str, Any]:
     """Upsert the schedule configuration. Returns the updated config."""
     from datetime import timedelta
     with get_session() as session:
@@ -1746,6 +1797,7 @@ def save_schedule_config(enabled: bool, interval_hours: int = 24,
         if not row:
             row = ScheduleConfig(id=1)
             session.add(row)
+        # Legacy track
         row.enabled        = enabled
         row.interval_hours = interval_hours
         row.domain         = domain
@@ -1755,8 +1807,74 @@ def save_schedule_config(enabled: bool, interval_hours: int = 24,
             row.next_run = datetime.utcnow() + timedelta(hours=interval_hours)
         else:
             row.next_run = None
+        # Jurisdiction track
+        row.jur_enabled = jur_enabled
+        row.jur_days    = jur_days
+        row.jur_time    = jur_time
+        row.jur_domain  = jur_domain
+        row.jur_lookback = jur_lookback
+        if jur_enabled:
+            row.jur_next_run = _compute_next_jur_run(jur_days, jur_time)
+        else:
+            row.jur_next_run = None
+        # Enforcement track
+        row.enf_enabled        = enf_enabled
+        row.enf_interval_hours = enf_interval_hours
+        row.enf_lookback       = enf_lookback
+        if enf_enabled:
+            row.enf_next_run = datetime.utcnow() + timedelta(hours=enf_interval_hours)
+        else:
+            row.enf_next_run = None
         session.commit()
         return get_schedule_config()
+
+
+def _compute_next_jur_run(days_csv: str, time_str: str) -> Optional[datetime]:
+    """Compute the next datetime a jurisdiction run should fire.
+    days_csv: comma-separated weekday numbers 0=Mon … 6=Sun
+    time_str: "HH:MM" in local server time
+    """
+    try:
+        enabled_days = {int(d) for d in days_csv.split(",") if d.strip()}
+        if not enabled_days:
+            return None
+        hh, mm = [int(x) for x in time_str.split(":")]
+        now = datetime.utcnow()
+        # Try today first, then the next 7 days
+        for delta in range(8):
+            target_date = now + timedelta(days=delta)
+            candidate   = target_date.replace(
+                hour=hh, minute=mm, second=0, microsecond=0
+            )
+            if candidate.weekday() in enabled_days and candidate > now:
+                return candidate
+        return None
+    except Exception:
+        return None
+
+
+def update_jur_last_run() -> None:
+    """Mark the jurisdiction track as having just run and schedule the next run."""
+    with get_session() as session:
+        row = session.query(ScheduleConfig).filter_by(id=1).first()
+        if row and row.jur_enabled:
+            row.jur_last_run = datetime.utcnow()
+            row.jur_next_run = _compute_next_jur_run(
+                row.jur_days or "0,1,2,3,4",
+                row.jur_time or "08:00",
+            )
+            session.commit()
+
+
+def update_enf_last_run() -> None:
+    """Mark the enforcement track as having just run and schedule the next run."""
+    from datetime import timedelta
+    with get_session() as session:
+        row = session.query(ScheduleConfig).filter_by(id=1).first()
+        if row and row.enf_enabled:
+            row.enf_last_run = datetime.utcnow()
+            row.enf_next_run = datetime.utcnow() + timedelta(hours=row.enf_interval_hours or 6)
+            session.commit()
 
 
 def update_schedule_last_run() -> None:

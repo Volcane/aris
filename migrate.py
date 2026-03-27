@@ -1,12 +1,13 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
 # ARIS — Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
-ARIS â€” Database Migration Script
+ARIS — Database Migration Script
 
 Run this once to bring an existing ARIS database up to date with the
-current schema. Safe to run multiple times â€” skips columns that already exist.
+current schema. Safe to run multiple times — skips columns that already exist.
 
 Usage:
     python migrate.py
@@ -28,7 +29,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-# â”€â”€ Column additions by table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Column additions by table ─────────────────────────────────────────────────
 #
 # Each entry: (table, column, sqlite_type, default_value)
 # The default is used both as the SQLite DEFAULT and to backfill existing rows.
@@ -74,7 +75,7 @@ COLUMN_ADDITIONS = [
     ("feedback_events", "jurisdiction","TEXT", "NULL"),
     ("feedback_events", "keywords",    "TEXT", "NULL"),
 
-    # pdf_metadata table (may not exist at all â€” handled by create_all)
+    # pdf_metadata table (may not exist at all — handled by create_all)
     ("pdf_metadata", "origin",       "TEXT", "'pdf_manual'"),
     ("pdf_metadata", "file_path",    "TEXT", "NULL"),
     ("pdf_metadata", "page_count",   "INTEGER", "NULL"),
@@ -87,9 +88,23 @@ COLUMN_ADDITIONS = [
 
     # enforcement_actions table
     ("enforcement_actions", "domain", "TEXT", "'ai'"),
+
+    # schedule_config — two-track scheduling (jurisdiction + enforcement)
+    ("schedule_config", "jur_enabled",         "INTEGER", "0"),
+    ("schedule_config", "jur_days",            "TEXT",    "'0,1,2,3,4'"),
+    ("schedule_config", "jur_time",            "TEXT",    "'08:00'"),
+    ("schedule_config", "jur_domain",          "TEXT",    "'both'"),
+    ("schedule_config", "jur_lookback",        "INTEGER", "7"),
+    ("schedule_config", "jur_last_run",        "TEXT",    "NULL"),
+    ("schedule_config", "jur_next_run",        "TEXT",    "NULL"),
+    ("schedule_config", "enf_enabled",         "INTEGER", "0"),
+    ("schedule_config", "enf_interval_hours",  "INTEGER", "6"),
+    ("schedule_config", "enf_lookback",        "INTEGER", "2"),
+    ("schedule_config", "enf_last_run",        "TEXT",    "NULL"),
+    ("schedule_config", "enf_next_run",        "TEXT",    "NULL"),
 ]
 
-# â”€â”€ New tables (create if missing) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── New tables (create if missing) ─────────────────────────────────────────────
 
 NEW_TABLES = [
     """
@@ -342,7 +357,7 @@ NEW_TABLES = [
 ]
 
 
-# â”€â”€ Migration runner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Migration runner ──────────────────────────────────────────────────────────
 
 def get_existing_columns(conn: sqlite3.Connection, table: str) -> set:
     """Return the set of column names currently in a table."""
@@ -371,26 +386,26 @@ def migrate(db_path: Path) -> None:
         existing_tables = get_existing_tables(conn)
         print(f"  Existing tables: {sorted(existing_tables)}\n")
 
-        # â”€â”€ Step 1: Create missing tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Step 1: Create missing tables ─────────────────────────────────────
         print("Step 1: Creating missing tables...")
         for ddl in NEW_TABLES:
             # Extract table name from DDL for reporting
             name = ddl.strip().split("EXISTS")[1].strip().split("(")[0].strip()
             if name not in existing_tables:
                 conn.execute(ddl)
-                print(f"  âœ“ Created table: {name}")
+                print(f"  ✓ Created table: {name}")
             else:
-                print(f"  Â· Already exists: {name}")
+                print(f"  · Already exists: {name}")
         conn.commit()
 
-        # â”€â”€ Step 2: Add missing columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Step 2: Add missing columns ────────────────────────────────────────
         print("\nStep 2: Adding missing columns...")
         added = 0
         skipped = 0
         for table, column, col_type, default in COLUMN_ADDITIONS:
             existing_cols = get_existing_columns(conn, table)
             if not existing_cols:
-                # Table doesn't exist â€” will have been created above with correct schema
+                # Table doesn't exist — will have been created above with correct schema
                 continue
             if column in existing_cols:
                 skipped += 1
@@ -408,14 +423,14 @@ def migrate(db_path: Path) -> None:
                         f"UPDATE {table} SET {column} = {default} WHERE {column} IS NULL"
                     )
                 conn.commit()
-                print(f"  âœ“ {table}.{column} ({col_type}, default {default})")
+                print(f"  ✓ {table}.{column} ({col_type}, default {default})")
                 added += 1
             except sqlite3.OperationalError as e:
-                print(f"  âœ— {table}.{column} â€” {e}")
+                print(f"  ✗ {table}.{column} — {e}")
 
         print(f"\n  Added {added} columns, skipped {skipped} already-present columns.")
 
-        # â”€â”€ Step 3: Verify critical columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Step 3: Verify critical columns ───────────────────────────────────
         print("\nStep 3: Verifying critical columns...")
         critical = [
             ("documents", "origin"),
@@ -426,15 +441,15 @@ def migrate(db_path: Path) -> None:
         for table, column in critical:
             cols = get_existing_columns(conn, table)
             if column in cols:
-                print(f"  âœ“ {table}.{column}")
+                print(f"  ✓ {table}.{column}")
             else:
-                print(f"  âœ— {table}.{column} STILL MISSING â€” check manually")
+                print(f"  ✗ {table}.{column} STILL MISSING — check manually")
                 all_ok = False
 
         if all_ok:
-            print("\nâœ“ Migration complete. All critical columns present.")
+            print("\n✓ Migration complete. All critical columns present.")
         else:
-            print("\nâš  Migration finished with warnings â€” see above.")
+            print("\n⚠ Migration finished with warnings — see above.")
 
     finally:
         conn.close()

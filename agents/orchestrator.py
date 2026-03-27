@@ -163,9 +163,17 @@ class Orchestrator:
         run_federal = run_all or "federal" in sources_lower
         run_states  = run_all or "states"  in sources_lower
         run_intl    = run_all or "international" in sources_lower
-        specific    = {s.upper() for s in (sources or [])} - {
+        # Normalise source IDs: strip the _INTL suffix that the UI uses to
+        # disambiguate international codes from US state codes with the same
+        # two-letter abbreviation (e.g. IN_INTL=India vs IN=Indiana).
+        # Build two sets: state_specific and intl_specific so "IN" only ever
+        # matches Indiana and "IN_INTL" only ever matches India.
+        raw_specific  = {s.upper() for s in (sources or [])} - {
             "FEDERAL", "STATES", "INTERNATIONAL"
         }
+        intl_specific  = {s[:-5] for s in raw_specific if s.endswith("_INTL")}
+        state_specific = raw_specific - {s for s in raw_specific if s.endswith("_INTL")}
+        specific       = state_specific  # kept for backward compat with state matching below
 
         # Build a list of (label, callable) tasks to run concurrently
         tasks: List[tuple] = []
@@ -180,7 +188,7 @@ class Orchestrator:
                                lambda a=_agent: a.fetch_all(lookback_days, domain=domain)))
 
         for agent in self.international_agents:
-            if run_intl or agent.jurisdiction_code in specific:
+            if run_intl or agent.jurisdiction_code in intl_specific:
                 _agent = agent
                 tasks.append((f"Intl:{_agent.jurisdiction_code}",
                                lambda a=_agent: a.fetch_all(lookback_days)))

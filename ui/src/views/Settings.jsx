@@ -4,11 +4,11 @@ import { CheckCircle2, XCircle, ExternalLink, AlertTriangle, Info,
 import { Spinner } from '../components.jsx'
 import { SectionHeader } from '../components.jsx'
 
-// What you lose without each key - shown when key is not configured
+// What you lose without each key — shown when key is not configured
 const KEY_IMPACT = {
   anthropic: {
     loses: [
-      'AI summarisation - documents fetched but never interpreted',
+      'AI summarisation — documents fetched but never interpreted',
       'Plain-English summaries, urgency ratings, requirements lists',
       'Compliance checklists and change detection (diffs)',
       'Ask ARIS Q&A, Briefs, Synthesis, Gap Analysis',
@@ -18,7 +18,7 @@ const KEY_IMPACT = {
   regulations_gov: {
     loses: [
       'Federal rulemaking dockets (proposed rules, public comments)',
-      'NPRM tracking - rules in progress before they finalise',
+      'NPRM tracking — rules in progress before they finalise',
     ],
     severity: 'moderate',
   },
@@ -46,6 +46,38 @@ const KEY_IMPACT = {
   },
 }
 
+// ── Timezone helpers ─────────────────────────────────────────────────────────
+// The server stores jur_time as UTC HH:MM and computes next_run in UTC.
+// We convert to/from local time so the user always sees and enters local time.
+
+function localTimeToUtc(localHHMM) {
+  // Convert "HH:MM" in local time → "HH:MM" in UTC
+  const [hh, mm] = localHHMM.split(':').map(Number)
+  const d = new Date()
+  d.setHours(hh, mm, 0, 0)
+  const uh = String(d.getUTCHours()).padStart(2, '0')
+  const um = String(d.getUTCMinutes()).padStart(2, '0')
+  return `${uh}:${um}`
+}
+
+function utcTimeToLocal(utcHHMM) {
+  // Convert stored UTC "HH:MM" → "HH:MM" in local time for display/input
+  if (!utcHHMM) return '08:00'
+  const [hh, mm] = utcHHMM.split(':').map(Number)
+  const d = new Date()
+  d.setUTCHours(hh, mm, 0, 0)
+  const lh = String(d.getHours()).padStart(2, '0')
+  const lm = String(d.getMinutes()).padStart(2, '0')
+  return `${lh}:${lm}`
+}
+
+function parseServerDt(isoStr) {
+  // Server returns UTC datetimes without Z suffix — add it so the browser
+  // correctly converts to local time when formatting
+  if (!isoStr) return null
+  return isoStr.endsWith('Z') ? isoStr : isoStr + 'Z'
+}
+
 export default function SettingsView({ status }) {
   const [expandedKey,      setExpandedKey]      = useState(null)
   const [schedule,         setSchedule]         = useState(null)
@@ -55,6 +87,16 @@ export default function SettingsView({ status }) {
   const [schedInterval,    setSchedInterval]     = useState(24)
   const [schedDomain,      setSchedDomain]       = useState('both')
   const [schedLookback,    setSchedLookback]     = useState(7)
+  // Jurisdiction track
+  const [jurEnabled,       setJurEnabled]        = useState(false)
+  const [jurDays,          setJurDays]           = useState([0,1,2,3,4])
+  const [jurTime,          setJurTime]           = useState('08:00')
+  const [jurDomain,        setJurDomain]         = useState('both')
+  const [jurLookback,      setJurLookback]       = useState(7)
+  // Enforcement track
+  const [enfEnabled,       setEnfEnabled]        = useState(false)
+  const [enfInterval,      setEnfInterval]       = useState(6)
+  const [enfLookback,      setEnfLookback]       = useState(2)
   const [notifConfig,      setNotifConfig]       = useState(null)
   const [testSending,      setTestSending]       = useState(false)
   const [testResult,       setTestResult]        = useState(null)
@@ -69,6 +111,16 @@ export default function SettingsView({ status }) {
       setSchedInterval(cfg.interval_hours || 24)
       setSchedDomain(cfg.domain || 'both')
       setSchedLookback(cfg.lookback_days || 7)
+      // Jurisdiction track
+      setJurEnabled(cfg.jur_enabled || false)
+      setJurDays(cfg.jur_days ? cfg.jur_days.split(',').map(Number) : [0,1,2,3,4])
+      setJurTime(utcTimeToLocal(cfg.jur_time || '08:00'))  // display in local time
+      setJurDomain(cfg.jur_domain || 'both')
+      setJurLookback(cfg.jur_lookback || 7)
+      // Enforcement track
+      setEnfEnabled(cfg.enf_enabled || false)
+      setEnfInterval(cfg.enf_interval_hours || 6)
+      setEnfLookback(cfg.enf_lookback || 2)
     }).catch(() => {})
     fetch('/api/notifications/config').then(r => r.json()).then(cfg => {
       setNotifConfig(cfg)
@@ -82,7 +134,16 @@ export default function SettingsView({ status }) {
       const res = await fetch('/api/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: schedEnabled, interval_hours: schedInterval, domain: schedDomain, lookback_days: schedLookback }),
+        body: JSON.stringify({
+          enabled: schedEnabled, interval_hours: schedInterval,
+          domain: schedDomain, lookback_days: schedLookback,
+          // Jurisdiction track
+          jur_enabled: jurEnabled, jur_days: jurDays.join(','),
+          jur_time: localTimeToUtc(jurTime), jur_domain: jurDomain, jur_lookback: jurLookback,  // store as UTC
+          // Enforcement track
+          enf_enabled: enfEnabled, enf_interval_hours: enfInterval,
+          enf_lookback: enfLookback,
+        }),
       })
       const updated = await res.json()
       setSchedule(updated)
@@ -116,14 +177,14 @@ export default function SettingsView({ status }) {
       label:    'Anthropic API Key',
       url:      'https://console.anthropic.com/settings/keys',
       required: true,
-      note:     'Powers all AI analysis - summarisation, diffs, Q&A, briefs, gap analysis',
+      note:     'Powers all AI analysis — summarisation, diffs, Q&A, briefs, gap analysis',
     },
     {
       key:      'legiscan',
       label:    'LegiScan API Key',
       url:      'https://legiscan.com/legiscan',
       required: false,
-      note:     'US state legislature monitoring - all 5 enabled states require this',
+      note:     'US state legislature monitoring — all 5 enabled states require this',
     },
     {
       key:      'regulations_gov',
@@ -182,7 +243,7 @@ export default function SettingsView({ status }) {
           <Info size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
           <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
             {configuredCount}/{apiKeyDefs.length} keys configured.{' '}
-            {missingOptional.length} optional {missingOptional.length === 1 ? 'key' : 'keys'} not set -
+            {missingOptional.length} optional {missingOptional.length === 1 ? 'key' : 'keys'} not set —
             click any unconfigured key to see what you're missing.
           </div>
         </div>
@@ -253,7 +314,7 @@ export default function SettingsView({ status }) {
                   </div>
                 </div>
 
-                {/* Impact panel - shown when unconfigured and expanded */}
+                {/* Impact panel — shown when unconfigured and expanded */}
                 {!configured && isExpanded && impact && (
                   <div style={{
                     padding: '12px 15px',
@@ -287,7 +348,7 @@ export default function SettingsView({ status }) {
         <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-3)', lineHeight: 1.6 }}>
           All keys are set in{' '}
           <code style={{ background: 'var(--bg-4)', padding: '1px 5px', borderRadius: 3 }}>config/keys.env</code>{' '}
-          - never committed to version control. Restart the server after changes.
+          — never committed to version control. Restart the server after changes.
         </div>
       </div>
 
@@ -326,7 +387,7 @@ export default function SettingsView({ status }) {
         </div>
       </div>
 
-      {/* Database stats - split by domain */}
+      {/* Database stats — split by domain */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
           Database
@@ -345,7 +406,7 @@ export default function SettingsView({ status }) {
           ].map(([label, val, color]) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
               <span style={{ color: 'var(--text-2)' }}>{label}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', color: color || 'var(--text)' }}>{val ?? '-'}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: color || 'var(--text)' }}>{val ?? '—'}</span>
             </div>
           ))}
         </div>
@@ -356,65 +417,150 @@ export default function SettingsView({ status }) {
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Clock size={12} /> Scheduled Monitoring
         </div>
-        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+
+        {/* ── Jurisdiction Track ─────────────────────────────────────────── */}
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: jurEnabled ? 16 : 0 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
-              <input type="checkbox" checked={schedEnabled} onChange={e => setSchedEnabled(e.target.checked)}
+              <input type="checkbox" checked={jurEnabled} onChange={e => setJurEnabled(e.target.checked)}
                 style={{ width: 'auto', accentColor: 'var(--accent)' }} />
-              <span style={{ color: schedEnabled ? 'var(--text)' : 'var(--text-3)' }}>
-                {schedEnabled ? 'Enabled' : 'Disabled'}
-              </span>
+              <span style={{ color: jurEnabled ? 'var(--text)' : 'var(--text-3)' }}>Jurisdiction monitoring</span>
             </label>
-            {schedule?.last_triggered && (
+            <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 4 }}>
+              — runs states, international &amp; federal on specific days
+            </span>
+            {schedule?.jur_last_run && (
               <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginLeft: 'auto' }}>
-                Last run: {new Date(schedule.last_triggered).toLocaleString()}
+                Last: {new Date(parseServerDt(schedule.jur_last_run)).toLocaleString()}
               </span>
             )}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div>
-              <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Run every</label>
-              <select value={schedInterval} onChange={e => setSchedInterval(Number(e.target.value))} disabled={!schedEnabled} style={{ width: '100%' }}>
-                <option value={6}>6 hours</option>
-                <option value={12}>12 hours</option>
-                <option value={24}>24 hours</option>
-                <option value={48}>48 hours</option>
-              </select>
+
+          {jurEnabled && (<>
+            {/* Day-of-week selector */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 7 }}>Run on</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[['Mon',0],['Tue',1],['Wed',2],['Thu',3],['Fri',4],['Sat',5],['Sun',6]].map(([label, val]) => {
+                  const active = jurDays.includes(val)
+                  return (
+                    <button key={val} onClick={() => setJurDays(prev =>
+                        active ? prev.filter(d => d !== val) : [...prev, val].sort()
+                      )} style={{
+                        padding: '5px 12px', fontSize: 12, fontWeight: 500,
+                        borderRadius: 'var(--radius)', cursor: 'pointer',
+                        border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                        background: active ? 'var(--accent-dim)' : 'var(--bg-3)',
+                        color: active ? 'var(--accent)' : 'var(--text-3)',
+                        transition: 'all 0.1s',
+                      }}>
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-            <div>
-              <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Domain</label>
-              <select value={schedDomain} onChange={e => setSchedDomain(e.target.value)} disabled={!schedEnabled} style={{ width: '100%' }}>
-                <option value="both">Both</option>
-                <option value="ai">AI Regulation</option>
-                <option value="privacy">Data Privacy</option>
-              </select>
+
+            {/* Time + domain + lookback row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr', gap: 12, marginBottom: 10 }}>
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Run at (server time)</label>
+                <input type="time" value={jurTime} onChange={e => setJurTime(e.target.value)}
+                  style={{ width: '100%', background: 'var(--bg-3)', border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)', padding: '6px 8px', color: 'var(--text)',
+                    fontSize: 13, colorScheme: 'dark' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Domain</label>
+                <select value={jurDomain} onChange={e => setJurDomain(e.target.value)} style={{ width: '100%' }}>
+                  <option value="both">Both (AI + Privacy)</option>
+                  <option value="ai">AI Regulation only</option>
+                  <option value="privacy">Data Privacy only</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Lookback</label>
+                <select value={jurLookback} onChange={e => setJurLookback(Number(e.target.value))} style={{ width: '100%' }}>
+                  <option value={1}>1 day</option>
+                  <option value={3}>3 days</option>
+                  <option value={7}>7 days</option>
+                  <option value={14}>14 days</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Lookback</label>
-              <select value={schedLookback} onChange={e => setSchedLookback(Number(e.target.value))} disabled={!schedEnabled} style={{ width: '100%' }}>
-                <option value={3}>3 days</option>
-                <option value={7}>7 days</option>
-                <option value={14}>14 days</option>
-              </select>
-            </div>
+
+            {schedule?.jur_next_run && (
+              <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                Next run: {new Date(parseServerDt(schedule.jur_next_run)).toLocaleString()}
+              </div>
+            )}
+          </>)}
+        </div>
+
+        {/* ── Enforcement Track ──────────────────────────────────────────── */}
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 18px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: enfEnabled ? 16 : 0 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+              <input type="checkbox" checked={enfEnabled} onChange={e => setEnfEnabled(e.target.checked)}
+                style={{ width: 'auto', accentColor: 'var(--accent)' }} />
+              <span style={{ color: enfEnabled ? 'var(--text)' : 'var(--text-3)' }}>Enforcement monitoring</span>
+            </label>
+            <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 4 }}>
+              — checks enforcement feeds every N hours throughout the day
+            </span>
+            {schedule?.enf_last_run && (
+              <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginLeft: 'auto' }}>
+                Last: {new Date(parseServerDt(schedule.enf_last_run)).toLocaleString()}
+              </span>
+            )}
           </div>
-          {schedEnabled && schedule?.next_run && (
-            <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12, fontFamily: 'var(--font-mono)' }}>
-              Next run: {new Date(schedule.next_run).toLocaleString()}
+
+          {enfEnabled && (<>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }}>
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Check every</label>
+                <select value={enfInterval} onChange={e => setEnfInterval(Number(e.target.value))} style={{ width: '100%' }}>
+                  <option value={1}>1 hour</option>
+                  <option value={2}>2 hours</option>
+                  <option value={4}>4 hours</option>
+                  <option value={6}>6 hours</option>
+                  <option value={8}>8 hours</option>
+                  <option value={12}>12 hours</option>
+                  <option value={24}>24 hours</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Lookback window</label>
+                <select value={enfLookback} onChange={e => setEnfLookback(Number(e.target.value))} style={{ width: '100%' }}>
+                  <option value={1}>1 day</option>
+                  <option value={2}>2 days</option>
+                  <option value={3}>3 days</option>
+                  <option value={7}>7 days</option>
+                </select>
+              </div>
             </div>
-          )}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-primary btn-sm" onClick={saveSchedule} disabled={schedSaving}>
-              {schedSaving ? <><Spinner size={11} /> Saving…</> : schedSaved ? <><Check size={11} /> Saved</> : 'Save'}
-            </button>
-            <button className="btn-secondary btn-sm" onClick={triggerNow}>
-              <RefreshCw size={11} /> Run now
-            </button>
-          </div>
+
+            {schedule?.enf_next_run && (
+              <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                Next run: {new Date(parseServerDt(schedule.enf_next_run)).toLocaleString()}
+              </div>
+            )}
+          </>)}
+        </div>
+
+        {/* ── Save / Run now ─────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-primary btn-sm" onClick={saveSchedule} disabled={schedSaving}>
+            {schedSaving ? <><Spinner size={11} /> Saving…</> : schedSaved ? <><Check size={11} /> Saved</> : 'Save schedule'}
+          </button>
+          <button className="btn-secondary btn-sm" onClick={triggerNow}
+            title="Trigger the full pipeline immediately (all enabled sources)">
+            <RefreshCw size={11} /> Run now
+          </button>
         </div>
       </div>
 
-      {/* Notifications */}
+            {/* Notifications */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Bell size={12} /> Notifications
@@ -492,7 +638,7 @@ export default function SettingsView({ status }) {
         </div>
       </div>
 
-      {/* CLI quick reference - updated with domain flag */}
+      {/* CLI quick reference — updated with domain flag */}
       <div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
           CLI Quick Reference

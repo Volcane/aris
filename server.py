@@ -95,10 +95,58 @@ async def lifespan(application):
     # Index baselines in background — non-blocking
     t = threading.Thread(target=_startup_index_baselines, daemon=True)
     t.start()
+    # Repair any stale next_run timestamps from before the timezone fix,
+    # and generally ensure next_run is valid after a restart.
+    _repair_schedule_next_runs()
     # Start scheduled monitoring thread
     _start_schedule_thread()
     yield
     # (shutdown cleanup could go here if needed)
+
+
+def _repair_schedule_next_runs() -> None:
+    """On startup, recalculate next_run for any track whose stored value is in
+    the past or missing — keeps the schedule correct across restarts and fixes
+    any values that were computed with the wrong timezone before the fix.
+    """
+    try:
+        from utils.db import get_schedule_config, save_schedule_config
+        from datetime import datetime as _dt
+        cfg = get_schedule_config()
+        needs_save = False
+
+        # Jurisdiction track: recalculate if next_run is missing or in the past
+        if cfg.get("jur_enabled"):
+            jur_next = cfg.get("jur_next_run")
+            if not jur_next or _dt.fromisoformat(jur_next) < _dt.utcnow():
+                needs_save = True
+                log.info("Repairing stale jur_next_run on startup")
+
+        # Enforcement track: recalculate if next_run is missing or in the past
+        if cfg.get("enf_enabled"):
+            enf_next = cfg.get("enf_next_run")
+            if not enf_next or _dt.fromisoformat(enf_next) < _dt.utcnow():
+                needs_save = True
+                log.info("Repairing stale enf_next_run on startup")
+
+        if needs_save:
+            save_schedule_config(
+                enabled       = cfg["enabled"],
+                interval_hours= cfg["interval_hours"],
+                domain        = cfg["domain"],
+                lookback_days = cfg["lookback_days"],
+                jur_enabled   = cfg["jur_enabled"],
+                jur_days      = cfg["jur_days"],
+                jur_time      = cfg["jur_time"],
+                jur_domain    = cfg["jur_domain"],
+                jur_lookback  = cfg["jur_lookback"],
+                enf_enabled   = cfg["enf_enabled"],
+                enf_interval_hours = cfg["enf_interval_hours"],
+                enf_lookback  = cfg["enf_lookback"],
+            )
+            log.info("Schedule next_run values repaired on startup")
+    except Exception as e:
+        log.debug("Schedule repair skipped: %s", e)
 
 
 app = FastAPI(
@@ -149,51 +197,99 @@ _schedule_stop   = threading.Event()
 
 
 def _schedule_loop():
-    """Background thread: checks schedule config and fires runs at the right time."""
-    import math
-    log.info("Schedule monitor started")
+    """Background thread: checks both schedule tracks and fires runs at the right time.
+
+    Two independent tracks:
+      Jurisdiction — fires on specific days of the week at a configured time
+      Enforcement  — fires every N hours throughout the day
+    """
+    log.info("Schedule monitor started (jurisdiction + enforcement tracks)")
     while not _schedule_stop.is_set():
         try:
             from utils.db import get_schedule_config, update_schedule_last_run
+            from utils.db import update_jur_last_run, update_enf_last_run
+            from datetime import datetime as _dt
             cfg = get_schedule_config()
+
+            # ── Legacy single-track (backward compat) ─────────────────────────
             if cfg["enabled"] and cfg["next_run"] and not _job_state["running"]:
-                from datetime import datetime as _dt
                 next_run = _dt.fromisoformat(cfg["next_run"])
                 if _dt.utcnow() >= next_run:
-                    log.info("Scheduled run triggered")
+                    log.info("Legacy scheduled run triggered")
                     update_schedule_last_run()
-                    try:
-                        from agents.orchestrator import Orchestrator
-                        orch = Orchestrator()
-                        _job_state["running"] = True
-                        _job_state["log"]     = []
-                        _log("Scheduled run started")
-                        fetch_result = orch.fetch(
-                            lookback_days=cfg["lookback_days"],
-                            domain=cfg["domain"],
-                        )
-                        _log(f"Fetched {fetch_result['fetched']} documents")
-                        sum_result = orch.summarize(limit=100)
-                        _log(f"Summarized {sum_result.get('saved', sum_result) if isinstance(sum_result, dict) else sum_result} documents")
-                        _job_state["last_result"] = {**fetch_result, "summarized": sum_result.get("saved", 0) if isinstance(sum_result, dict) else sum_result, **get_stats()}
-                        _log("Scheduled run complete ✓")
-                        # Trigger notifications if configured
-                        try:
-                            from utils.notifier import send_digest_if_warranted
-                            send_digest_if_warranted(_job_state["last_result"])
-                        except Exception as ne:
-                            log.debug("Notification skipped: %s", ne)
-                    except Exception as e:
-                        _log(f"ERROR in scheduled run: {e}")
-                        log.error("Scheduled run error: %s", e)
-                    finally:
-                        _job_state["running"]  = False
-                        _job_state["last_run"] = __import__("datetime").datetime.utcnow().isoformat()
+                    _fire_run(
+                        sources=None,
+                        lookback_days=cfg["lookback_days"],
+                        domain=cfg["domain"],
+                        label="Scheduled",
+                    )
+
+            # ── Jurisdiction track ─────────────────────────────────────────────
+            if cfg["jur_enabled"] and cfg["jur_next_run"] and not _job_state["running"]:
+                jur_next = _dt.fromisoformat(cfg["jur_next_run"])
+                if _dt.utcnow() >= jur_next:
+                    log.info("Jurisdiction scheduled run triggered")
+                    update_jur_last_run()
+                    _fire_run(
+                        sources=["states", "international", "federal"],
+                        lookback_days=cfg["jur_lookback"],
+                        domain=cfg["jur_domain"],
+                        label="Jurisdiction",
+                    )
+
+            # ── Enforcement track ──────────────────────────────────────────────
+            if cfg["enf_enabled"] and cfg["enf_next_run"] and not _job_state["running"]:
+                enf_next = _dt.fromisoformat(cfg["enf_next_run"])
+                if _dt.utcnow() >= enf_next:
+                    log.info("Enforcement scheduled run triggered")
+                    update_enf_last_run()
+                    _fire_run(
+                        sources=["enforcement"],
+                        lookback_days=cfg["enf_lookback"],
+                        domain="both",
+                        label="Enforcement",
+                        summarize=False,   # enforcement items don't need Claude summarization
+                    )
+
         except Exception as e:
             log.debug("Schedule loop error: %s", e)
-        _schedule_stop.wait(60)   # check every 60 seconds
+        _schedule_stop.wait(30)   # check every 30 seconds for better time accuracy
 
 
+def _fire_run(sources, lookback_days: int, domain: str, label: str,
+              summarize: bool = True) -> None:
+    """Execute a scheduled pipeline run in the current thread.
+    Called from _schedule_loop — already running in a daemon thread.
+    """
+    from agents.orchestrator import Orchestrator
+    _job_state["running"] = True
+    _job_state["log"]     = []
+    _log(f"{label} scheduled run started")
+    try:
+        orch = Orchestrator()
+        fetch_result = orch.fetch(
+            sources=sources,
+            lookback_days=lookback_days,
+            domain=domain,
+        )
+        _log(f"Fetched {fetch_result['fetched']} new/updated documents")
+        if summarize:
+            sum_result = orch.summarize(limit=100)
+            saved = sum_result.get("saved", 0) if isinstance(sum_result, dict) else sum_result
+            _log(f"Summarized {saved} documents")
+        _job_state["last_result"] = {**fetch_result, **get_stats()}
+        _log(f"{label} scheduled run complete ✓")
+        try:
+            from utils.notifier import send_digest_if_warranted
+            send_digest_if_warranted(_job_state["last_result"])
+        except Exception as ne:
+            log.debug("Notification skipped: %s", ne)
+    except Exception as e:
+        _log(f"ERROR in {label} scheduled run: {e}")
+        log.error("Scheduled run error (%s): %s", label, e)
+    finally:
+        _job_state["running"]  = False
+        _job_state["last_run"] = __import__("datetime").datetime.utcnow().isoformat()
 def _start_schedule_thread():
     global _schedule_thread
     if _schedule_thread and _schedule_thread.is_alive():
@@ -322,13 +418,24 @@ def get_schedule():
 
 @app.post("/api/schedule")
 def save_schedule(req: dict):
-    """Save schedule configuration. Restarts the scheduler thread."""
+    """Save schedule configuration for both tracks. Restarts the scheduler thread."""
     from utils.db import save_schedule_config
     result = save_schedule_config(
-        enabled       = bool(req.get("enabled", False)),
-        interval_hours= int(req.get("interval_hours", 24)),
-        domain        = str(req.get("domain", "both")),
-        lookback_days = int(req.get("lookback_days", 7)),
+        # Legacy track
+        enabled        = bool(req.get("enabled", False)),
+        interval_hours = int(req.get("interval_hours", 24)),
+        domain         = str(req.get("domain", "both")),
+        lookback_days  = int(req.get("lookback_days", 7)),
+        # Jurisdiction track
+        jur_enabled    = bool(req.get("jur_enabled", False)),
+        jur_days       = str(req.get("jur_days", "1,2,3,4,5")),
+        jur_time       = str(req.get("jur_time", "08:00")),
+        jur_domain     = str(req.get("jur_domain", "both")),
+        jur_lookback   = int(req.get("jur_lookback", 7)),
+        # Enforcement track
+        enf_enabled        = bool(req.get("enf_enabled", False)),
+        enf_interval_hours = int(req.get("enf_interval_hours", 6)),
+        enf_lookback       = int(req.get("enf_lookback", 2)),
     )
     _start_schedule_thread()
     return result
