@@ -172,6 +172,7 @@ Forward-looking regulatory calendar.
 - Filters: domain (AI Reg / Privacy) and time window
 - Each item shows: title, jurisdiction, anticipated date, countdown in days, and type (Deadline / Proposed Rule / Hearing / Effective Date)
 
+
 <img width="2362" height="1606" alt="image" src="https://github.com/user-attachments/assets/7535ca6a-6a47-4c3f-b674-69356415b450" />
 
 ### Enforcement (`/enforcement`)
