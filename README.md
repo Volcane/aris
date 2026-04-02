@@ -6,8 +6,6 @@ ARIS is a fully local, agentic system that monitors **AI regulation and data pri
 
 Everything runs on your machine. No SaaS subscription, no data leaving your environment, no per-query costs beyond your own API key.
 
-<img width="2854" height="1650" alt="image" src="https://github.com/user-attachments/assets/373bc79b-77ab-400f-a3d3-cb408cf689fa" />
-
 ---
 
 ## License
@@ -90,6 +88,8 @@ The main overview page. Shows at a glance:
 
 > Navigate to the Dashboard via the sidebar or by going to `http://localhost:8000/`. Note: the URL `/dashboard` is not a registered route — always navigate from the sidebar or via `/`.
 
+<img width="2854" height="1650" alt="image" src="https://github.com/user-attachments/assets/373bc79b-77ab-400f-a3d3-cb408cf689fa" />
+
 ### Documents (`/documents`)
 
 Paginated list of all fetched documents with filtering, sorting, and a slide-out detail panel.
@@ -127,6 +127,8 @@ Paginated list of all fetched documents with filtering, sorting, and a slide-out
 
 **Export:** Click **Export** in the header to download all active documents as JSON.
 
+<img width="2830" height="1628" alt="image" src="https://github.com/user-attachments/assets/9bc8aa32-7cab-4b3d-9b9e-2eea5d415428" />
+
 ### Changes (`/changes`)
 
 All detected regulatory changes — version updates, addenda, and amendments — compared against the 32 baselines.
@@ -159,6 +161,8 @@ Regulatory velocity data for the past 12 months.
 - **Top impact areas** — ranked by total document count with per-area counts
 - Domain filter applies to all charts.
 
+<img width="2572" height="1632" alt="image" src="https://github.com/user-attachments/assets/7ee45161-c907-41fc-ac2a-a2e231e0d3c0" />
+
 ### Horizon (`/horizon`)
 
 Forward-looking regulatory calendar.
@@ -167,6 +171,8 @@ Forward-looking regulatory calendar.
 - Sources: Unified Regulatory Agenda (federal rules), Congress.gov hearings, EU Work Programme, UK Parliament Bills, plus 17 seeded upcoming events
 - Filters: domain (AI Reg / Privacy) and time window
 - Each item shows: title, jurisdiction, anticipated date, countdown in days, and type (Deadline / Proposed Rule / Hearing / Effective Date)
+
+<img width="2362" height="1606" alt="image" src="https://github.com/user-attachments/assets/7535ca6a-6a47-4c3f-b674-69356415b450" />
 
 ### Enforcement (`/enforcement`)
 
@@ -179,6 +185,9 @@ Enforcement actions and litigation from 10 sources.
 **Item types:** Enforcement actions, litigation filings, news stories. Filtered by All / AI Regulation / Data Privacy in the header. Click **Fetch Latest** to trigger an immediate enforcement fetch.
 
 **Domain filter:** Toggle between All / AI Regulation / Data Privacy using the pills in the top-right.
+
+<img width="2848" height="1620" alt="image" src="https://github.com/user-attachments/assets/fa557c1e-fb17-4b24-9d75-3615ec2ad112" />
+Note that non-AI and non-data stories in the image above were part of a bug in the enforcement agent code that has since been fixed.
 
 ### Baselines (`/baselines`)
 
@@ -198,6 +207,8 @@ Select two baselines from the dropdowns and click **Compare**. Claude produces a
 ### Concept Map (`/concepts`)
 
 Cross-jurisdiction concept analysis. Shows how the same regulatory concepts (consent, risk classification, transparency requirements, etc.) are defined differently across jurisdictions.
+
+<img width="2832" height="1578" alt="image" src="https://github.com/user-attachments/assets/0fa257b9-9593-4d2f-beb4-7c0c98903566" />
 
 ### Graph (`/graph`)
 
@@ -225,6 +236,8 @@ Interactive knowledge graph of regulatory relationships.
 
 Click **Rebuild** to re-detect all relationships across baselines and documents. The build is synchronous — the graph reloads automatically when complete.
 
+<img width="2832" height="1634" alt="image" src="https://github.com/user-attachments/assets/8292021a-830f-4d61-bf84-6fdad6765bf9" />
+
 ### Timeline (`/timeline`)
 
 Chronological regulatory timeline. Documents plotted by published/effective date, filterable by domain and jurisdiction.
@@ -242,6 +255,8 @@ Type any compliance question. ARIS retrieves the most relevant passages using TF
 - "Which jurisdictions require algorithmic impact assessments?"
 - "What are the deadlines for EU AI Act compliance for high-risk AI?"
 - "What enforcement actions has the FTC taken against AI companies?"
+
+<img width="2840" height="1628" alt="image" src="https://github.com/user-attachments/assets/b05fd4e3-b334-4aac-a271-98d158d25f7e" />
 
 ### Briefs (`/briefs`)
 
@@ -262,6 +277,8 @@ Cross-jurisdiction narrative synthesis with conflict detection.
 
 Select a topic and jurisdictions. Claude identifies: common themes, jurisdictional conflicts (where laws directly contradict), compliance gaps, and emerging trends. Export to `.docx`.
 
+<img width="2842" height="1644" alt="image" src="https://github.com/user-attachments/assets/3139d5c9-2dd0-4c7e-8287-285d35fe0c1c" />
+
 ### Gap Analysis (`/gap`)
 
 Company-specific compliance gap analysis.
@@ -271,6 +288,8 @@ Company-specific compliance gap analysis.
 3. Click **Run Analysis**
 
 Claude analyses each baseline against your profile and produces: a posture score per jurisdiction, specific gap cards for each unmet requirement, a phased compliance roadmap, and priority action items. Export to `.docx`.
+
+<img width="2844" height="1616" alt="image" src="https://github.com/user-attachments/assets/bd39aac1-29c2-4e0a-a68c-4592eb7b2abd" />
 
 ### Watchlist (`/watchlist`)
 
@@ -305,6 +324,8 @@ Trigger fetch and summarization runs from the browser.
 
 **Result card:** After each run, a summary card shows: documents fetched, documents summarized, pending count, and a breakdown of urgency levels in the new batch.
 
+<img width="2588" height="1620" alt="image" src="https://github.com/user-attachments/assets/3c9a25d8-21e7-4553-a2fb-2ccd083ba3c6" />
+
 ### Learning (`/learning`)
 
 Visibility into ARIS's autonomous relevance model.
@@ -316,6 +337,8 @@ Visibility into ARIS's autonomous relevance model.
 - **Prompt adaptations** — count of times Claude's summarization prompt has been adjusted based on feedback
 
 The learning model updates continuously. Every document you mark Not Relevant adds signal. Every Skipped document (pre-filter rejection) also feeds the model automatically.
+
+<img width="2388" height="1550" alt="image" src="https://github.com/user-attachments/assets/caa2c2a5-7fb2-42e2-9a03-21af09d6867e" />
 
 ### Settings (`/settings`)
 
@@ -345,6 +368,8 @@ Both tracks run independently. Jurisdiction monitoring is typically set to run o
 - **Slack** — set `SLACK_WEBHOOK_URL` in `config/keys.env`
 
 A digest is sent after each scheduled run that finds new critical or high-severity items.
+
+<img width="2842" height="1612" alt="image" src="https://github.com/user-attachments/assets/0b8c433e-82e0-4f04-9cb9-7a41d79097ee" />
 
 **CLI Quick Reference** — copy-paste ready command examples displayed at the bottom of the page.
 
