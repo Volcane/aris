@@ -6,6 +6,8 @@ ARIS is a fully local, agentic system that monitors **AI regulation and data pri
 
 Everything runs on your machine. No SaaS subscription, no data leaving your environment, no per-query costs beyond your own API key.
 
+<img width="2854" height="1650" alt="image" src="https://github.com/user-attachments/assets/373bc79b-77ab-400f-a3d3-cb408cf689fa" />
+
 ---
 
 ## License
