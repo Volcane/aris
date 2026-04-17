@@ -81,13 +81,16 @@ log = get_logger("aris.search")
 
 # ── Model path ────────────────────────────────────────────────────────────────
 
+
 def _models_dir() -> Path:
     from config.settings import OUTPUT_DIR
+
     d = OUTPUT_DIR / "models"
     d.mkdir(exist_ok=True)
     return d
 
-_ONNX_MODEL_DIR  = None   # resolved lazily
+
+_ONNX_MODEL_DIR = None  # resolved lazily
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -103,67 +106,191 @@ _ONNX_MODEL_DIR  = None   # resolved lazily
 
 AI_TERMS_EXPANDED = [
     # Core technology
-    "artificial intelligence", "machine learning", "deep learning", "neural network",
-    "large language model", "llm", "generative ai", "generative model", "foundation model",
-    "language model", "transformer model", "diffusion model", "multimodal model",
-    "computer vision", "natural language processing", "nlp", "speech recognition",
-    "image recognition", "object detection", "facial recognition", "biometric",
-    "autonomous system", "autonomous vehicle", "self-driving", "robotics",
-    "predictive analytics", "predictive model", "recommendation system", "recommender",
-    "decision tree", "random forest", "gradient boosting", "reinforcement learning",
-    "federated learning", "transfer learning", "fine-tuning", "pre-trained model",
-
+    "artificial intelligence",
+    "machine learning",
+    "deep learning",
+    "neural network",
+    "large language model",
+    "llm",
+    "generative ai",
+    "generative model",
+    "foundation model",
+    "language model",
+    "transformer model",
+    "diffusion model",
+    "multimodal model",
+    "computer vision",
+    "natural language processing",
+    "nlp",
+    "speech recognition",
+    "image recognition",
+    "object detection",
+    "facial recognition",
+    "biometric",
+    "autonomous system",
+    "autonomous vehicle",
+    "self-driving",
+    "robotics",
+    "predictive analytics",
+    "predictive model",
+    "recommendation system",
+    "recommender",
+    "decision tree",
+    "random forest",
+    "gradient boosting",
+    "reinforcement learning",
+    "federated learning",
+    "transfer learning",
+    "fine-tuning",
+    "pre-trained model",
     # Automated decisions and systems
-    "automated decision", "automated decision-making", "automated decision making",
-    "algorithmic decision", "algorithmic system", "algorithmic tool", "algorithm", "algorithmic",
-    "automated system", "automated tool", "automated process", "automated screening",
-    "automated scoring", "automated assessment", "automated hiring",
-    "automated underwriting", "credit scoring", "fraud detection", "risk scoring",
-    "hiring algorithm", "resume screening", "candidate screening",
-
+    "automated decision",
+    "automated decision-making",
+    "automated decision making",
+    "algorithmic decision",
+    "algorithmic system",
+    "algorithmic tool",
+    "algorithm",
+    "algorithmic",
+    "automated system",
+    "automated tool",
+    "automated process",
+    "automated screening",
+    "automated scoring",
+    "automated assessment",
+    "automated hiring",
+    "automated underwriting",
+    "credit scoring",
+    "fraud detection",
+    "risk scoring",
+    "hiring algorithm",
+    "resume screening",
+    "candidate screening",
     # AI governance and regulation
-    "ai governance", "ai regulation", "ai policy", "ai law", "ai act",
-    "ai safety", "ai risk", "ai ethics", "ai accountability", "ai transparency",
-    "ai bias", "ai fairness", "ai discrimination", "ai audit", "ai auditing",
-    "ai disclosure", "ai oversight", "ai compliance", "ai standard", "ai framework",
-    "responsible ai", "trustworthy ai", "ethical ai", "human-centered ai",
-    "ai risk management", "ai risk assessment", "ai impact assessment",
-    "conformity assessment", "algorithmic accountability", "algorithmic transparency",
-    "algorithmic fairness", "algorithmic bias", "algorithmic auditing",
-    "explainability", "interpretability", "explainable ai", "xai",
-
+    "ai governance",
+    "ai regulation",
+    "ai policy",
+    "ai law",
+    "ai act",
+    "ai safety",
+    "ai risk",
+    "ai ethics",
+    "ai accountability",
+    "ai transparency",
+    "ai bias",
+    "ai fairness",
+    "ai discrimination",
+    "ai audit",
+    "ai auditing",
+    "ai disclosure",
+    "ai oversight",
+    "ai compliance",
+    "ai standard",
+    "ai framework",
+    "responsible ai",
+    "trustworthy ai",
+    "ethical ai",
+    "human-centered ai",
+    "ai risk management",
+    "ai risk assessment",
+    "ai impact assessment",
+    "conformity assessment",
+    "algorithmic accountability",
+    "algorithmic transparency",
+    "algorithmic fairness",
+    "algorithmic bias",
+    "algorithmic auditing",
+    "explainability",
+    "interpretability",
+    "explainable ai",
+    "xai",
     # Specific regulatory concepts
-    "high-risk ai", "high risk ai", "prohibited ai", "unacceptable risk",
-    "human oversight", "human review", "human in the loop", "meaningful human control",
-    "right to explanation", "automated profiling", "profiling", "scoring system",
-    "deepfake", "synthetic media", "synthetic content", "ai-generated content",
-    "watermarking", "content provenance", "digital watermark",
-    "training data", "model training", "data minimisation", "purpose limitation",
-
+    "high-risk ai",
+    "high risk ai",
+    "prohibited ai",
+    "unacceptable risk",
+    "human oversight",
+    "human review",
+    "human in the loop",
+    "meaningful human control",
+    "right to explanation",
+    "automated profiling",
+    "profiling",
+    "scoring system",
+    "deepfake",
+    "synthetic media",
+    "synthetic content",
+    "ai-generated content",
+    "watermarking",
+    "content provenance",
+    "digital watermark",
+    "training data",
+    "model training",
+    "data minimisation",
+    "purpose limitation",
     # International regulations by name/shorthand
-    "eu ai act", "ai act", "eu aia", "nist ai rmf", "nist rmf",
-    "eu gdpr", "gdpr article 22", "automated individual decisions",
-    "colorado ai act", "illinois aipa", "nyc local law 144", "ll144",
-    "california ai", "uk ai", "canada aida", "aida", "eo 14110",
-
+    "eu ai act",
+    "ai act",
+    "eu aia",
+    "nist ai rmf",
+    "nist rmf",
+    "eu gdpr",
+    "gdpr article 22",
+    "automated individual decisions",
+    "colorado ai act",
+    "illinois aipa",
+    "nyc local law 144",
+    "ll144",
+    "california ai",
+    "uk ai",
+    "canada aida",
+    "aida",
+    "eo 14110",
     # Sector-specific AI regulation
-    "aedt", "automated employment decision tool",
-    "adverse action", "model risk management", "model validation",
-    "clinical decision support", "software as medical device", "samd",
-    "credit decision", "lending algorithm", "fair lending",
-    "insurance underwriting", "claims processing",
-    "recidivism", "predictive policing", "surveillance", "social scoring",
-
+    "aedt",
+    "automated employment decision tool",
+    "adverse action",
+    "model risk management",
+    "model validation",
+    "clinical decision support",
+    "software as medical device",
+    "samd",
+    "credit decision",
+    "lending algorithm",
+    "fair lending",
+    "insurance underwriting",
+    "claims processing",
+    "recidivism",
+    "predictive policing",
+    "surveillance",
+    "social scoring",
     # Harms and rights
-    "disparate impact", "disparate treatment", "protected characteristic",
-    "discrimination", "bias testing", "bias audit", "fairness testing",
-    "opt out", "right to appeal", "right to contest", "human review request",
-
+    "disparate impact",
+    "disparate treatment",
+    "protected characteristic",
+    "discrimination",
+    "bias testing",
+    "bias audit",
+    "fairness testing",
+    "opt out",
+    "right to appeal",
+    "right to contest",
+    "human review request",
     # Emerging terms
-    "foundation model", "gpai", "general purpose ai", "general-purpose ai",
-    "frontier model", "advanced ai", "capable ai system",
-    "agentic ai", "ai agent", "autonomous agent", "copilot",
-    "chatbot", "conversational ai", "virtual assistant",
+    "foundation model",
+    "gpai",
+    "general purpose ai",
+    "general-purpose ai",
+    "frontier model",
+    "advanced ai",
+    "capable ai system",
+    "agentic ai",
+    "ai agent",
+    "autonomous agent",
+    "copilot",
+    "chatbot",
+    "conversational ai",
+    "virtual assistant",
 ]
 
 # Remove duplicates while preserving order
@@ -176,130 +303,268 @@ AI_TERMS_EXPANDED = [t for t in AI_TERMS_EXPANDED if not (t in _seen or _seen.ad
 
 PRIVACY_TERMS_EXPANDED = [
     # Core privacy concepts
-    "personal data", "personal information", "personally identifiable information", "pii",
-    "sensitive data", "special category data", "biometric data", "genetic data",
-    "health data", "financial data", "location data", "behavioral data",
-    "data subject", "data controller", "data processor", "joint controller",
-    "data protection", "privacy", "privacy protection", "privacy law", "privacy regulation",
-    "privacy policy", "privacy notice", "privacy statement", "privacy rights",
-
+    "personal data",
+    "personal information",
+    "personally identifiable information",
+    "pii",
+    "sensitive data",
+    "special category data",
+    "biometric data",
+    "genetic data",
+    "health data",
+    "financial data",
+    "location data",
+    "behavioral data",
+    "data subject",
+    "data controller",
+    "data processor",
+    "joint controller",
+    "data protection",
+    "privacy",
+    "privacy protection",
+    "privacy law",
+    "privacy regulation",
+    "privacy policy",
+    "privacy notice",
+    "privacy statement",
+    "privacy rights",
     # Rights of data subjects
-    "right to access", "right of access", "access request", "subject access request", "sar",
-    "right to erasure", "right to be forgotten", "erasure request", "deletion request",
-    "right to rectification", "right to correction", "data correction",
-    "right to portability", "data portability", "data transfer",
-    "right to object", "right to restrict", "restriction of processing",
-    "right to withdraw consent", "opt out", "opt-out", "do not sell",
-    "automated decision right", "human review right",
-
+    "right to access",
+    "right of access",
+    "access request",
+    "subject access request",
+    "sar",
+    "right to erasure",
+    "right to be forgotten",
+    "erasure request",
+    "deletion request",
+    "right to rectification",
+    "right to correction",
+    "data correction",
+    "right to portability",
+    "data portability",
+    "data transfer",
+    "right to object",
+    "right to restrict",
+    "restriction of processing",
+    "right to withdraw consent",
+    "opt out",
+    "opt-out",
+    "do not sell",
+    "automated decision right",
+    "human review right",
     # Legal bases and consent
-    "consent", "explicit consent", "informed consent", "freely given consent",
-    "legitimate interest", "legal basis", "lawful basis", "lawfulness",
-    "contractual necessity", "legal obligation", "vital interests", "public task",
-    "purpose limitation", "data minimisation", "data minimization", "storage limitation",
-    "accuracy principle", "integrity confidentiality",
-
+    "consent",
+    "explicit consent",
+    "informed consent",
+    "freely given consent",
+    "legitimate interest",
+    "legal basis",
+    "lawful basis",
+    "lawfulness",
+    "contractual necessity",
+    "legal obligation",
+    "vital interests",
+    "public task",
+    "purpose limitation",
+    "data minimisation",
+    "data minimization",
+    "storage limitation",
+    "accuracy principle",
+    "integrity confidentiality",
     # Controllers and processors
-    "controller", "processor", "sub-processor", "third party processor",
-    "data processing agreement", "dpa", "processing agreement",
-    "standard contractual clauses", "scc", "binding corporate rules", "bcr",
-    "adequacy decision", "adequacy determination", "cross-border transfer",
-    "international transfer", "third country transfer",
-
+    "controller",
+    "processor",
+    "sub-processor",
+    "third party processor",
+    "data processing agreement",
+    "dpa",
+    "processing agreement",
+    "standard contractual clauses",
+    "scc",
+    "binding corporate rules",
+    "bcr",
+    "adequacy decision",
+    "adequacy determination",
+    "cross-border transfer",
+    "international transfer",
+    "third country transfer",
     # Obligations
-    "privacy by design", "privacy by default", "data protection by design",
-    "data protection impact assessment", "dpia", "privacy impact assessment", "pia",
-    "records of processing", "processing activities", "article 30",
-    "data breach", "personal data breach", "breach notification", "breach report",
-    "72-hour notification", "72 hour notification", "supervisory authority",
-    "lead supervisory authority", "one-stop-shop",
-    "data protection officer", "dpo",
-    "privacy audit", "data audit", "compliance audit",
-
+    "privacy by design",
+    "privacy by default",
+    "data protection by design",
+    "data protection impact assessment",
+    "dpia",
+    "privacy impact assessment",
+    "pia",
+    "records of processing",
+    "processing activities",
+    "article 30",
+    "data breach",
+    "personal data breach",
+    "breach notification",
+    "breach report",
+    "72-hour notification",
+    "72 hour notification",
+    "supervisory authority",
+    "lead supervisory authority",
+    "one-stop-shop",
+    "data protection officer",
+    "dpo",
+    "privacy audit",
+    "data audit",
+    "compliance audit",
     # Specific regulations and frameworks
-    "gdpr", "general data protection regulation", "regulation 2016/679",
-    "ccpa", "california consumer privacy act",
-    "cpra", "california privacy rights act",
-    "vcdpa", "virginia consumer data protection act",
-    "cpa colorado", "colorado privacy act",
-    "ctdpa", "connecticut data privacy act",
-    "tdpsa", "texas data privacy and security act",
-    "pipeda", "personal information protection and electronic documents act",
-    "cppa", "consumer privacy protection act",
-    "lgpd", "lei geral de proteção de dados",
-    "pdpa", "personal data protection act",
-    "appi", "act on protection of personal information",
-    "uk gdpr", "data protection act 2018", "dpa 2018",
-    "eu data act", "data act",
-    "eprivacy", "eprivacy regulation", "cookie law", "cookie directive",
-    "privacy shield", "privacy framework",
-
+    "gdpr",
+    "general data protection regulation",
+    "regulation 2016/679",
+    "ccpa",
+    "california consumer privacy act",
+    "cpra",
+    "california privacy rights act",
+    "vcdpa",
+    "virginia consumer data protection act",
+    "cpa colorado",
+    "colorado privacy act",
+    "ctdpa",
+    "connecticut data privacy act",
+    "tdpsa",
+    "texas data privacy and security act",
+    "pipeda",
+    "personal information protection and electronic documents act",
+    "cppa",
+    "consumer privacy protection act",
+    "lgpd",
+    "lei geral de proteção de dados",
+    "pdpa",
+    "personal data protection act",
+    "appi",
+    "act on protection of personal information",
+    "uk gdpr",
+    "data protection act 2018",
+    "dpa 2018",
+    "eu data act",
+    "data act",
+    "eprivacy",
+    "eprivacy regulation",
+    "cookie law",
+    "cookie directive",
+    "privacy shield",
+    "privacy framework",
     # Enforcement and authorities
-    "information commissioner", "ico", "cnil", "bfdi", "agpd", "garante",
-    "supervisory authority", "data protection authority", "regulatory authority",
-    "enforcement notice", "reprimand", "administrative fine",
-    "article 83", "article 84", "penalty", "sanction",
-    "complaint", "investigation", "enforcement action",
-
+    "information commissioner",
+    "ico",
+    "cnil",
+    "bfdi",
+    "agpd",
+    "garante",
+    "supervisory authority",
+    "data protection authority",
+    "regulatory authority",
+    "enforcement notice",
+    "reprimand",
+    "administrative fine",
+    "article 83",
+    "article 84",
+    "penalty",
+    "sanction",
+    "complaint",
+    "investigation",
+    "enforcement action",
     # Sector-specific privacy
-    "hipaa", "health insurance portability", "protected health information", "phi",
-    "glba", "gramm-leach-bliley", "financial privacy",
-    "coppa", "children's online privacy", "child data",
-    "ferpa", "educational records", "student data",
-    "ccra", "consumer credit", "fcra", "fair credit reporting",
-    "data broker", "consumer report", "credit report",
-
+    "hipaa",
+    "health insurance portability",
+    "protected health information",
+    "phi",
+    "glba",
+    "gramm-leach-bliley",
+    "financial privacy",
+    "coppa",
+    "children's online privacy",
+    "child data",
+    "ferpa",
+    "educational records",
+    "student data",
+    "ccra",
+    "consumer credit",
+    "fcra",
+    "fair credit reporting",
+    "data broker",
+    "consumer report",
+    "credit report",
     # Technical and operational
-    "encryption", "pseudonymisation", "pseudonymization", "anonymisation", "anonymization",
-    "data retention", "retention period", "deletion policy",
-    "data inventory", "data mapping", "data flow",
-    "vendor management", "third party risk",
-    "cookie consent", "tracking", "profiling consent",
+    "encryption",
+    "pseudonymisation",
+    "pseudonymization",
+    "anonymisation",
+    "anonymization",
+    "data retention",
+    "retention period",
+    "deletion policy",
+    "data inventory",
+    "data mapping",
+    "data flow",
+    "vendor management",
+    "third party risk",
+    "cookie consent",
+    "tracking",
+    "profiling consent",
 ]
 
 # Remove duplicates
 _seen_priv = set()
 PRIVACY_TERMS_EXPANDED = [
-    t for t in PRIVACY_TERMS_EXPANDED
-    if not (t in _seen_priv or _seen_priv.add(t))
+    t for t in PRIVACY_TERMS_EXPANDED if not (t in _seen_priv or _seen_priv.add(t))
 ]
 
 # ── Synonym / query expansion map ────────────────────────────────────────────
 
 QUERY_EXPANSIONS: Dict[str, List[str]] = {
     # Abbreviations → full forms
-    "ai":     ["artificial intelligence", "algorithmic", "automated"],
-    "ml":     ["machine learning", "model"],
-    "llm":    ["large language model", "foundation model", "generative ai", "language model"],
-    "nlp":    ["natural language processing", "language model"],
-    "xai":    ["explainability", "interpretable", "explainable ai"],
-    "gpai":   ["general purpose ai", "foundation model"],
-    "aida":   ["artificial intelligence and data act", "canada ai"],
-    "aedt":   ["automated employment decision tool", "hiring algorithm"],
-    "samd":   ["software as medical device", "clinical ai"],
-    "rmf":    ["risk management framework", "nist ai"],
-
+    "ai": ["artificial intelligence", "algorithmic", "automated"],
+    "ml": ["machine learning", "model"],
+    "llm": [
+        "large language model",
+        "foundation model",
+        "generative ai",
+        "language model",
+    ],
+    "nlp": ["natural language processing", "language model"],
+    "xai": ["explainability", "interpretable", "explainable ai"],
+    "gpai": ["general purpose ai", "foundation model"],
+    "aida": ["artificial intelligence and data act", "canada ai"],
+    "aedt": ["automated employment decision tool", "hiring algorithm"],
+    "samd": ["software as medical device", "clinical ai"],
+    "rmf": ["risk management framework", "nist ai"],
     # Concept synonyms
-    "bias":           ["discrimination", "fairness", "disparate impact", "inequity"],
-    "fairness":       ["bias", "discrimination", "equitable", "disparate impact"],
-    "transparency":   ["explainability", "interpretability", "disclosure", "openness"],
-    "governance":     ["compliance", "oversight", "accountability", "regulation"],
-    "oversight":      ["human review", "human in the loop", "monitoring", "supervision"],
+    "bias": ["discrimination", "fairness", "disparate impact", "inequity"],
+    "fairness": ["bias", "discrimination", "equitable", "disparate impact"],
+    "transparency": ["explainability", "interpretability", "disclosure", "openness"],
+    "governance": ["compliance", "oversight", "accountability", "regulation"],
+    "oversight": ["human review", "human in the loop", "monitoring", "supervision"],
     "accountability": ["responsibility", "liability", "governance", "oversight"],
-    "discrimination": ["bias", "disparate impact", "unfair treatment", "protected class"],
-    "safety":         ["risk", "harm prevention", "guardrails", "safeguards"],
-    "hiring":         ["employment", "recruitment", "candidate screening", "aedt"],
-    "credit":         ["lending", "underwriting", "financial decision", "loan"],
-    "healthcare":     ["medical", "clinical", "patient", "hospital", "diagnostic"],
-    "surveillance":   ["monitoring", "tracking", "biometric", "facial recognition"],
-    "deepfake":       ["synthetic media", "ai-generated content", "manipulated media"],
-
+    "discrimination": [
+        "bias",
+        "disparate impact",
+        "unfair treatment",
+        "protected class",
+    ],
+    "safety": ["risk", "harm prevention", "guardrails", "safeguards"],
+    "hiring": ["employment", "recruitment", "candidate screening", "aedt"],
+    "credit": ["lending", "underwriting", "financial decision", "loan"],
+    "healthcare": ["medical", "clinical", "patient", "hospital", "diagnostic"],
+    "surveillance": ["monitoring", "tracking", "biometric", "facial recognition"],
+    "deepfake": ["synthetic media", "ai-generated content", "manipulated media"],
     # Regulatory shorthand
-    "high-risk":        ["high risk ai", "regulated ai", "conformity assessment"],
-    "prohibited":       ["banned", "unacceptable risk", "forbidden practice"],
-    "eo":               ["executive order", "presidential order", "federal mandate"],
-    "automated decision": ["algorithmic decision", "automated system", "ai decision",
-                           "automated decision-making"],
+    "high-risk": ["high risk ai", "regulated ai", "conformity assessment"],
+    "prohibited": ["banned", "unacceptable risk", "forbidden practice"],
+    "eo": ["executive order", "presidential order", "federal mandate"],
+    "automated decision": [
+        "algorithmic decision",
+        "automated system",
+        "ai decision",
+        "automated decision-making",
+    ],
 }
 
 
@@ -308,25 +573,25 @@ def expand_query(query: str) -> str:
     Expand a search query with synonyms and related regulatory terms.
     Returns the original query plus expansion terms.
     """
-    lower  = query.lower().strip()
-    tokens = set(re.findall(r'[a-z0-9\-]+', lower))
-    added  = []
+    lower = query.lower().strip()
+    tokens = set(re.findall(r"[a-z0-9\-]+", lower))
+    added = []
 
     for key, synonyms in QUERY_EXPANSIONS.items():
         # Match whole-word only to avoid partial matches
-        pattern = r'\b' + re.escape(key) + r'\b'
+        pattern = r"\b" + re.escape(key) + r"\b"
         if re.search(pattern, lower):
             added.extend(synonyms)
 
     # Also expand any two-word phrases
     for key, synonyms in QUERY_EXPANSIONS.items():
-        if ' ' in key and key in lower:
+        if " " in key and key in lower:
             added.extend(synonyms)
 
     if not added:
         return lower
 
-    expanded = lower + ' ' + ' '.join(dict.fromkeys(added))   # dedup, preserve order
+    expanded = lower + " " + " ".join(dict.fromkeys(added))  # dedup, preserve order
     return expanded
 
 
@@ -339,14 +604,34 @@ _NOT_AI_CONTEXTS = re.compile(
 
 # Unambiguous AI signals — any single one is sufficient to pass
 _STRONG_AI_SIGNALS = [
-    "artificial intelligence", "machine learning", "deep learning",
-    "neural network", "large language model", "generative ai",
-    "automated decision", "algorithmic decision", "ai system",
-    "ai governance", "ai regulation", "ai policy", "ai act",
-    "ai safety", "ai risk", "ai audit", "ai disclosure",
-    "facial recognition", "biometric", "deepfake", "synthetic media",
-    "explainability", "explainable ai", "high-risk ai",
-    "llm", "chatbot", "autonomous vehicle", "recommendation algorithm",
+    "artificial intelligence",
+    "machine learning",
+    "deep learning",
+    "neural network",
+    "large language model",
+    "generative ai",
+    "automated decision",
+    "algorithmic decision",
+    "ai system",
+    "ai governance",
+    "ai regulation",
+    "ai policy",
+    "ai act",
+    "ai safety",
+    "ai risk",
+    "ai audit",
+    "ai disclosure",
+    "facial recognition",
+    "biometric",
+    "deepfake",
+    "synthetic media",
+    "explainability",
+    "explainable ai",
+    "high-risk ai",
+    "llm",
+    "chatbot",
+    "autonomous vehicle",
+    "recommendation algorithm",
 ]
 
 
@@ -373,21 +658,20 @@ def is_ai_relevant(text: str, threshold: float = 0.08) -> bool:
 
     # Stage 2: false-positive guard for known non-AI acronyms
     if _NOT_AI_CONTEXTS.search(lower):
-        extra = sum(1 for term in AI_TERMS_EXPANDED
-                    if term in lower and term != "aida")
+        extra = sum(1 for term in AI_TERMS_EXPANDED if term in lower and term != "aida")
         if extra < 2:
             return False
 
     # Stage 3: scored match
     # 'aida' alone is ambiguous (non-AI uses: opera character, agricultural programs,
     # county districts). Only count it if another AI term is also present.
-    ambiguous = {'aida'}
+    ambiguous = {"aida"}
     hits = 0
     has_unambiguous = False
     for term in AI_TERMS_EXPANDED:
         if term in lower:
             if term in ambiguous:
-                pass   # count below only if unambiguous hit found
+                pass  # count below only if unambiguous hit found
             else:
                 hits += 1
                 has_unambiguous = True
@@ -408,7 +692,7 @@ def is_privacy_relevant(text: str, threshold: float = 0.08) -> bool:
     if not text:
         return False
     lower = text.lower()
-    hits  = sum(1 for term in PRIVACY_TERMS_EXPANDED if term in lower)
+    hits = sum(1 for term in PRIVACY_TERMS_EXPANDED if term in lower)
     score = min(hits / 10.0, 1.0)
     return score >= threshold
 
@@ -437,12 +721,12 @@ def detect_domain(text: str) -> str:
     """
     if not text:
         return "ai"
-    lower    = text.lower()
-    ai_hits  = sum(1 for t in AI_TERMS_EXPANDED    if t in lower)
-    priv_hits= sum(1 for t in PRIVACY_TERMS_EXPANDED if t in lower)
+    lower = text.lower()
+    ai_hits = sum(1 for t in AI_TERMS_EXPANDED if t in lower)
+    priv_hits = sum(1 for t in PRIVACY_TERMS_EXPANDED if t in lower)
 
-    ai_score  = min(ai_hits  / 10.0, 1.0)
-    priv_score= min(priv_hits / 10.0, 1.0)
+    ai_score = min(ai_hits / 10.0, 1.0)
+    priv_score = min(priv_hits / 10.0, 1.0)
 
     if ai_score >= 0.15 and priv_score >= 0.15:
         return "both"
@@ -451,16 +735,17 @@ def detect_domain(text: str) -> str:
     return "ai"
 
 
-def privacy_relevance_score(text: str,
-                             weights: Optional[Dict[str, float]] = None) -> float:
+def privacy_relevance_score(
+    text: str, weights: Optional[Dict[str, float]] = None
+) -> float:
     """
     Return a 0-1 relevance score against the privacy term taxonomy.
     Mirrors the structure of relevance_score() for AI terms.
     """
     if not text:
         return 0.0
-    lower     = text.lower()
-    score     = 0.0
+    lower = text.lower()
+    score = 0.0
     for term in PRIVACY_TERMS_EXPANDED:
         w = 1.0
         if weights:
@@ -468,10 +753,12 @@ def privacy_relevance_score(text: str,
         if term in lower:
             specificity = min(len(term.split()) * 0.15, 0.4)
             score += w * (1.0 + specificity)
-    cap = sum(sorted(
-        [weights.get(t, 1.0) if weights else 1.0 for t in PRIVACY_TERMS_EXPANDED],
-        reverse=True
-    )[:12])
+    cap = sum(
+        sorted(
+            [weights.get(t, 1.0) if weights else 1.0 for t in PRIVACY_TERMS_EXPANDED],
+            reverse=True,
+        )[:12]
+    )
     return min(score / cap, 1.0) if cap > 0 else 0.0
 
 
@@ -499,10 +786,12 @@ def relevance_score(text: str, weights: Optional[Dict[str, float]] = None) -> fl
             specificity = min(len(term.split()) * 0.15, 0.4)
             score += w * (1.0 + specificity)
 
-    cap = sum(sorted(
-        [weights.get(t, 1.0) if weights else 1.0 for t in AI_TERMS_EXPANDED],
-        reverse=True
-    )[:12])
+    cap = sum(
+        sorted(
+            [weights.get(t, 1.0) if weights else 1.0 for t in AI_TERMS_EXPANDED],
+            reverse=True,
+        )[:12]
+    )
     return min(score / cap, 1.0) if cap > 0 else 0.0
 
 
@@ -510,8 +799,9 @@ def relevance_score(text: str, weights: Optional[Dict[str, float]] = None) -> fl
 # LAYER 2 — SQLITE FTS5
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_FTS_TABLE  = "document_search_fts"
-_META_TABLE = "document_search_meta"   # stores doc_id mappings for FTS5
+_FTS_TABLE = "document_search_fts"
+_META_TABLE = "document_search_meta"  # stores doc_id mappings for FTS5
+
 
 def ensure_fts_index(conn: sqlite3.Connection) -> None:
     """
@@ -538,9 +828,14 @@ def ensure_fts_index(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def index_document(conn: sqlite3.Connection, doc_id: str, title: str,
-                    summary: str = "", agency: str = "",
-                    jurisdiction: str = "") -> None:
+def index_document(
+    conn: sqlite3.Connection,
+    doc_id: str,
+    title: str,
+    summary: str = "",
+    agency: str = "",
+    jurisdiction: str = "",
+) -> None:
     """Add or update a document in the FTS5 index."""
     try:
         ensure_fts_index(conn)
@@ -555,21 +850,22 @@ def index_document(conn: sqlite3.Connection, doc_id: str, title: str,
         # Insert into FTS table (auto-assigns rowid)
         cursor = conn.execute(
             f"INSERT INTO {_FTS_TABLE}(title, summary) VALUES (?, ?)",
-            (title or "", summary or "")
+            (title or "", summary or ""),
         )
         new_rowid = cursor.lastrowid
         # Store doc_id in companion table with same rowid
         conn.execute(
             f"INSERT INTO {_META_TABLE}(rowid, doc_id, agency, jurisdiction) VALUES (?, ?, ?, ?)",
-            (new_rowid, doc_id, agency or "", jurisdiction or "")
+            (new_rowid, doc_id, agency or "", jurisdiction or ""),
         )
         conn.commit()
     except Exception as e:
         log.debug("FTS index error for %s: %s", doc_id, e)
 
 
-def fts_search(conn: sqlite3.Connection, query: str,
-                limit: int = 100) -> List[Dict[str, Any]]:
+def fts_search(
+    conn: sqlite3.Connection, query: str, limit: int = 100
+) -> List[Dict[str, Any]]:
     """
     Full-text search using FTS5 BM25 ranking.
     Returns list of {doc_id, fts_rank} dicts ordered by relevance.
@@ -583,7 +879,7 @@ def fts_search(conn: sqlite3.Connection, query: str,
             f"JOIN {_META_TABLE} m ON m.rowid = f.rowid "
             f"WHERE {_FTS_TABLE} MATCH ? "
             f"ORDER BY f.rank LIMIT ?",
-            (fts_query, limit)
+            (fts_query, limit),
         ).fetchall()
         return [{"doc_id": r[0], "fts_rank": r[1]} for r in rows]
     except Exception as e:
@@ -591,8 +887,7 @@ def fts_search(conn: sqlite3.Connection, query: str,
         return []
 
 
-def rebuild_fts_index(conn: sqlite3.Connection,
-                       documents: List[Dict[str, Any]]) -> int:
+def rebuild_fts_index(conn: sqlite3.Connection, documents: List[Dict[str, Any]]) -> int:
     """Rebuild the entire FTS5 index from a list of document dicts."""
     try:
         ensure_fts_index(conn)
@@ -602,11 +897,11 @@ def rebuild_fts_index(conn: sqlite3.Connection,
         for doc in documents:
             index_document(
                 conn,
-                doc_id       = doc.get("id", ""),
-                title        = doc.get("title", ""),
-                summary      = doc.get("plain_english") or doc.get("summary", ""),
-                agency       = doc.get("agency", ""),
-                jurisdiction = doc.get("jurisdiction", ""),
+                doc_id=doc.get("id", ""),
+                title=doc.get("title", ""),
+                summary=doc.get("plain_english") or doc.get("summary", ""),
+                agency=doc.get("agency", ""),
+                jurisdiction=doc.get("jurisdiction", ""),
             )
         return len(documents)
     except Exception as e:
@@ -617,23 +912,24 @@ def rebuild_fts_index(conn: sqlite3.Connection,
 def _build_fts_query(query: str) -> str:
     """Convert a natural-language query to a safe FTS5 query string."""
     # Remove FTS5 special characters that could cause parse errors
-    clean = re.sub(r'[^\w\s\-]', ' ', query).strip()
+    clean = re.sub(r"[^\w\s\-]", " ", query).strip()
     words = clean.split()
     if not words:
         return '""'
 
     # Exact phrase for multi-word query, plus individual token fallback
     if len(words) > 1:
-        phrase = '"' + ' '.join(words) + '"'
-        tokens = ' OR '.join(w for w in words if len(w) > 2)
-        return f'{phrase} OR {tokens}'
+        phrase = '"' + " ".join(words) + '"'
+        tokens = " OR ".join(w for w in words if len(w) > 2)
+        return f"{phrase} OR {tokens}"
     else:
-        return words[0] + '*'   # prefix match for single token
+        return words[0] + "*"  # prefix match for single token
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LAYER 3 — TF-IDF SIMILARITY INDEX
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TFIDFIndex:
     """
@@ -643,11 +939,11 @@ class TFIDFIndex:
     """
 
     def __init__(self):
-        self.vocab:    Dict[str, int]    = {}   # token → column index
-        self.idf:      np.ndarray        = None  # shape (V,)
-        self.doc_ids:  List[str]         = []   # row i → doc_id
-        self.matrix:   Optional[np.ndarray] = None  # shape (N, V) — sparse-ish
-        self.dirty     = False
+        self.vocab: Dict[str, int] = {}  # token → column index
+        self.idf: np.ndarray = None  # shape (V,)
+        self.doc_ids: List[str] = []  # row i → doc_id
+        self.matrix: Optional[np.ndarray] = None  # shape (N, V) — sparse-ish
+        self.dirty = False
         self._cache_path: Optional[Path] = None
 
     # ── Build / update ────────────────────────────────────────────────────────
@@ -665,17 +961,21 @@ class TFIDFIndex:
         # Build vocabulary from all documents
         all_tokens: Counter = Counter()
         for _, toks in tokenised:
-            all_tokens.update(set(toks))   # document frequency
+            all_tokens.update(set(toks))  # document frequency
         # Regulatory terms get priority — keep even with df=1
-        reg_terms    = set(re.sub(r'[^a-z0-9]', '', t.lower()) for t in AI_TERMS_EXPANDED)
+        reg_terms = set(re.sub(r"[^a-z0-9]", "", t.lower()) for t in AI_TERMS_EXPANDED)
         # Build vocabulary — keep tokens that appear in ≥2 documents,
         # OR appear in only 1 document but are known regulatory terms,
         # OR the corpus is very small (< 10 docs) in which case keep everything non-trivial.
         small_corpus = len(documents) < 10
         self.vocab = {
-            tok: i for i, tok in enumerate(
-                t for t, df in all_tokens.most_common()
-                if df >= 2 or t in reg_terms or (small_corpus and df >= 1 and len(t) > 3)
+            tok: i
+            for i, tok in enumerate(
+                t
+                for t, df in all_tokens.most_common()
+                if df >= 2
+                or t in reg_terms
+                or (small_corpus and df >= 1 and len(t) > 3)
             )
         }
 
@@ -706,12 +1006,12 @@ class TFIDFIndex:
         norms = np.linalg.norm(mat, axis=1, keepdims=True)
         norms[norms == 0] = 1
         self.matrix = mat / norms
-        self.dirty  = False
+        self.dirty = False
         log.info("TF-IDF index built: %d docs, %d vocab terms", N, V)
 
     def add(self, doc_id: str, text: str) -> None:
         """Add a single document (incremental update). Marks dirty for rebuild."""
-        self.dirty = True   # triggers rebuild on next query if needed
+        self.dirty = True  # triggers rebuild on next query if needed
 
     def query(self, text: str, top_k: int = 50) -> List[Tuple[str, float]]:
         """
@@ -722,10 +1022,10 @@ class TFIDFIndex:
             return []
 
         expanded = expand_query(text)
-        toks     = self._tokenize(expanded)
-        V        = len(self.vocab)
-        vec      = np.zeros(V, dtype=np.float32)
-        tf       = Counter(toks)
+        toks = self._tokenize(expanded)
+        V = len(self.vocab)
+        vec = np.zeros(V, dtype=np.float32)
+        tf = Counter(toks)
 
         for tok, count in tf.items():
             if tok in self.vocab:
@@ -737,15 +1037,11 @@ class TFIDFIndex:
             return []
         vec /= norm
 
-        scores = self.matrix @ vec   # shape (N,)
-        top    = np.argpartition(scores, -min(top_k, len(scores)))[-top_k:]
-        top    = top[np.argsort(scores[top])[::-1]]
+        scores = self.matrix @ vec  # shape (N,)
+        top = np.argpartition(scores, -min(top_k, len(scores)))[-top_k:]
+        top = top[np.argsort(scores[top])[::-1]]
 
-        return [
-            (self.doc_ids[i], float(scores[i]))
-            for i in top
-            if scores[i] > 0.01
-        ]
+        return [(self.doc_ids[i], float(scores[i])) for i in top if scores[i] > 0.01]
 
     def score_document(self, text: str) -> float:
         """
@@ -757,14 +1053,14 @@ class TFIDFIndex:
             return relevance_score(text)
 
         expanded = expand_query(text)
-        toks     = self._tokenize(expanded)
+        toks = self._tokenize(expanded)
         if not toks:
             return 0.0
 
         score = 0.0
         for tok in set(toks):
             if tok in self.vocab:
-                j     = self.vocab[tok]
+                j = self.vocab[tok]
                 score += self.idf[j]
 
         # Normalise against the top-10 IDF values (most distinctive terms)
@@ -777,23 +1073,25 @@ class TFIDFIndex:
         """Save index to disk as a compact binary format."""
         try:
             data = {
-                "vocab":   self.vocab,
-                "idf":     self.idf.tolist() if self.idf is not None else [],
+                "vocab": self.vocab,
+                "idf": self.idf.tolist() if self.idf is not None else [],
                 "doc_ids": self.doc_ids,
-                "matrix":  self.matrix.tolist() if self.matrix is not None else [],
+                "matrix": self.matrix.tolist() if self.matrix is not None else [],
             }
-            path.write_bytes(json.dumps(data, separators=(',', ':')).encode())
+            path.write_bytes(json.dumps(data, separators=(",", ":")).encode())
         except Exception as e:
             log.debug("TF-IDF save error: %s", e)
 
     def load(self, path: Path) -> bool:
         """Load index from disk. Returns True on success."""
         try:
-            data       = json.loads(path.read_bytes())
-            self.vocab   = data["vocab"]
-            self.idf     = np.array(data["idf"], dtype=np.float32) if data["idf"] else None
+            data = json.loads(path.read_bytes())
+            self.vocab = data["vocab"]
+            self.idf = np.array(data["idf"], dtype=np.float32) if data["idf"] else None
             self.doc_ids = data["doc_ids"]
-            self.matrix  = np.array(data["matrix"], dtype=np.float32) if data["matrix"] else None
+            self.matrix = (
+                np.array(data["matrix"], dtype=np.float32) if data["matrix"] else None
+            )
             return True
         except Exception:
             return False
@@ -807,20 +1105,63 @@ class TFIDFIndex:
         Bigrams are included when both tokens are non-stopwords.
         """
         STOPWORDS = {
-            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to',
-            'for', 'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was',
-            'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do',
-            'does', 'did', 'will', 'would', 'could', 'should', 'may',
-            'might', 'shall', 'this', 'that', 'these', 'those', 'it',
-            'its', 'not', 'no', 'so', 'if', 'all', 'any', 'each',
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "from",
+            "as",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "shall",
+            "this",
+            "that",
+            "these",
+            "those",
+            "it",
+            "its",
+            "not",
+            "no",
+            "so",
+            "if",
+            "all",
+            "any",
+            "each",
         }
-        words  = re.findall(r'[a-z0-9]+', text.lower())
+        words = re.findall(r"[a-z0-9]+", text.lower())
         tokens = [w for w in words if len(w) > 1 and w not in STOPWORDS]
         # Add bigrams
         bigrams = [
-            f"{tokens[i]}_{tokens[i+1]}"
+            f"{tokens[i]}_{tokens[i + 1]}"
             for i in range(len(tokens) - 1)
-            if tokens[i] not in STOPWORDS and tokens[i+1] not in STOPWORDS
+            if tokens[i] not in STOPWORDS and tokens[i + 1] not in STOPWORDS
         ]
         return tokens + bigrams
 
@@ -828,6 +1169,7 @@ class TFIDFIndex:
 # ═══════════════════════════════════════════════════════════════════════════════
 # LAYER 4 — ONNX EMBEDDING SIMILARITY (optional)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class EmbeddingIndex:
     """
@@ -846,14 +1188,14 @@ class EmbeddingIndex:
     """
 
     MODEL_NAME = "all-MiniLM-L6-v2"
-    EMBED_DIM  = 384   # all-MiniLM-L6-v2 output dimension
+    EMBED_DIM = 384  # all-MiniLM-L6-v2 output dimension
 
     def __init__(self):
-        self._session  = None
+        self._session = None
         self._tokenizer = None
-        self._doc_ids:  List[str]        = []
-        self._embeddings: Optional[np.ndarray] = None   # shape (N, 384)
-        self._available: Optional[bool]  = None   # lazy-checked
+        self._doc_ids: List[str] = []
+        self._embeddings: Optional[np.ndarray] = None  # shape (N, 384)
+        self._available: Optional[bool] = None  # lazy-checked
 
     @property
     def available(self) -> bool:
@@ -864,11 +1206,12 @@ class EmbeddingIndex:
     def _try_load(self) -> bool:
         model_dir = _models_dir() / self.MODEL_NAME
         onnx_path = model_dir / "model.onnx"
-        tok_path  = model_dir / "tokenizer.json"
+        tok_path = model_dir / "tokenizer.json"
         if not onnx_path.exists() or not tok_path.exists():
             return False
         try:
             import onnxruntime as ort
+
             self._session = ort.InferenceSession(
                 str(onnx_path),
                 providers=["CPUExecutionProvider"],
@@ -889,18 +1232,21 @@ class EmbeddingIndex:
             embeddings = []
             for text in texts:
                 enc = self._tokenizer.encode(text[:512])
-                input_ids      = np.array([enc["input_ids"]],      dtype=np.int64)
+                input_ids = np.array([enc["input_ids"]], dtype=np.int64)
                 attention_mask = np.array([enc["attention_mask"]], dtype=np.int64)
                 token_type_ids = np.zeros_like(input_ids)
-                outputs = self._session.run(None, {
-                    "input_ids":      input_ids,
-                    "attention_mask": attention_mask,
-                    "token_type_ids": token_type_ids,
-                })
+                outputs = self._session.run(
+                    None,
+                    {
+                        "input_ids": input_ids,
+                        "attention_mask": attention_mask,
+                        "token_type_ids": token_type_ids,
+                    },
+                )
                 # Mean pooling
-                last_hidden = outputs[0][0]   # (seq_len, hidden_dim)
+                last_hidden = outputs[0][0]  # (seq_len, hidden_dim)
                 mask = attention_mask[0, :, None].astype(np.float32)
-                emb  = (last_hidden * mask).sum(0) / mask.sum()
+                emb = (last_hidden * mask).sum(0) / mask.sum()
                 # L2 normalise
                 norm = np.linalg.norm(emb)
                 embeddings.append(emb / norm if norm > 0 else emb)
@@ -913,11 +1259,11 @@ class EmbeddingIndex:
         """Build embedding index from (doc_id, text) pairs."""
         if not self.available or not documents:
             return False
-        texts  = [text for _, text in documents]
-        embs   = self.embed(texts)
+        texts = [text for _, text in documents]
+        embs = self.embed(texts)
         if embs is None:
             return False
-        self._doc_ids    = [d[0] for d in documents]
+        self._doc_ids = [d[0] for d in documents]
         self._embeddings = embs
         log.info("Embedding index built: %d documents", len(documents))
         return True
@@ -929,32 +1275,28 @@ class EmbeddingIndex:
         qvec = self.embed([text])
         if qvec is None:
             return []
-        scores = self._embeddings @ qvec[0]   # cosine similarity (already L2-normed)
-        top    = np.argpartition(scores, -min(top_k, len(scores)))[-top_k:]
-        top    = top[np.argsort(scores[top])[::-1]]
-        return [
-            (self._doc_ids[i], float(scores[i]))
-            for i in top
-            if scores[i] > 0.1
-        ]
+        scores = self._embeddings @ qvec[0]  # cosine similarity (already L2-normed)
+        top = np.argpartition(scores, -min(top_k, len(scores)))[-top_k:]
+        top = top[np.argsort(scores[top])[::-1]]
+        return [(self._doc_ids[i], float(scores[i])) for i in top if scores[i] > 0.1]
 
     def save(self, path: Path) -> None:
         if self._embeddings is None:
             return
         try:
-            np.save(str(path.with_suffix('.npy')), self._embeddings)
-            (path.with_suffix('.ids.json')).write_text(json.dumps(self._doc_ids))
+            np.save(str(path.with_suffix(".npy")), self._embeddings)
+            (path.with_suffix(".ids.json")).write_text(json.dumps(self._doc_ids))
         except Exception as e:
             log.debug("Embedding save error: %s", e)
 
     def load(self, path: Path) -> bool:
         try:
-            npy = path.with_suffix('.npy')
-            ids = path.with_suffix('.ids.json')
+            npy = path.with_suffix(".npy")
+            ids = path.with_suffix(".ids.json")
             if not npy.exists() or not ids.exists():
                 return False
             self._embeddings = np.load(str(npy))
-            self._doc_ids    = json.loads(ids.read_text())
+            self._doc_ids = json.loads(ids.read_text())
             return True
         except Exception:
             return False
@@ -966,11 +1308,11 @@ class _MinimalTokenizer:
     Handles the all-MiniLM-L6-v2 vocabulary without needing huggingface/tokenizers.
     """
 
-    MAX_LEN  = 128
-    PAD_ID   = 0
-    CLS_ID   = 101
-    SEP_ID   = 102
-    UNK_ID   = 100
+    MAX_LEN = 128
+    PAD_ID = 0
+    CLS_ID = 101
+    SEP_ID = 102
+    UNK_ID = 100
 
     def __init__(self, tokenizer_json_path: Path):
         data = json.loads(tokenizer_json_path.read_text())
@@ -985,9 +1327,9 @@ class _MinimalTokenizer:
 
     def encode(self, text: str) -> Dict[str, List[int]]:
         """Simple wordpiece tokenization returning input_ids and attention_mask."""
-        words  = text.lower().split()
+        words = text.lower().split()
         tokens = [self.CLS_ID]
-        for word in words[:self.MAX_LEN - 2]:
+        for word in words[: self.MAX_LEN - 2]:
             wid = self._vocab.get(word, self._vocab.get(f"##" + word, self.UNK_ID))
             tokens.append(wid)
         tokens.append(self.SEP_ID)
@@ -995,13 +1337,14 @@ class _MinimalTokenizer:
         mask = [1] * len(tokens)
         pad_len = self.MAX_LEN - len(tokens)
         tokens += [self.PAD_ID] * pad_len
-        mask   += [0]          * pad_len
+        mask += [0] * pad_len
         return {"input_ids": tokens, "attention_mask": mask}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # UNIFIED SEARCH COORDINATOR
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class SearchEngine:
     """
@@ -1010,24 +1353,20 @@ class SearchEngine:
     """
 
     def __init__(self):
-        self._tfidf     = TFIDFIndex()
+        self._tfidf = TFIDFIndex()
         self._embedding = EmbeddingIndex()
-        self._built     = False
+        self._built = False
 
         # Try loading cached indices
         self._tfidf_cache_path = _models_dir() / "tfidf_index.json"
-        self._emb_cache_path   = _models_dir() / "embedding_index"
+        self._emb_cache_path = _models_dir() / "embedding_index"
 
     def build(self, documents: List[Dict[str, Any]]) -> None:
         """
         Build all indices from a list of document dicts.
         Expects each dict to have: id, title, plain_english/summary, agency, jurisdiction.
         """
-        pairs = [
-            (d["id"], self._doc_text(d))
-            for d in documents
-            if d.get("id")
-        ]
+        pairs = [(d["id"], self._doc_text(d)) for d in documents if d.get("id")]
         self._tfidf.build(pairs)
         self._tfidf.save(self._tfidf_cache_path)
 
@@ -1035,16 +1374,21 @@ class SearchEngine:
         self._embedding.save(self._emb_cache_path)
 
         self._built = True
-        log.info("Search engine built: %d documents, embedding=%s",
-                 len(pairs), self._embedding.available)
+        log.info(
+            "Search engine built: %d documents, embedding=%s",
+            len(pairs),
+            self._embedding.available,
+        )
 
     def load_or_build(self, documents: List[Dict[str, Any]]) -> None:
         """Load cached indices if available, otherwise build from scratch."""
         tfidf_ok = self._tfidf.load(self._tfidf_cache_path)
-        emb_ok   = self._embedding.load(self._emb_cache_path)
+        emb_ok = self._embedding.load(self._emb_cache_path)
 
         if tfidf_ok:
-            log.debug("TF-IDF index loaded from cache (%d docs)", len(self._tfidf.doc_ids))
+            log.debug(
+                "TF-IDF index loaded from cache (%d docs)", len(self._tfidf.doc_ids)
+            )
         else:
             log.info("Building TF-IDF index from scratch")
             self.build(documents)
@@ -1058,8 +1402,9 @@ class SearchEngine:
 
         self._built = True
 
-    def search(self, query: str, top_k: int = 50,
-                conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
+    def search(
+        self, query: str, top_k: int = 50, conn: Optional[sqlite3.Connection] = None
+    ) -> List[Dict[str, Any]]:
         """
         Search documents using all available layers.
         Returns list of {doc_id, score, sources} dicts sorted by combined score.
@@ -1076,7 +1421,7 @@ class SearchEngine:
                     results[did] = {"doc_id": did, "score": 0.0, "sources": []}
                 # FTS rank is negative BM25 — convert to 0-1
                 fts_score = max(0.0, min(1.0, 1.0 + r["fts_rank"] / 10.0))
-                results[did]["score"]  += fts_score * 0.35
+                results[did]["score"] += fts_score * 0.35
                 results[did]["sources"].append("fts")
 
         # Layer 3: TF-IDF
@@ -1085,7 +1430,7 @@ class SearchEngine:
             for did, score in tfidf_results:
                 if did not in results:
                     results[did] = {"doc_id": did, "score": 0.0, "sources": []}
-                results[did]["score"]  += score * 0.40
+                results[did]["score"] += score * 0.40
                 results[did]["sources"].append("tfidf")
 
         # Layer 4: Embeddings
@@ -1094,7 +1439,7 @@ class SearchEngine:
             for did, score in emb_results:
                 if did not in results:
                     results[did] = {"doc_id": did, "score": 0.0, "sources": []}
-                results[did]["score"]  += score * 0.25
+                results[did]["score"] += score * 0.25
                 results[did]["sources"].append("embedding")
 
         # Sort by combined score
@@ -1142,6 +1487,7 @@ def rebuild_index(documents: Optional[List[Dict]] = None) -> int:
     if documents is None:
         try:
             from utils.db import get_recent_summaries
+
             documents = get_recent_summaries(days=3650)
         except Exception as e:
             log.warning("Could not load documents for index rebuild: %s", e)
@@ -1152,8 +1498,9 @@ def rebuild_index(documents: Optional[List[Dict]] = None) -> int:
     return len(documents)
 
 
-def search_documents(query: str, top_k: int = 50,
-                      conn: Optional[sqlite3.Connection] = None) -> List[Dict]:
+def search_documents(
+    query: str, top_k: int = 50, conn: Optional[sqlite3.Connection] = None
+) -> List[Dict]:
     """
     Search documents using all available layers.
     Public entry point for server endpoints.
@@ -1162,6 +1509,7 @@ def search_documents(query: str, top_k: int = 50,
     if not engine._built:
         try:
             from utils.db import get_recent_summaries
+
             docs = get_recent_summaries(days=3650)
             engine.load_or_build(docs)
         except Exception:
@@ -1170,6 +1518,7 @@ def search_documents(query: str, top_k: int = 50,
 
 
 # ── Optional: download embedding model ────────────────────────────────────────
+
 
 def download_embedding_model() -> bool:
     """
@@ -1183,9 +1532,15 @@ def download_embedding_model() -> bool:
 
     BASE = "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx"
     files = [
-        ("model.onnx",            f"{BASE}/model.onnx"),
-        ("tokenizer.json",        "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer.json"),
-        ("tokenizer_config.json", "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json"),
+        ("model.onnx", f"{BASE}/model.onnx"),
+        (
+            "tokenizer.json",
+            "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer.json",
+        ),
+        (
+            "tokenizer_config.json",
+            "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json",
+        ),
     ]
 
     for filename, url in files:

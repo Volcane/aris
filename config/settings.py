@@ -16,15 +16,15 @@ PROJECT_ROOT = Path(__file__).parent.parent
 load_dotenv(PROJECT_ROOT / "config" / "keys.env")
 
 # â”€â”€ API Keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-ANTHROPIC_API_KEY    = os.getenv("ANTHROPIC_API_KEY", "")
-REGULATIONS_GOV_KEY  = os.getenv("REGULATIONS_GOV_KEY", "")
-CONGRESS_GOV_KEY     = os.getenv("CONGRESS_GOV_KEY", "")
-LEGISCAN_KEY         = os.getenv("LEGISCAN_KEY", "")
-COURTLISTENER_KEY    = os.getenv("COURTLISTENER_KEY", "")   # free at courtlistener.com
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+REGULATIONS_GOV_KEY = os.getenv("REGULATIONS_GOV_KEY", "")
+CONGRESS_GOV_KEY = os.getenv("CONGRESS_GOV_KEY", "")
+LEGISCAN_KEY = os.getenv("LEGISCAN_KEY", "")
+COURTLISTENER_KEY = os.getenv("COURTLISTENER_KEY", "")  # free at courtlistener.com
 
 # LLM provider keys (set the one matching LLM_PROVIDER)
-OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY",  "")
-GEMINI_API_KEY  = os.getenv("GEMINI_API_KEY",  "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # â”€â”€ LLM Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Which LLM to use for all AI features.
@@ -36,7 +36,7 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "anthropic")
 #   openai    â†’ gpt-4o
 #   ollama    â†’ llama3.1
 #   gemini    â†’ gemini-1.5-pro
-LLM_MODEL    = os.getenv("LLM_MODEL", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "")
 
 # Base URL for OpenAI-compatible endpoints (Ollama, Groq, Together AI, LM Studioâ€¦)
 # Leave blank for official provider endpoints.
@@ -48,9 +48,9 @@ LLM_MODEL    = os.getenv("LLM_MODEL", "")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "")
 
 # â”€â”€ Paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-OUTPUT_DIR  = PROJECT_ROOT / "output"
+OUTPUT_DIR = PROJECT_ROOT / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
-DB_PATH     = os.getenv("DB_PATH", str(OUTPUT_DIR / "aris.db"))
+DB_PATH = os.getenv("DB_PATH", str(OUTPUT_DIR / "aris.db"))
 
 # PDF drop folder â€” place PDFs here for manual ingestion
 PDF_DROP_DIR = OUTPUT_DIR / "pdf_inbox"
@@ -61,9 +61,9 @@ PDF_STORE_DIR = OUTPUT_DIR / "pdfs"
 PDF_STORE_DIR.mkdir(exist_ok=True)
 
 # â”€â”€ Behaviour â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-LOOKBACK_DAYS       = int(os.getenv("LOOKBACK_DAYS", "30"))
+LOOKBACK_DAYS = int(os.getenv("LOOKBACK_DAYS", "30"))
 MIN_RELEVANCE_SCORE = float(os.getenv("MIN_RELEVANCE_SCORE", "0.5"))
-LOG_LEVEL           = os.getenv("LOG_LEVEL", "INFO")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # â”€â”€ Domain configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Controls which regulatory domains ARIS monitors.
@@ -71,7 +71,7 @@ LOG_LEVEL           = os.getenv("LOG_LEVEL", "INFO")
 #   "privacy" â€” Data privacy regulation only
 #   "both"    â€” Both domains (recommended for full coverage)
 # Set in keys.env: ACTIVE_DOMAINS=both
-_domains_raw    = os.getenv("ACTIVE_DOMAINS", "both")
+_domains_raw = os.getenv("ACTIVE_DOMAINS", "both")
 ACTIVE_DOMAINS: list = [d.strip() for d in _domains_raw.split(",") if d.strip()]
 # Normalise: if someone sets "ai,privacy" treat as "both"
 if "ai" in ACTIVE_DOMAINS and "privacy" in ACTIVE_DOMAINS:
@@ -87,15 +87,37 @@ try:
 except ImportError:
     # Fallback if search module not yet available (e.g. first import cycle)
     AI_KEYWORDS = [
-        "artificial intelligence", "machine learning", "deep learning",
-        "generative ai", "large language model", "llm", "neural network",
-        "automated decision", "algorithmic", "algorithm", "facial recognition",
-        "biometric", "autonomous system", "predictive analytics",
-        "natural language processing", "nlp", "computer vision",
-        "foundation model", "ai governance", "ai safety", "ai risk",
-        "ai transparency", "ai accountability", "ai bias", "ai ethics",
-        "responsible ai", "trustworthy ai", "ai regulation",
-        "ai disclosure", "deepfake", "synthetic media",
+        "artificial intelligence",
+        "machine learning",
+        "deep learning",
+        "generative ai",
+        "large language model",
+        "llm",
+        "neural network",
+        "automated decision",
+        "algorithmic",
+        "algorithm",
+        "facial recognition",
+        "biometric",
+        "autonomous system",
+        "predictive analytics",
+        "natural language processing",
+        "nlp",
+        "computer vision",
+        "foundation model",
+        "ai governance",
+        "ai safety",
+        "ai risk",
+        "ai transparency",
+        "ai accountability",
+        "ai bias",
+        "ai ethics",
+        "responsible ai",
+        "trustworthy ai",
+        "ai regulation",
+        "ai disclosure",
+        "deepfake",
+        "synthetic media",
     ]
 
 # â”€â”€ Search configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -107,7 +129,7 @@ SEARCH_AUTO_REBUILD = os.getenv("SEARCH_AUTO_REBUILD", "true").lower() == "true"
 
 # â”€â”€ Federal Register API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 FEDERAL_REGISTER_BASE = "https://www.federalregister.gov/api/v1"
-FR_DOC_TYPES          = ["RULE", "PRORULE", "NOTICE", "PRESDOCU"]
+FR_DOC_TYPES = ["RULE", "PRORULE", "NOTICE", "PRESDOCU"]
 
 # â”€â”€ Regulations.gov API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 REGS_GOV_BASE = "https://api.regulations.gov/v4"
@@ -125,11 +147,11 @@ PA_LEGIS_FEED = "https://www.legis.state.pa.us/cfdocs/legis/home/xml/hbHistXML.c
 # Agents now use utils.llm.call_llm() which reads LLM_PROVIDER / LLM_MODEL
 # directly. CLAUDE_MODEL and MAX_TOKENS remain here so any external code
 # that imports them still works.
-CLAUDE_MODEL  = LLM_MODEL or "claude-sonnet-4-20250514"
-MAX_TOKENS    = 2048
+CLAUDE_MODEL = LLM_MODEL or "claude-sonnet-4-20250514"
+MAX_TOKENS = 2048
 
 # â”€â”€ HTTP request settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-REQUEST_TIMEOUT    = 30   # seconds
-MAX_RETRIES        = 3
+REQUEST_TIMEOUT = 30  # seconds
+MAX_RETRIES = 3
 RETRY_WAIT_SECONDS = 2
-CACHE_TTL_HOURS    = 6    # cache API responses for 6 hours
+CACHE_TTL_HOURS = 6  # cache API responses for 6 hours

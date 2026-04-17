@@ -2,6 +2,7 @@
 """
 ARIS — Enforcement & Litigation Agent Tests
 """
+
 import json
 import sys
 import types
@@ -12,34 +13,51 @@ from unittest.mock import patch, MagicMock
 
 def setUpModule():
     for pkg, attrs in {
-        'tenacity':      ['retry', 'stop_after_attempt', 'wait_exponential'],
-        'anthropic':     ['Anthropic', 'APIError'],
-        'sqlalchemy':    ['Column', 'String', 'Text', 'DateTime', 'Float', 'Boolean',
-                          'JSON', 'Index', 'text', 'create_engine', 'Integer', 'func'],
-        'sqlalchemy.orm': ['DeclarativeBase', 'Session', 'sessionmaker'],
+        "tenacity": ["retry", "stop_after_attempt", "wait_exponential"],
+        "anthropic": ["Anthropic", "APIError"],
+        "sqlalchemy": [
+            "Column",
+            "String",
+            "Text",
+            "DateTime",
+            "Float",
+            "Boolean",
+            "JSON",
+            "Index",
+            "text",
+            "create_engine",
+            "Integer",
+            "func",
+        ],
+        "sqlalchemy.orm": ["DeclarativeBase", "Session", "sessionmaker"],
     }.items():
         if pkg not in sys.modules:
             m = types.ModuleType(pkg)
             for a in attrs:
-                setattr(m, a,
-                        type(a, (), {'__init__': lambda s, *a, **k: None})
-                        if a[0].isupper() else (lambda *a, **k: None))
+                setattr(
+                    m,
+                    a,
+                    type(a, (), {"__init__": lambda s, *a, **k: None})
+                    if a[0].isupper()
+                    else (lambda *a, **k: None),
+                )
             sys.modules[pkg] = m
 
     # Ensure tenacity has all needed attributes even if already stub-loaded
-    t = sys.modules.get('tenacity')
+    t = sys.modules.get("tenacity")
     if t:
-        for attr in ('retry', 'stop_after_attempt', 'wait_exponential'):
+        for attr in ("retry", "stop_after_attempt", "wait_exponential"):
             if not hasattr(t, attr):
                 setattr(t, attr, lambda *a, **k: None)
-        t.retry = lambda **k: (lambda f: f)
-    sys.modules['tenacity'].retry = lambda **k: (lambda f: f)
+        t.retry = lambda **k: lambda f: f
+    sys.modules["tenacity"].retry = lambda **k: lambda f: f
 
     # Ensure config.settings has the COURTLISTENER_KEY attribute
     try:
         import config.settings as cs
-        if not hasattr(cs, 'COURTLISTENER_KEY'):
-            cs.COURTLISTENER_KEY = ''
+
+        if not hasattr(cs, "COURTLISTENER_KEY"):
+            cs.COURTLISTENER_KEY = ""
     except Exception:
         pass
 
@@ -99,10 +117,11 @@ MALFORMED_RSS = "this is not xml at all"
 # UTILITY FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestParseRSSFeed(unittest.TestCase):
 
+class TestParseRSSFeed(unittest.TestCase):
     def _parse(self, xml):
         from sources.enforcement_agent import _parse_rss_feed
+
         return _parse_rss_feed(xml)
 
     def test_parses_rss_items(self):
@@ -111,24 +130,24 @@ class TestParseRSSFeed(unittest.TestCase):
 
     def test_extracts_title(self):
         items = self._parse(SAMPLE_RSS)
-        self.assertIn('FTC', items[0]['title'])
+        self.assertIn("FTC", items[0]["title"])
 
     def test_extracts_link(self):
         items = self._parse(SAMPLE_RSS)
-        self.assertIn('ftc.gov', items[0]['link'])
+        self.assertIn("ftc.gov", items[0]["link"])
 
     def test_extracts_description(self):
         items = self._parse(SAMPLE_RSS)
-        self.assertGreater(len(items[0]['description']), 0)
+        self.assertGreater(len(items[0]["description"]), 0)
 
     def test_extracts_date(self):
         items = self._parse(SAMPLE_RSS)
-        self.assertIn('2025', items[0]['date'])
+        self.assertIn("2025", items[0]["date"])
 
     def test_parses_atom_feed(self):
         items = self._parse(ATOM_FEED)
         self.assertEqual(len(items), 1)
-        self.assertIn('SEC', items[0]['title'])
+        self.assertIn("SEC", items[0]["title"])
 
     def test_empty_feed_returns_empty(self):
         items = self._parse(EMPTY_RSS)
@@ -140,9 +159,9 @@ class TestParseRSSFeed(unittest.TestCase):
 
 
 class TestParseDateFormats(unittest.TestCase):
-
     def _parse(self, s):
         from sources.enforcement_agent import _parse_rss_date
+
         return _parse_rss_date(s)
 
     def test_rss_date_format(self):
@@ -172,21 +191,27 @@ class TestParseDateFormats(unittest.TestCase):
 
 
 class TestRelevanceScoring(unittest.TestCase):
-
     def test_ai_text_is_relevant(self):
         from sources.enforcement_agent import _is_enforcement_relevant
-        self.assertTrue(_is_enforcement_relevant(
-            "FTC action against company using artificial intelligence algorithms"
-        ))
+
+        self.assertTrue(
+            _is_enforcement_relevant(
+                "FTC action against company using artificial intelligence algorithms"
+            )
+        )
 
     def test_non_ai_text_not_relevant(self):
         from sources.enforcement_agent import _is_enforcement_relevant
-        self.assertFalse(_is_enforcement_relevant(
-            "Marine wildlife protection and fishing regulations in Pacific Northwest"
-        ))
+
+        self.assertFalse(
+            _is_enforcement_relevant(
+                "Marine wildlife protection and fishing regulations in Pacific Northwest"
+            )
+        )
 
     def test_score_higher_for_more_terms(self):
         from sources.enforcement_agent import _score_relevance
+
         s1 = _score_relevance("artificial intelligence")
         s2 = _score_relevance(
             "artificial intelligence machine learning algorithmic discrimination bias"
@@ -195,25 +220,27 @@ class TestRelevanceScoring(unittest.TestCase):
 
     def test_score_in_range(self):
         from sources.enforcement_agent import _score_relevance
+
         score = _score_relevance("automated decision system facial recognition bias")
         self.assertGreaterEqual(score, 0.0)
         self.assertLessEqual(score, 1.0)
 
     def test_empty_text_scores_zero(self):
         from sources.enforcement_agent import _score_relevance
+
         self.assertEqual(_score_relevance(""), 0.0)
 
 
 class TestPenaltyExtraction(unittest.TestCase):
-
     def _extract(self, text):
         from sources.enforcement_agent import _extract_penalty
+
         return _extract_penalty(text)
 
     def test_dollar_million(self):
         result = self._extract("Company agreed to pay $2.5 million civil penalty")
         self.assertIsNotNone(result)
-        self.assertIn('2.5', result)
+        self.assertIn("2.5", result)
 
     def test_dollar_amount(self):
         result = self._extract("civil penalty of $500,000 for violations")
@@ -222,7 +249,7 @@ class TestPenaltyExtraction(unittest.TestCase):
     def test_euro_amount(self):
         result = self._extract("GDPR fine of €750,000 imposed by DPC")
         self.assertIsNotNone(result)
-        self.assertIn('750', result)
+        self.assertIn("750", result)
 
     def test_no_penalty_returns_none(self):
         result = self._extract("FTC investigation launched into AI practices")
@@ -230,9 +257,9 @@ class TestPenaltyExtraction(unittest.TestCase):
 
 
 class TestRelatedRegsFinder(unittest.TestCase):
-
     def _find(self, text):
         from sources.enforcement_agent import _find_related_regs
+
         return _find_related_regs(text)
 
     def test_finds_ftc_act(self):
@@ -244,7 +271,7 @@ class TestRelatedRegsFinder(unittest.TestCase):
         # gdpr now maps to eu_gdpr_full (full GDPR baseline added in Stage 2)
         self.assertTrue(
             "eu_gdpr_full" in regs or "eu_gdpr_ai" in regs,
-            f"Expected a GDPR baseline in {regs}"
+            f"Expected a GDPR baseline in {regs}",
         )
 
     def test_finds_title_vii(self):
@@ -299,131 +326,153 @@ FTC_MOCK_RSS = """<?xml version="1.0" encoding="UTF-8"?>
 # SOURCE CLASSES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFTCSource(unittest.TestCase):
 
+class TestFTCSource(unittest.TestCase):
     def _source(self):
         from sources.enforcement_agent import FTCEnforcementSource
+
         return FTCEnforcementSource()
 
     def _fetch(self, days=3650):
         """Helper: mock http_get_text (RSS feed) — FTC now uses RSS not JSON API."""
         src = self._source()
-        with patch('sources.enforcement_agent.http_get_text', return_value=FTC_MOCK_RSS):
+        with patch(
+            "sources.enforcement_agent.http_get_text", return_value=FTC_MOCK_RSS
+        ):
             return src.fetch(lookback_days=days)
 
     def test_filters_non_ai_items(self):
         results = self._fetch()
-        titles = [r['title'] for r in results]
-        self.assertTrue(any('AI' in t or 'Algorithm' in t or 'algorithm' in t.lower()
-                            for t in titles))
-        self.assertFalse(any('Marine' in t for t in titles))
+        titles = [r["title"] for r in results]
+        self.assertTrue(
+            any(
+                "AI" in t or "Algorithm" in t or "algorithm" in t.lower()
+                for t in titles
+            )
+        )
+        self.assertFalse(any("Marine" in t for t in titles))
 
     def test_normalised_fields_present(self):
         results = self._fetch()
         if results:
             r = results[0]
-            for field in ('id', 'source', 'action_type', 'title', 'url',
-                           'agency', 'jurisdiction', 'relevance_score'):
+            for field in (
+                "id",
+                "source",
+                "action_type",
+                "title",
+                "url",
+                "agency",
+                "jurisdiction",
+                "relevance_score",
+            ):
                 self.assertIn(field, r, f"Missing field: {field}")
 
     def test_source_is_ftc(self):
         results = self._fetch()
         for r in results:
-            self.assertEqual(r['source'], 'ftc')
+            self.assertEqual(r["source"], "ftc")
 
     def test_jurisdiction_is_federal(self):
         results = self._fetch()
         for r in results:
-            self.assertEqual(r['jurisdiction'], 'Federal')
+            self.assertEqual(r["jurisdiction"], "Federal")
 
     def test_deduplication_on_multiple_feeds(self):
         results = self._fetch()
-        ids = [r['id'] for r in results]
+        ids = [r["id"] for r in results]
         self.assertEqual(len(ids), len(set(ids)))
 
     def test_cutoff_filters_old_items(self):
         results = self._fetch(days=1)
         for r in results:
-            if r.get('published_date'):
+            if r.get("published_date"):
                 cutoff = datetime.utcnow() - timedelta(days=1)
-                self.assertGreaterEqual(r['published_date'], cutoff)
+                self.assertGreaterEqual(r["published_date"], cutoff)
 
     def test_penalty_extracted(self):
         results = self._fetch()
-        penalty_results = [r for r in results if r.get('penalty_amount')]
+        penalty_results = [r for r in results if r.get("penalty_amount")]
         self.assertGreater(len(penalty_results), 0)
 
     def test_feed_failure_returns_empty(self):
         src = self._source()
-        with patch('sources.enforcement_agent.http_get_text',
-                   side_effect=Exception("Connection refused")):
+        with patch(
+            "sources.enforcement_agent.http_get_text",
+            side_effect=Exception("Connection refused"),
+        ):
             results = src.fetch()
         self.assertEqual(results, [])
 
 
 class TestICOSource(unittest.TestCase):
-
     def test_jurisdiction_is_gb(self):
         from sources.enforcement_agent import ICOEnforcementSource
+
         src = ICOEnforcementSource()
-        with patch('sources.enforcement_agent.http_get_text', return_value=SAMPLE_RSS):
+        with patch("sources.enforcement_agent.http_get_text", return_value=SAMPLE_RSS):
             results = src.fetch(lookback_days=3650)
         for r in results:
-            self.assertEqual(r['jurisdiction'], 'GB')
+            self.assertEqual(r["jurisdiction"], "GB")
 
     def test_related_regs_includes_gdpr(self):
         from sources.enforcement_agent import ICOEnforcementSource
+
         src = ICOEnforcementSource()
-        with patch('sources.enforcement_agent.http_get_text', return_value=SAMPLE_RSS):
+        with patch("sources.enforcement_agent.http_get_text", return_value=SAMPLE_RSS):
             results = src.fetch(lookback_days=3650)
         for r in results:
-            self.assertIn('eu_gdpr_ai', r.get('related_regs', []))
+            self.assertIn("eu_gdpr_ai", r.get("related_regs", []))
 
 
 class TestCourtListenerSource(unittest.TestCase):
-
     def _source(self):
-        sys.modules.setdefault('config.settings', types.ModuleType('config.settings'))
-        sys.modules['config.settings'].COURTLISTENER_KEY = ''
+        sys.modules.setdefault("config.settings", types.ModuleType("config.settings"))
+        sys.modules["config.settings"].COURTLISTENER_KEY = ""
         from sources.enforcement_agent import CourtListenerSource
+
         return CourtListenerSource()
 
     def test_normalises_opinion_type(self):
         from sources.enforcement_agent import CourtListenerSource
+
         src = CourtListenerSource()
         mock_response = {
             "results": [
                 {
-                    "id":           "12345",
-                    "caseName":     "Smith v. Algorithm Corp.",
-                    "court":        "United States District Court, S.D.N.Y.",
-                    "dateFiled":    "2025-01-15",
+                    "id": "12345",
+                    "caseName": "Smith v. Algorithm Corp.",
+                    "court": "United States District Court, S.D.N.Y.",
+                    "dateFiled": "2025-01-15",
                     "docketNumber": "1:25-cv-00123",
-                    "snippet":      "Plaintiff alleges artificial intelligence system used in "
-                                    "hiring discriminated against protected class members.",
+                    "snippet": "Plaintiff alleges artificial intelligence system used in "
+                    "hiring discriminated against protected class members.",
                     "absolute_url": "/opinion/12345/smith-v-algorithm/",
                 }
             ]
         }
-        with patch('sources.enforcement_agent.http_get', return_value=mock_response):
+        with patch("sources.enforcement_agent.http_get", return_value=mock_response):
             results = src.fetch(lookback_days=3650)
         if results:
-            self.assertEqual(results[0]['action_type'], 'opinion')
-            self.assertEqual(results[0]['source'], 'courtlistener')
-            self.assertIn('courtlistener.com', results[0]['url'])
+            self.assertEqual(results[0]["action_type"], "opinion")
+            self.assertEqual(results[0]["source"], "courtlistener")
+            self.assertIn("courtlistener.com", results[0]["url"])
 
     def test_empty_results_handled(self):
         from sources.enforcement_agent import CourtListenerSource
+
         src = CourtListenerSource()
-        with patch('sources.enforcement_agent.http_get', return_value={"results": []}):
+        with patch("sources.enforcement_agent.http_get", return_value={"results": []}):
             results = src.fetch()
         self.assertEqual(results, [])
 
     def test_api_failure_handled(self):
         from sources.enforcement_agent import CourtListenerSource
+
         src = CourtListenerSource()
-        with patch('sources.enforcement_agent.http_get',
-                   side_effect=Exception("API error")):
+        with patch(
+            "sources.enforcement_agent.http_get", side_effect=Exception("API error")
+        ):
             results = src.fetch()
         self.assertEqual(results, [])
 
@@ -468,38 +517,51 @@ class TestNewsEnforcementFilter(unittest.TestCase):
 
     def test_passes_enforcement_with_domain(self):
         from sources.enforcement_agent import _is_news_enforcement_relevant
+
         text = "FTC settles with AI company over deceptive algorithmic bias claims $2.5 million"
         self.assertTrue(_is_news_enforcement_relevant(text))
 
     def test_blocks_general_ai_news(self):
         from sources.enforcement_agent import _is_news_enforcement_relevant
-        text = "AI startup raises $50 million to expand large language model capabilities"
+
+        text = (
+            "AI startup raises $50 million to expand large language model capabilities"
+        )
         self.assertFalse(_is_news_enforcement_relevant(text))
 
     def test_blocks_policy_only_news(self):
         from sources.enforcement_agent import _is_news_enforcement_relevant
+
         text = "New AI regulation proposed in Congress focusing on transparency requirements"
         self.assertFalse(_is_news_enforcement_relevant(text))
 
     def test_passes_privacy_violation(self):
         from sources.enforcement_agent import _is_news_enforcement_relevant
-        text = "Data broker fined for GDPR violation sharing personal data without consent"
+
+        text = (
+            "Data broker fined for GDPR violation sharing personal data without consent"
+        )
         self.assertTrue(_is_news_enforcement_relevant(text))
 
     def test_passes_class_action(self):
         from sources.enforcement_agent import _is_news_enforcement_relevant
-        text = "Class action lawsuit filed against company for biometric data collection"
+
+        text = (
+            "Class action lawsuit filed against company for biometric data collection"
+        )
         self.assertTrue(_is_news_enforcement_relevant(text))
 
 
 class TestGoogleNewsEnforcementSource(unittest.TestCase):
-
     def _source(self):
         from sources.enforcement_agent import GoogleNewsEnforcementSource
+
         return GoogleNewsEnforcementSource()
 
     def _fetch(self, days=3650):
-        with patch("sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS):
+        with patch(
+            "sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS
+        ):
             return self._source().fetch(lookback_days=days)
 
     def test_filters_non_enforcement_items(self):
@@ -521,17 +583,28 @@ class TestGoogleNewsEnforcementSource(unittest.TestCase):
     def test_required_fields_present(self):
         results = self._fetch()
         if results:
-            for field in ("id", "source", "action_type", "title", "url", "relevance_score"):
+            for field in (
+                "id",
+                "source",
+                "action_type",
+                "title",
+                "url",
+                "relevance_score",
+            ):
                 self.assertIn(field, results[0])
 
     def test_html_response_skipped(self):
-        with patch("sources.enforcement_agent.http_get_text",
-                   return_value="<!DOCTYPE html><html><body>Blocked</body></html>"):
+        with patch(
+            "sources.enforcement_agent.http_get_text",
+            return_value="<!DOCTYPE html><html><body>Blocked</body></html>",
+        ):
             self.assertEqual(self._source().fetch(), [])
 
     def test_feed_failure_returns_empty(self):
-        with patch("sources.enforcement_agent.http_get_text",
-                   side_effect=Exception("Connection refused")):
+        with patch(
+            "sources.enforcement_agent.http_get_text",
+            side_effect=Exception("Connection refused"),
+        ):
             self.assertEqual(self._source().fetch(), [])
 
     def test_deduplication_across_queries(self):
@@ -542,13 +615,15 @@ class TestGoogleNewsEnforcementSource(unittest.TestCase):
 
 
 class TestRegulatoryOversightSource(unittest.TestCase):
-
     def _source(self):
         from sources.enforcement_agent import RegulatoryOversightSource
+
         return RegulatoryOversightSource()
 
     def _fetch(self, days=3650):
-        with patch("sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS):
+        with patch(
+            "sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS
+        ):
             return self._source().fetch(lookback_days=days)
 
     def test_filters_non_enforcement_items(self):
@@ -562,19 +637,22 @@ class TestRegulatoryOversightSource(unittest.TestCase):
             self.assertEqual(r["source"], "regulatory_oversight")
 
     def test_feed_failure_returns_empty(self):
-        with patch("sources.enforcement_agent.http_get_text",
-                   side_effect=Exception("timeout")):
+        with patch(
+            "sources.enforcement_agent.http_get_text", side_effect=Exception("timeout")
+        ):
             self.assertEqual(self._source().fetch(), [])
 
 
 class TestCourthouseNewsSource(unittest.TestCase):
-
     def _source(self):
         from sources.enforcement_agent import CourthouseNewsSource
+
         return CourthouseNewsSource()
 
     def _fetch(self, days=3650):
-        with patch("sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS):
+        with patch(
+            "sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS
+        ):
             return self._source().fetch(lookback_days=days)
 
     def test_filters_non_enforcement_items(self):
@@ -592,8 +670,9 @@ class TestCourthouseNewsSource(unittest.TestCase):
             self.assertEqual(r["source"], "courthouse_news")
 
     def test_feed_failure_returns_empty(self):
-        with patch("sources.enforcement_agent.http_get_text",
-                   side_effect=Exception("timeout")):
+        with patch(
+            "sources.enforcement_agent.http_get_text", side_effect=Exception("timeout")
+        ):
             self.assertEqual(self._source().fetch(), [])
 
 
@@ -601,74 +680,94 @@ class TestCourthouseNewsSource(unittest.TestCase):
 # ENFORCEMENT AGENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestEnforcementAgent(unittest.TestCase):
 
+class TestEnforcementAgent(unittest.TestCase):
     def _agent(self):
         from sources.enforcement_agent import EnforcementAgent
+
         return EnforcementAgent()
 
     def test_has_all_sources(self):
         agent = self._agent()
         source_names = {s.NAME for s in agent.sources}
-        for expected in ('ftc', 'sec', 'cfpb', 'eeoc', 'doj', 'ico', 'courtlistener'):
+        for expected in ("ftc", "sec", "cfpb", "eeoc", "doj", "ico", "courtlistener"):
             self.assertIn(expected, source_names)
 
     def test_fetch_all_aggregates_sources(self):
         agent = self._agent()
         mock_action = {
-            'id': 'FTC-test123', 'source': 'ftc',
-            'action_type': 'enforcement',
-            'title': 'Test FTC AI Action',
-            'url': 'https://ftc.gov/test',
-            'published_date': datetime.utcnow(),
-            'agency': 'FTC', 'jurisdiction': 'Federal',
-            'respondent': 'Test Corp', 'summary': 'Test summary',
-            'related_regs': [], 'outcome': 'settlement',
-            'penalty_amount': '$1M', 'ai_concepts': ['bias_fairness'],
-            'relevance_score': 0.8, 'raw_json': {},
+            "id": "FTC-test123",
+            "source": "ftc",
+            "action_type": "enforcement",
+            "title": "Test FTC AI Action",
+            "url": "https://ftc.gov/test",
+            "published_date": datetime.utcnow(),
+            "agency": "FTC",
+            "jurisdiction": "Federal",
+            "respondent": "Test Corp",
+            "summary": "Test summary",
+            "related_regs": [],
+            "outcome": "settlement",
+            "penalty_amount": "$1M",
+            "ai_concepts": ["bias_fairness"],
+            "relevance_score": 0.8,
+            "raw_json": {},
         }
         for src in agent.sources:
             src.fetch = lambda lookback_days=90: [mock_action]
 
-        with patch('utils.db.upsert_enforcement_action', return_value=True):
+        with patch("utils.db.upsert_enforcement_action", return_value=True):
             counts = agent.fetch_all(lookback_days=90)
 
-        self.assertIn('new', counts)
-        self.assertIn('updated', counts)
-        self.assertIn('by_source', counts)
+        self.assertIn("new", counts)
+        self.assertIn("updated", counts)
+        self.assertIn("by_source", counts)
 
     def test_source_failure_does_not_stop_others(self):
         agent = self._agent()
+
         # Make first source raise, rest return empty
         def _fail(lookback_days=90):
             raise Exception("Network error")
+
         agent.sources[0].fetch = _fail
         for src in agent.sources[1:]:
             src.fetch = lambda lookback_days=90: []
 
-        with patch('utils.db.upsert_enforcement_action', return_value=True):
+        with patch("utils.db.upsert_enforcement_action", return_value=True):
             counts = agent.fetch_all()
 
         # Should have attempted all sources, recorded 1 failure
-        self.assertEqual(counts['failed'], 1)
+        self.assertEqual(counts["failed"], 1)
 
     def test_low_relevance_actions_filtered(self):
         agent = self._agent()
         low_relevance_action = {
-            'id': 'FTC-low', 'source': 'ftc', 'action_type': 'enforcement',
-            'title': 'Some action', 'url': '', 'published_date': datetime.utcnow(),
-            'agency': 'FTC', 'jurisdiction': 'Federal', 'respondent': '',
-            'summary': '', 'related_regs': [], 'outcome': '',
-            'penalty_amount': None, 'ai_concepts': [],
-            'relevance_score': 0.0,   # below threshold
-            'raw_json': {},
+            "id": "FTC-low",
+            "source": "ftc",
+            "action_type": "enforcement",
+            "title": "Some action",
+            "url": "",
+            "published_date": datetime.utcnow(),
+            "agency": "FTC",
+            "jurisdiction": "Federal",
+            "respondent": "",
+            "summary": "",
+            "related_regs": [],
+            "outcome": "",
+            "penalty_amount": None,
+            "ai_concepts": [],
+            "relevance_score": 0.0,  # below threshold
+            "raw_json": {},
         }
         for src in agent.sources:
             src.fetch = lambda lookback_days=90: [low_relevance_action]
 
         upserted = []
-        with patch('utils.db.upsert_enforcement_action',
-                   side_effect=lambda a: upserted.append(a) or True):
+        with patch(
+            "utils.db.upsert_enforcement_action",
+            side_effect=lambda a: upserted.append(a) or True,
+        ):
             agent.fetch_all()
 
         self.assertEqual(len(upserted), 0)
@@ -678,27 +777,28 @@ class TestEnforcementAgent(unittest.TestCase):
 # CONCEPT INFERENCE
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestConceptInference(unittest.TestCase):
 
+class TestConceptInference(unittest.TestCase):
     def _infer(self, text):
         from sources.enforcement_agent import FTCEnforcementSource
+
         return FTCEnforcementSource._infer_concepts(text)
 
     def test_bias_concept_detected(self):
         concepts = self._infer("discriminatory algorithm with racial bias in hiring")
-        self.assertIn('bias_fairness', concepts)
+        self.assertIn("bias_fairness", concepts)
 
     def test_transparency_concept_detected(self):
         concepts = self._infer("failure to disclose AI decision-making process")
-        self.assertIn('transparency', concepts)
+        self.assertIn("transparency", concepts)
 
     def test_automated_decisions_detected(self):
         concepts = self._infer("automated decision system for loan approvals")
-        self.assertIn('automated_decisions', concepts)
+        self.assertIn("automated_decisions", concepts)
 
     def test_biometric_detected(self):
         concepts = self._infer("illegal use of facial recognition technology")
-        self.assertIn('biometric', concepts)
+        self.assertIn("biometric", concepts)
 
     def test_empty_text_returns_empty(self):
         concepts = self._infer("")
@@ -706,9 +806,9 @@ class TestConceptInference(unittest.TestCase):
 
 
 class TestOutcomeInference(unittest.TestCase):
-
     def _infer(self, text):
         from sources.enforcement_agent import FTCEnforcementSource
+
         return FTCEnforcementSource._infer_outcome(text)
 
     def test_settlement(self):

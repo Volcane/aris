@@ -56,13 +56,14 @@ log = get_logger("aris.trend")
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-WINDOW_DAYS       = 30          # size of each velocity window
-LOOKBACK_MONTHS   = 12          # how many windows to compute
-ACCELERATION_THRESHOLD = 0.50   # 50% increase = acceleration alert
-CACHE_HOURS       = 24          # snapshot TTL
+WINDOW_DAYS = 30  # size of each velocity window
+LOOKBACK_MONTHS = 12  # how many windows to compute
+ACCELERATION_THRESHOLD = 0.50  # 50% increase = acceleration alert
+CACHE_HOURS = 24  # snapshot TTL
 
 
 # ── Trend Agent ───────────────────────────────────────────────────────────────
+
 
 class TrendAgent:
     """
@@ -79,24 +80,32 @@ class TrendAgent:
         """
         log.info("Computing trend snapshots")
 
-        docs     = self._load_documents()
-        summaries= self._load_summaries()
+        docs = self._load_documents()
+        summaries = self._load_summaries()
 
         if not docs:
             log.info("No documents yet — skipping trend snapshot")
             return {"velocity": 0, "heatmap": 0, "alerts": 0}
 
-        velocity   = self._compute_velocity(docs)
-        heatmap    = self._compute_heatmap(summaries)
-        alerts     = self._compute_alerts(velocity, heatmap)
+        velocity = self._compute_velocity(docs)
+        heatmap = self._compute_heatmap(summaries)
+        alerts = self._compute_alerts(velocity, heatmap)
 
-        self._save_snapshot("velocity",  velocity)
-        self._save_snapshot("heatmap",   heatmap)
-        self._save_snapshot("alerts",    alerts)
+        self._save_snapshot("velocity", velocity)
+        self._save_snapshot("heatmap", heatmap)
+        self._save_snapshot("alerts", alerts)
 
-        log.info("Trend snapshots saved: %d velocity, %d heatmap, %d alerts",
-                 len(velocity), len(heatmap), len(alerts))
-        return {"velocity": len(velocity), "heatmap": len(heatmap), "alerts": len(alerts)}
+        log.info(
+            "Trend snapshots saved: %d velocity, %d heatmap, %d alerts",
+            len(velocity),
+            len(heatmap),
+            len(alerts),
+        )
+        return {
+            "velocity": len(velocity),
+            "heatmap": len(heatmap),
+            "alerts": len(alerts),
+        }
 
     def get_velocity(self) -> List[Dict[str, Any]]:
         """Return jurisdiction velocity time-series (from cache or recompute)."""
@@ -124,21 +133,21 @@ class TrendAgent:
     def get_summary(self) -> Dict[str, Any]:
         """Return all trend data in a single dict."""
         velocity = self.get_velocity()
-        heatmap  = self.get_heatmap()
-        alerts   = self.get_alerts()
+        heatmap = self.get_heatmap()
+        alerts = self.get_alerts()
 
         # Overall stats
         total_docs = sum(v.get("total_documents", 0) for v in velocity)
         last_updated = self._last_snapshot_time()
 
         return {
-            "velocity":     velocity,
-            "heatmap":      heatmap,
-            "alerts":       alerts,
-            "total_docs":   total_docs,
-            "jurisdictions":len(velocity),
+            "velocity": velocity,
+            "heatmap": heatmap,
+            "alerts": alerts,
+            "total_docs": total_docs,
+            "jurisdictions": len(velocity),
             "impact_areas": len(heatmap),
-            "alert_count":  len(alerts),
+            "alert_count": len(alerts),
             "last_updated": last_updated,
         }
 
@@ -149,6 +158,7 @@ class TrendAgent:
         try:
             from utils.db import get_session
             from utils.db import Document, Summary
+
             with get_session() as session:
                 rows = session.query(
                     Document.id,
@@ -160,12 +170,12 @@ class TrendAgent:
                 ).all()
                 return [
                     {
-                        "id":           r.id,
+                        "id": r.id,
                         "jurisdiction": r.jurisdiction or "Unknown",
-                        "source":       r.source or "",
-                        "fetched_at":   r.fetched_at,
+                        "source": r.source or "",
+                        "fetched_at": r.fetched_at,
                         "published_date": r.published_date,
-                        "doc_type":     r.doc_type or "",
+                        "doc_type": r.doc_type or "",
                     }
                     for r in rows
                 ]
@@ -178,24 +188,29 @@ class TrendAgent:
         try:
             from utils.db import get_session
             from utils.db import Document, Summary
+
             with get_session() as session:
-                rows = session.query(
-                    Summary.document_id,
-                    Summary.urgency,
-                    Summary.impact_areas,
-                    Summary.relevance_score,
-                    Document.jurisdiction,
-                    Document.fetched_at,
-                    Document.published_date,
-                ).join(Document, Document.id == Summary.document_id).all()
+                rows = (
+                    session.query(
+                        Summary.document_id,
+                        Summary.urgency,
+                        Summary.impact_areas,
+                        Summary.relevance_score,
+                        Document.jurisdiction,
+                        Document.fetched_at,
+                        Document.published_date,
+                    )
+                    .join(Document, Document.id == Summary.document_id)
+                    .all()
+                )
                 return [
                     {
-                        "document_id":    r.document_id,
-                        "urgency":        r.urgency or "Low",
-                        "impact_areas":   r.impact_areas or [],
-                        "relevance_score":r.relevance_score or 0,
-                        "jurisdiction":   r.jurisdiction or "Unknown",
-                        "fetched_at":     r.fetched_at,
+                        "document_id": r.document_id,
+                        "urgency": r.urgency or "Low",
+                        "impact_areas": r.impact_areas or [],
+                        "relevance_score": r.relevance_score or 0,
+                        "jurisdiction": r.jurisdiction or "Unknown",
+                        "fetched_at": r.fetched_at,
                         "published_date": r.published_date,
                     }
                     for r in rows
@@ -226,15 +241,17 @@ class TrendAgent:
         # Build windows — include current partial month so chart always ends today
         windows: List[Tuple[str, datetime, datetime]] = []
         # Current partial month: from start of this month to now
-        current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        current_month_start = now.replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
         windows.append((now.strftime("%b %Y"), current_month_start, now))
         # Previous full months going back LOOKBACK_MONTHS
         for i in range(LOOKBACK_MONTHS):
-            end   = now - timedelta(days=i * WINDOW_DAYS)
+            end = now - timedelta(days=i * WINDOW_DAYS)
             start = end - timedelta(days=WINDOW_DAYS)
             label = start.strftime("%b %Y")
             windows.append((label, start, end))
-        windows.reverse()   # chronological order
+        windows.reverse()  # chronological order
         # Deduplicate labels (current month may overlap with most recent window)
         seen_labels: set = set()
         deduped = []
@@ -254,20 +271,21 @@ class TrendAgent:
             window_counts = []
             for label, start, end in windows:
                 count = sum(
-                    1 for d in jur_docs
-                    if _doc_date(d) and start <= _doc_date(d) < end
+                    1 for d in jur_docs if _doc_date(d) and start <= _doc_date(d) < end
                 )
-                window_counts.append({
-                    "label": label,
-                    "start": start.isoformat(),
-                    "end":   end.isoformat(),
-                    "count": count,
-                })
+                window_counts.append(
+                    {
+                        "label": label,
+                        "start": start.isoformat(),
+                        "end": end.isoformat(),
+                        "count": count,
+                    }
+                )
 
             recent_count = window_counts[-1]["count"]
             # Window 6 months ago
-            prior_idx    = max(0, len(window_counts) - 7)
-            prior_count  = window_counts[prior_idx]["count"]
+            prior_idx = max(0, len(window_counts) - 7)
+            prior_count = window_counts[prior_idx]["count"]
 
             acceleration = (recent_count - prior_count) / max(prior_count, 1)
 
@@ -280,15 +298,17 @@ class TrendAgent:
 
             # Urgency breakdown from summaries (joined separately — velocity only
             # needs document counts, not summaries; urgency added in heatmap)
-            results.append({
-                "jurisdiction":   jur,
-                "windows":        window_counts,
-                "total_documents":len(jur_docs),
-                "recent_count":   recent_count,
-                "prior_count":    prior_count,
-                "acceleration":   round(acceleration, 3),
-                "trend":          trend,
-            })
+            results.append(
+                {
+                    "jurisdiction": jur,
+                    "windows": window_counts,
+                    "total_documents": len(jur_docs),
+                    "recent_count": recent_count,
+                    "prior_count": prior_count,
+                    "acceleration": round(acceleration, 3),
+                    "trend": trend,
+                }
+            )
 
         # Sort by recent count descending
         results.sort(key=lambda x: x["recent_count"], reverse=True)
@@ -311,26 +331,28 @@ class TrendAgent:
         if not summaries:
             return []
 
-        now    = datetime.utcnow()
+        now = datetime.utcnow()
         cutoff = now - timedelta(days=WINDOW_DAYS)
 
         # Aggregate by impact area
-        area_data: Dict[str, Dict] = defaultdict(lambda: {
-            "total":            0,
-            "recent":           0,
-            "urgency_counts":   {"Critical": 0, "High": 0, "Medium": 0, "Low": 0},
-            "jurisdictions":    defaultdict(int),
-        })
+        area_data: Dict[str, Dict] = defaultdict(
+            lambda: {
+                "total": 0,
+                "recent": 0,
+                "urgency_counts": {"Critical": 0, "High": 0, "Medium": 0, "Low": 0},
+                "jurisdictions": defaultdict(int),
+            }
+        )
 
         for s in summaries:
-            areas  = s.get("impact_areas") or []
+            areas = s.get("impact_areas") or []
             if isinstance(areas, str):
                 try:
                     areas = json.loads(areas)
                 except Exception:
                     areas = [areas]
 
-            date  = _doc_date(s)
+            date = _doc_date(s)
             is_recent = date and date >= cutoff
 
             for area in areas:
@@ -350,35 +372,43 @@ class TrendAgent:
         if not area_data:
             return []
 
-        max_total  = max(d["total"]  for d in area_data.values())
+        max_total = max(d["total"] for d in area_data.values())
         max_recent = max(max(d["recent"] for d in area_data.values()), 1)
 
         results = []
         for area, d in area_data.items():
             # Activity score: weight recent activity and critical/high urgency
-            urg      = d["urgency_counts"]
-            sev_score= (urg["Critical"] * 3 + urg["High"] * 2 + urg["Medium"]) / max(d["total"], 1)
-            activity  = (0.6 * d["recent"] / max_recent + 0.4 * d["total"] / max(max_total, 1)) * (1 + sev_score * 0.2)
+            urg = d["urgency_counts"]
+            sev_score = (urg["Critical"] * 3 + urg["High"] * 2 + urg["Medium"]) / max(
+                d["total"], 1
+            )
+            activity = (
+                0.6 * d["recent"] / max_recent + 0.4 * d["total"] / max(max_total, 1)
+            ) * (1 + sev_score * 0.2)
 
-            top_jurs = sorted(d["jurisdictions"].items(), key=lambda x: x[1], reverse=True)[:3]
+            top_jurs = sorted(
+                d["jurisdictions"].items(), key=lambda x: x[1], reverse=True
+            )[:3]
 
-            results.append({
-                "area":             area,
-                "total":            d["total"],
-                "recent":           d["recent"],
-                "urgency_counts":   d["urgency_counts"],
-                "top_jurisdictions":top_jurs,
-                "activity_score":   round(min(activity, 1.0), 3),
-            })
+            results.append(
+                {
+                    "area": area,
+                    "total": d["total"],
+                    "recent": d["recent"],
+                    "urgency_counts": d["urgency_counts"],
+                    "top_jurisdictions": top_jurs,
+                    "activity_score": round(min(activity, 1.0), 3),
+                }
+            )
 
         results.sort(key=lambda x: x["activity_score"], reverse=True)
-        return results[:50]   # top 50 areas
+        return results[:50]  # top 50 areas
 
     # ── Acceleration alerts ────────────────────────────────────────────────────
 
-    def _compute_alerts(self,
-                         velocity: List[Dict],
-                         heatmap:  List[Dict]) -> List[Dict[str, Any]]:
+    def _compute_alerts(
+        self, velocity: List[Dict], heatmap: List[Dict]
+    ) -> List[Dict[str, Any]]:
         """
         Generate acceleration alerts for jurisdictions and impact areas
         whose activity has increased significantly.
@@ -388,39 +418,43 @@ class TrendAgent:
         for v in velocity:
             if v["trend"] == "accelerating" and v["recent_count"] >= 2:
                 pct = round(v["acceleration"] * 100)
-                alerts.append({
-                    "type":         "jurisdiction",
-                    "label":        v["jurisdiction"],
-                    "jurisdiction": v["jurisdiction"],
-                    "message":      (
-                        f"{v['jurisdiction']} has published {v['recent_count']} documents "
-                        f"in the last 30 days, up {pct}% from 6 months ago"
-                    ),
-                    "recent_count": v["recent_count"],
-                    "prior_count":  v["prior_count"],
-                    "acceleration": v["acceleration"],
-                    "severity":     "High" if v["acceleration"] >= 1.0 else "Medium",
-                })
+                alerts.append(
+                    {
+                        "type": "jurisdiction",
+                        "label": v["jurisdiction"],
+                        "jurisdiction": v["jurisdiction"],
+                        "message": (
+                            f"{v['jurisdiction']} has published {v['recent_count']} documents "
+                            f"in the last 30 days, up {pct}% from 6 months ago"
+                        ),
+                        "recent_count": v["recent_count"],
+                        "prior_count": v["prior_count"],
+                        "acceleration": v["acceleration"],
+                        "severity": "High" if v["acceleration"] >= 1.0 else "Medium",
+                    }
+                )
 
-        for h in heatmap[:20]:   # only alert on most active areas
+        for h in heatmap[:20]:  # only alert on most active areas
             if h["recent"] >= 3 and h["activity_score"] >= 0.5:
                 crit = h["urgency_counts"].get("Critical", 0)
                 high = h["urgency_counts"].get("High", 0)
                 if crit + high >= 2:
-                    alerts.append({
-                        "type":           "impact_area",
-                        "label":          h["area"],
-                        "area":           h["area"],
-                        "message":        (
-                            f'"{h["area"]}" has {h["recent"]} new documents this month '
-                            f"({crit} Critical, {high} High urgency)"
-                        ),
-                        "recent_count":   h["recent"],
-                        "critical_count": crit,
-                        "high_count":     high,
-                        "activity_score": h["activity_score"],
-                        "severity":       "Critical" if crit >= 2 else "High",
-                    })
+                    alerts.append(
+                        {
+                            "type": "impact_area",
+                            "label": h["area"],
+                            "area": h["area"],
+                            "message": (
+                                f'"{h["area"]}" has {h["recent"]} new documents this month '
+                                f"({crit} Critical, {high} High urgency)"
+                            ),
+                            "recent_count": h["recent"],
+                            "critical_count": crit,
+                            "high_count": high,
+                            "activity_score": h["activity_score"],
+                            "severity": "Critical" if crit >= 2 else "High",
+                        }
+                    )
 
         # Sort by severity then count
         sev_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
@@ -432,20 +466,25 @@ class TrendAgent:
     def _save_snapshot(self, snapshot_type: str, data: List[Dict]) -> None:
         try:
             from utils.db import get_session, TrendSnapshot
+
             with get_session() as session:
                 # Upsert
-                row = session.query(TrendSnapshot).filter_by(
-                    snapshot_type=snapshot_type
-                ).first()
+                row = (
+                    session.query(TrendSnapshot)
+                    .filter_by(snapshot_type=snapshot_type)
+                    .first()
+                )
                 if row:
-                    row.data_json    = data
-                    row.computed_at  = datetime.utcnow()
+                    row.data_json = data
+                    row.computed_at = datetime.utcnow()
                 else:
-                    session.add(TrendSnapshot(
-                        snapshot_type = snapshot_type,
-                        data_json     = data,
-                        computed_at   = datetime.utcnow(),
-                    ))
+                    session.add(
+                        TrendSnapshot(
+                            snapshot_type=snapshot_type,
+                            data_json=data,
+                            computed_at=datetime.utcnow(),
+                        )
+                    )
                 session.commit()
         except Exception as e:
             log.debug("Could not save trend snapshot: %s", e)
@@ -453,12 +492,17 @@ class TrendAgent:
     def _load_snapshot(self, snapshot_type: str) -> Optional[List[Dict]]:
         try:
             from utils.db import get_session, TrendSnapshot
+
             cutoff = datetime.utcnow() - timedelta(hours=CACHE_HOURS)
             with get_session() as session:
-                row = session.query(TrendSnapshot).filter(
-                    TrendSnapshot.snapshot_type == snapshot_type,
-                    TrendSnapshot.computed_at   >= cutoff,
-                ).first()
+                row = (
+                    session.query(TrendSnapshot)
+                    .filter(
+                        TrendSnapshot.snapshot_type == snapshot_type,
+                        TrendSnapshot.computed_at >= cutoff,
+                    )
+                    .first()
+                )
                 return row.data_json if row else None
         except Exception:
             return None
@@ -466,16 +510,20 @@ class TrendAgent:
     def _last_snapshot_time(self) -> Optional[str]:
         try:
             from utils.db import get_session, TrendSnapshot
+
             with get_session() as session:
-                row = session.query(TrendSnapshot).order_by(
-                    TrendSnapshot.computed_at.desc()
-                ).first()
+                row = (
+                    session.query(TrendSnapshot)
+                    .order_by(TrendSnapshot.computed_at.desc())
+                    .first()
+                )
                 return row.computed_at.isoformat() if row else None
         except Exception:
             return None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _doc_date(doc: Dict) -> Optional[datetime]:
     """
@@ -498,7 +546,9 @@ def _doc_date(doc: Dict) -> Optional[datetime]:
             fallback = doc.get("fetched_at")
             if isinstance(fallback, str):
                 try:
-                    return datetime.fromisoformat(fallback.replace("Z", "+00:00")).replace(tzinfo=None)
+                    return datetime.fromisoformat(
+                        fallback.replace("Z", "+00:00")
+                    ).replace(tzinfo=None)
                 except Exception:
                     return None
             return fallback

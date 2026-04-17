@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
-# ARIS � Automated Regulatory Intelligence System
+# ARIS — Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS — Learning Agent
@@ -198,6 +199,93 @@ class LearningAgent:
             feedback, doc["id"][:40], source, profile["quality_score"]
         )
         return profile
+
+    def record_auto_feedback(self, doc: Dict[str, Any],
+                              claude_relevance: float) -> None:
+        """
+        Record autonomous feedback derived from Claude's own relevance score,
+        without any user action required.
+
+        Called after every summarisation. Uses half the weight of human
+        feedback so it influences but doesn't dominate source quality scores.
+
+        claude_relevance: 0.0–1.0 from the summary's relevance_score field.
+          >= 0.7  → treated as implicit positive signal
+          <= 0.20 → treated as implicit negative signal
+          between → neutral, no update (ambiguous zone)
+        """
+        from utils.db import get_source_profile, upsert_source_profile
+
+        source     = doc.get("source", "")
+        agency     = (doc.get("agency") or "")[:80]
+        doc_domain = doc.get("domain", "ai")
+
+        if not source:
+            return
+
+        # Map relevance score to signal strength
+        # High confidence positive: 0.7+ (clearly AI/privacy relevant)
+        # High confidence negative: 0.20 or below (clearly irrelevant)
+        # Ambiguous zone: 0.21–0.69 → skip, don't confuse the signal
+        if claude_relevance >= 0.70:
+            is_positive, is_negative = True, False
+            # Half weight: positive delta 0.025 vs human 0.05
+            kw_delta = 0.025
+        elif claude_relevance <= 0.20:
+            is_positive, is_negative = False, True
+            # Half weight: negative delta 0.04 vs human 0.08
+            kw_delta = -0.04
+        else:
+            return   # ambiguous — don't update
+
+        signal = "positive" if is_positive else "negative"
+        log.debug(
+            "Auto-feedback %s for %s (claude_score=%.2f, source=%s)",
+            signal, doc.get("id", "")[:40], claude_relevance, source
+        )
+
+        # Update source quality profile (half weight vs human feedback)
+        profile = get_source_profile(source) or _default_profile(source)
+        # Use fractional counts to represent half-weight signal
+        profile["total_count"]    = profile.get("total_count", 0) + 0.5
+        profile["positive_count"] = profile.get("positive_count", 0) + (0.5 if is_positive else 0)
+        profile["negative_count"] = profile.get("negative_count", 0) + (0.5 if is_negative else 0)
+        profile["quality_score"]  = _compute_quality_score(profile)
+        profile["last_updated"]   = datetime.utcnow().isoformat()
+        upsert_source_profile(source, profile)
+
+        # Domain-specific profile (privacy sources scored separately)
+        if doc_domain and doc_domain != "ai":
+            dk = f"{source}::{doc_domain}"
+            dp = get_source_profile(dk) or _default_profile(dk)
+            dp["total_count"]    = dp.get("total_count", 0) + 0.5
+            dp["positive_count"] = dp.get("positive_count", 0) + (0.5 if is_positive else 0)
+            dp["negative_count"] = dp.get("negative_count", 0) + (0.5 if is_negative else 0)
+            dp["quality_score"]  = _compute_quality_score(dp)
+            dp["last_updated"]   = datetime.utcnow().isoformat()
+            upsert_source_profile(dk, dp)
+
+        # Agency profile
+        if agency:
+            ak = f"agency::{agency}"
+            ap = get_source_profile(ak) or _default_profile(ak)
+            ap["total_count"]    = ap.get("total_count", 0) + 0.5
+            ap["positive_count"] = ap.get("positive_count", 0) + (0.5 if is_positive else 0)
+            ap["negative_count"] = ap.get("negative_count", 0) + (0.5 if is_negative else 0)
+            ap["quality_score"]  = _compute_quality_score(ap)
+            ap["last_updated"]   = datetime.utcnow().isoformat()
+            upsert_source_profile(ak, ap)
+
+        # Update keyword weights at half strength
+        title    = (doc.get("title") or "").lower()
+        combined = f"{title} {(doc.get('full_text') or '').lower()}"
+        matched  = [kw for kw in AI_KEYWORDS if kw in combined]
+        if matched:
+            from utils.db import get_keyword_weights, save_keyword_weights
+            weights = get_keyword_weights()
+            for kw in matched:
+                weights[kw] = max(0.1, min(2.0, weights.get(kw, 1.0) + kw_delta))
+            save_keyword_weights(weights)
 
     # ── 2. Document scoring (pre-fetch filter) ────────────────────────────────
 

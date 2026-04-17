@@ -51,10 +51,10 @@ log = get_logger("aris.rag")
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-CHUNK_SIZE   = 3000   # characters (~750 tokens) — fits ~10 chunks in context
-CHUNK_OVERLAP = 300   # overlap between consecutive chunks
-MAX_PASSAGES  = 12    # maximum passages to assemble into context
-MIN_SCORE     = 0.05  # minimum relevance score to include a passage
+CHUNK_SIZE = 3000  # characters (~750 tokens) — fits ~10 chunks in context
+CHUNK_OVERLAP = 300  # overlap between consecutive chunks
+MAX_PASSAGES = 12  # maximum passages to assemble into context
+MIN_SCORE = 0.05  # minimum relevance score to include a passage
 
 BASELINES_DIR = Path(__file__).parent.parent / "data" / "baselines"
 
@@ -63,13 +63,19 @@ BASELINES_DIR = Path(__file__).parent.parent / "data" / "baselines"
 # CHUNKING
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def _hash(text: str) -> str:
     return hashlib.md5(text.encode()).hexdigest()
 
 
-def chunk_text(text: str, source_id: str, source_title: str,
-               source_type: str, jurisdiction: str,
-               section_label: str = "") -> List[Dict]:
+def chunk_text(
+    text: str,
+    source_id: str,
+    source_title: str,
+    source_type: str,
+    jurisdiction: str,
+    section_label: str = "",
+) -> List[Dict]:
     """
     Split a text blob into overlapping passages.
     Returns a list of passage dicts ready for upsert_qa_passage().
@@ -77,12 +83,12 @@ def chunk_text(text: str, source_id: str, source_title: str,
     if not text or not text.strip():
         return []
 
-    text   = text.strip()
+    text = text.strip()
     chunks = []
-    start  = 0
+    start = 0
 
     while start < len(text):
-        end   = min(start + CHUNK_SIZE, len(text))
+        end = min(start + CHUNK_SIZE, len(text))
         # Try to break at a sentence boundary
         if end < len(text):
             boundary = text.rfind(". ", start, end)
@@ -98,15 +104,15 @@ def chunk_text(text: str, source_id: str, source_title: str,
     total = len(chunks)
     return [
         {
-            "source_type":  source_type,
-            "source_id":    source_id,
+            "source_type": source_type,
+            "source_id": source_id,
             "source_title": source_title,
             "jurisdiction": jurisdiction,
-            "chunk_index":  i,
-            "chunk_total":  total,
-            "section_label":section_label,
-            "text":         chunk,
-            "text_hash":    _hash(chunk),
+            "chunk_index": i,
+            "chunk_total": total,
+            "section_label": section_label,
+            "text": chunk,
+            "text_hash": _hash(chunk),
         }
         for i, chunk in enumerate(chunks)
     ]
@@ -118,43 +124,47 @@ def chunk_document(doc: Dict) -> List[Dict]:
     Produces passages from: title + plain_english summary, then full_text.
     """
     passages = []
-    doc_id  = doc.get("id", "")
-    title   = doc.get("title", "")
-    jur     = doc.get("jurisdiction", "")
+    doc_id = doc.get("id", "")
+    title = doc.get("title", "")
+    jur = doc.get("jurisdiction", "")
     source_type = "document"
 
     # Passage 1: the summary (highly dense, always include)
     plain = doc.get("plain_english", "") or ""
-    reqs  = doc.get("requirements") or []
-    acts  = doc.get("action_items") or []
+    reqs = doc.get("requirements") or []
+    acts = doc.get("action_items") or []
 
     summary_parts = [title]
     if plain:
         summary_parts.append(plain)
     if reqs:
-        summary_parts.append("Key requirements: " + "; ".join(
-            r if isinstance(r, str) else r.get("description", str(r))
-            for r in reqs[:8]
-        ))
+        summary_parts.append(
+            "Key requirements: "
+            + "; ".join(
+                r if isinstance(r, str) else r.get("description", str(r))
+                for r in reqs[:8]
+            )
+        )
     if acts:
-        summary_parts.append("Action items: " + "; ".join(
-            a if isinstance(a, str) else a.get("description", str(a))
-            for a in acts[:5]
-        ))
+        summary_parts.append(
+            "Action items: "
+            + "; ".join(
+                a if isinstance(a, str) else a.get("description", str(a))
+                for a in acts[:5]
+            )
+        )
 
     summary_text = "\n\n".join(summary_parts)
     if summary_text.strip():
         passages += chunk_text(
-            summary_text, doc_id, title, source_type, jur,
-            section_label="Summary"
+            summary_text, doc_id, title, source_type, jur, section_label="Summary"
         )
 
     # Passage 2+: full document text (if available)
     full = doc.get("full_text", "") or ""
     if full and len(full) > 200:
         passages += chunk_text(
-            full[:50000], doc_id, title, source_type, jur,
-            section_label="Full Text"
+            full[:50000], doc_id, title, source_type, jur, section_label="Full Text"
         )
 
     return passages
@@ -166,17 +176,18 @@ def chunk_baseline(baseline: Dict) -> List[Dict]:
     Each major section becomes its own passage with a section label,
     ensuring the richly structured baseline content is retrievable precisely.
     """
-    passages    = []
+    passages = []
     baseline_id = baseline.get("id", "")
-    title       = baseline.get("title", "") or baseline.get("short_name", "")
-    jur         = baseline.get("jurisdiction", "")
+    title = baseline.get("title", "") or baseline.get("short_name", "")
+    jur = baseline.get("jurisdiction", "")
 
     def _add(text: str, section: str) -> None:
         if text and text.strip():
-            passages.extend(chunk_text(
-                text, baseline_id, title, "baseline", jur,
-                section_label=section
-            ))
+            passages.extend(
+                chunk_text(
+                    text, baseline_id, title, "baseline", jur, section_label=section
+                )
+            )
 
     def _stringify(obj: Any, depth: int = 0) -> str:
         """Recursively convert nested dicts/lists to readable text."""
@@ -203,9 +214,19 @@ def chunk_baseline(baseline: Dict) -> List[Dict]:
     _add(f"{title}\n\n{baseline.get('overview', '')}", "Overview")
 
     # Iterate all non-metadata top-level keys
-    skip_keys = {"id", "jurisdiction", "title", "official_title", "short_name",
-                 "celex", "oj_reference", "status", "last_reviewed", "overview",
-                 "cross_references"}
+    skip_keys = {
+        "id",
+        "jurisdiction",
+        "title",
+        "official_title",
+        "short_name",
+        "celex",
+        "oj_reference",
+        "status",
+        "last_reviewed",
+        "overview",
+        "cross_references",
+    }
 
     for key, value in baseline.items():
         if key in skip_keys or not value:
@@ -266,20 +287,19 @@ def index_passage_fts(conn: sqlite3.Connection, passage_id: int, text: str) -> N
             conn.execute(f"DELETE FROM {_PASSAGE_FTS}   WHERE rowid = ?", (rowid,))
             conn.execute(f"DELETE FROM {_PASSAGE_META} WHERE rowid = ?", (rowid,))
 
-        cursor = conn.execute(
-            f"INSERT INTO {_PASSAGE_FTS}(text) VALUES (?)", (text,)
-        )
+        cursor = conn.execute(f"INSERT INTO {_PASSAGE_FTS}(text) VALUES (?)", (text,))
         conn.execute(
             f"INSERT INTO {_PASSAGE_META}(rowid, passage_id) VALUES (?, ?)",
-            (cursor.lastrowid, passage_id)
+            (cursor.lastrowid, passage_id),
         )
         conn.commit()
     except Exception as e:
         log.debug("Passage FTS index error: %s", e)
 
 
-def search_passage_fts(conn: sqlite3.Connection, query: str,
-                        limit: int = 50) -> List[Tuple[int, float]]:
+def search_passage_fts(
+    conn: sqlite3.Connection, query: str, limit: int = 50
+) -> List[Tuple[int, float]]:
     """
     Search passage FTS5 index.
     Returns list of (passage_id, fts_score) tuples.
@@ -287,16 +307,16 @@ def search_passage_fts(conn: sqlite3.Connection, query: str,
     try:
         _ensure_passage_fts(conn)
         # Build FTS query
-        clean = re.sub(r'[^\w\s\-]', ' ', query).strip()
+        clean = re.sub(r"[^\w\s\-]", " ", query).strip()
         words = [w for w in clean.split() if len(w) > 2]
         if not words:
             return []
         if len(words) > 1:
-            phrase  = '"' + ' '.join(words) + '"'
-            singles = ' OR '.join(f'{w}*' for w in words[:6])
-            fts_q   = f'{phrase} OR {singles}'
+            phrase = '"' + " ".join(words) + '"'
+            singles = " OR ".join(f"{w}*" for w in words[:6])
+            fts_q = f"{phrase} OR {singles}"
         else:
-            fts_q = words[0] + '*'
+            fts_q = words[0] + "*"
 
         rows = conn.execute(
             f"SELECT m.passage_id, f.rank "
@@ -304,7 +324,7 @@ def search_passage_fts(conn: sqlite3.Connection, query: str,
             f"JOIN {_PASSAGE_META} m ON m.rowid = f.rowid "
             f"WHERE {_PASSAGE_FTS} MATCH ? "
             f"ORDER BY f.rank LIMIT ?",
-            (fts_q, limit)
+            (fts_q, limit),
         ).fetchall()
         return [(r[0], r[1]) for r in rows]
     except Exception as e:
@@ -316,6 +336,7 @@ def search_passage_fts(conn: sqlite3.Connection, query: str,
 # PASSAGE TFIDF INDEX
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class PassageTFIDF:
     """
     Lightweight TF-IDF index over passage texts.
@@ -325,15 +346,16 @@ class PassageTFIDF:
 
     def __init__(self):
         from utils.search import TFIDFIndex
-        self._idx     = TFIDFIndex()
-        self._ids:    List[int] = []   # passage DB ids, parallel to idx.doc_ids
-        self._built   = False
-        self._cache   = _models_dir() / "qa_tfidf_index.json"
+
+        self._idx = TFIDFIndex()
+        self._ids: List[int] = []  # passage DB ids, parallel to idx.doc_ids
+        self._built = False
+        self._cache = _models_dir() / "qa_tfidf_index.json"
         self._id_cache = _models_dir() / "qa_tfidf_ids.json"
 
     def build(self, passages: List[Dict]) -> None:
         """Build from a list of passage dicts (with 'id' and 'text' keys)."""
-        pairs    = [(str(p["id"]), p["text"]) for p in passages if p.get("text")]
+        pairs = [(str(p["id"]), p["text"]) for p in passages if p.get("text")]
         self._ids = [p["id"] for p in passages if p.get("text")]
         self._idx.build(pairs)
         self._built = True
@@ -359,14 +381,13 @@ class PassageTFIDF:
         # idx.doc_ids are strings like "123" — convert back to ints
         id_map = {str(pid): pid for pid in self._ids}
         return [
-            (id_map[doc_id], score)
-            for doc_id, score in str_results
-            if doc_id in id_map
+            (id_map[doc_id], score) for doc_id, score in str_results if doc_id in id_map
         ]
 
 
 def _models_dir() -> Path:
     from config.settings import OUTPUT_DIR
+
     d = OUTPUT_DIR / "models"
     d.mkdir(exist_ok=True)
     return d
@@ -375,6 +396,7 @@ def _models_dir() -> Path:
 # ═══════════════════════════════════════════════════════════════════════════════
 # RETRIEVER
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class PassageRetriever:
     """
@@ -397,8 +419,12 @@ class PassageRetriever:
         else:
             log.info("Q&A passage index not found — building on first query")
 
-    def retrieve(self, question: str, top_k: int = MAX_PASSAGES,
-                  jurisdiction: Optional[str] = None) -> List[Dict]:
+    def retrieve(
+        self,
+        question: str,
+        top_k: int = MAX_PASSAGES,
+        jurisdiction: Optional[str] = None,
+    ) -> List[Dict]:
         """
         Retrieve the top-k most relevant passages for a question.
 
@@ -411,8 +437,8 @@ class PassageRetriever:
         self.ensure_ready()
 
         expanded = expand_query(question)
-        conn     = sqlite3.connect(DB_PATH)
-        scores:  Dict[int, float] = {}
+        conn = sqlite3.connect(DB_PATH)
+        scores: Dict[int, float] = {}
 
         # Layer 1: FTS5 keyword matching
         fts_results = search_passage_fts(conn, expanded, limit=top_k * 3)
@@ -436,33 +462,32 @@ class PassageRetriever:
         ranked = [(pid, s) for pid, s in ranked if s >= MIN_SCORE]
 
         # Fetch passage details from DB
-        top_ids = [pid for pid, _ in ranked[:top_k * 2]]
+        top_ids = [pid for pid, _ in ranked[: top_k * 2]]
         if not top_ids:
             return []
 
         from utils.db import get_session, QAPassage as _QAPassage
+
         with get_session() as session:
-            rows = session.query(_QAPassage).filter(
-                _QAPassage.id.in_(top_ids)
-            ).all()
+            rows = session.query(_QAPassage).filter(_QAPassage.id.in_(top_ids)).all()
             passage_map = {
                 r.id: {
-                    "id":            r.id,
-                    "source_type":   r.source_type,
-                    "source_id":     r.source_id,
-                    "source_title":  r.source_title,
-                    "jurisdiction":  r.jurisdiction,
-                    "chunk_index":   r.chunk_index,
-                    "chunk_total":   r.chunk_total,
+                    "id": r.id,
+                    "source_type": r.source_type,
+                    "source_id": r.source_id,
+                    "source_title": r.source_title,
+                    "jurisdiction": r.jurisdiction,
+                    "chunk_index": r.chunk_index,
+                    "chunk_total": r.chunk_total,
                     "section_label": r.section_label,
-                    "text":          r.text,
+                    "text": r.text,
                 }
                 for r in rows
             }
 
         # Filter by jurisdiction if specified
         results = []
-        seen_sources: Dict[str, int] = {}   # source_id → passages included
+        seen_sources: Dict[str, int] = {}  # source_id → passages included
 
         for passage_id, score in ranked:
             if passage_id not in passage_map:
@@ -470,8 +495,11 @@ class PassageRetriever:
             p = {**passage_map[passage_id], "score": round(score, 3)}
 
             # Apply jurisdiction filter
-            if jurisdiction and p.get("jurisdiction") and \
-               p["jurisdiction"].upper() != jurisdiction.upper():
+            if (
+                jurisdiction
+                and p.get("jurisdiction")
+                and p["jurisdiction"].upper() != jurisdiction.upper()
+            ):
                 continue
 
             # Limit passages per source to avoid one document dominating
@@ -503,6 +531,7 @@ def get_retriever() -> PassageRetriever:
 # INDEX BUILDER
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def build_passage_index(force: bool = False) -> Dict[str, int]:
     """
     Build the full passage index from:
@@ -518,17 +547,20 @@ def build_passage_index(force: bool = False) -> Dict[str, int]:
     Returns counts: {baselines, documents, passages_total}
     """
     from utils.db import (
-        upsert_qa_passage, get_all_qa_passage_ids,
-        delete_qa_passages_for_source, get_recent_summaries, DB_PATH
+        upsert_qa_passage,
+        get_all_qa_passage_ids,
+        delete_qa_passages_for_source,
+        get_recent_summaries,
+        DB_PATH,
     )
 
     log.info("Building Q&A passage index…")
 
     # Track what source IDs we (re)index
     indexed_sources: set = set()
-    all_passages:    List[Dict] = []
-    baseline_count   = 0
-    document_count   = 0
+    all_passages: List[Dict] = []
+    baseline_count = 0
+    document_count = 0
 
     # ── 1. Baselines ──────────────────────────────────────────────────────────
     if not BASELINES_DIR.exists():
@@ -539,7 +571,7 @@ def build_passage_index(force: bool = False) -> Dict[str, int]:
                 continue
             try:
                 data = json.loads(path.read_text())
-                bid  = data.get("id", path.stem)
+                bid = data.get("id", path.stem)
                 if force:
                     delete_qa_passages_for_source(bid)
                 passages = chunk_baseline(data)
@@ -583,6 +615,7 @@ def build_passage_index(force: bool = False) -> Dict[str, int]:
 
     # ── 4. Build TF-IDF index ─────────────────────────────────────────────────
     from utils.db import get_session, QAPassage as _QAPassage
+
     with get_session() as session:
         all_p = session.query(_QAPassage).all()
         passage_dicts = [{"id": p.id, "text": p.text} for p in all_p]
@@ -594,11 +627,13 @@ def build_passage_index(force: bool = False) -> Dict[str, int]:
     total = len(passage_dicts)
     log.info(
         "Q&A index complete: %d baselines, %d documents, %d passages",
-        baseline_count, document_count, total
+        baseline_count,
+        document_count,
+        total,
     )
     return {
-        "baselines":      baseline_count,
-        "documents":      document_count,
+        "baselines": baseline_count,
+        "documents": document_count,
         "passages_total": total,
     }
 

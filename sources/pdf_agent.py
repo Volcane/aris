@@ -54,6 +54,7 @@ log = get_logger("aris.pdf")
 
 # ── PDF text extraction ───────────────────────────────────────────────────────
 
+
 def extract_text_from_pdf(path: Path) -> Tuple[str, str, int]:
     """
     Extract text from a PDF file.
@@ -76,14 +77,20 @@ def extract_text_from_pdf(path: Path) -> Tuple[str, str, int]:
             text, method, pages = text_b, method_b, pages_b
 
     text = _clean_extracted_text(text)
-    log.info("Extracted %d chars from %s (%d pages, method=%s)",
-             len(text), path.name, pages, method)
+    log.info(
+        "Extracted %d chars from %s (%d pages, method=%s)",
+        len(text),
+        path.name,
+        pages,
+        method,
+    )
     return text, method, pages
 
 
 def _extract_pdfplumber(path: Path) -> Tuple[str, str, int]:
     try:
         import pdfplumber
+
         pages_text = []
         page_count = 0
         with pdfplumber.open(str(path)) as pdf:
@@ -101,6 +108,7 @@ def _extract_pdfplumber(path: Path) -> Tuple[str, str, int]:
 def _extract_pypdf(path: Path) -> Tuple[str, str, int]:
     try:
         import pypdf
+
         pages_text = []
         with open(str(path), "rb") as f:
             reader = pypdf.PdfReader(f)
@@ -128,14 +136,15 @@ def _clean_extracted_text(text: str) -> str:
 
 # ── PDF download helpers ──────────────────────────────────────────────────────
 
+
 def _pdf_url_for_document(doc: Dict[str, Any]) -> Optional[str]:
     """
     Derive a PDF download URL for a document already in the database.
     Returns None if no PDF URL is determinable.
     """
-    doc_id  = doc.get("id", "")
-    raw     = doc.get("raw_json") or {}
-    source  = doc.get("source", "")
+    doc_id = doc.get("id", "")
+    raw = doc.get("raw_json") or {}
+    source = doc.get("source", "")
 
     # Federal Register — pdf_url is directly in the API response
     if "federal_register" in source or doc_id.startswith("FR-"):
@@ -152,15 +161,16 @@ def _pdf_url_for_document(doc: Dict[str, Any]) -> Optional[str]:
         # Last resort: the /full_text/pdf/ path works for most but not all docs
         doc_num = doc_id.replace("FR-", "")
         if doc_num:
-            return f"https://www.federalregister.gov/documents/full_text/pdf/{doc_num}.pdf"
+            return (
+                f"https://www.federalregister.gov/documents/full_text/pdf/{doc_num}.pdf"
+            )
 
     # EUR-Lex — deterministic URL from CELEX id
     if "eurlex" in source or doc_id.startswith("EU-CELEX-"):
         celex = doc_id.replace("EU-CELEX-", "")
         if celex:
             return (
-                f"https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/"
-                f"?uri=CELEX:{celex}"
+                f"https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:{celex}"
             )
 
     # UK legislation.gov.uk — construct from document URL pattern
@@ -182,6 +192,7 @@ def _pdf_url_for_document(doc: Dict[str, Any]) -> Optional[str]:
     govinfo_id = raw.get("govinfo_package_id") or raw.get("package_id")
     if govinfo_id:
         from config.settings import GOVINFO_KEY
+
         if GOVINFO_KEY:
             return (
                 f"https://api.govinfo.gov/packages/{govinfo_id}/pdf"
@@ -198,19 +209,24 @@ def _download_pdf(url: str, dest: Path, timeout: int = 60) -> bool:
 
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        req = urllib.request.Request(url, headers={
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            ),
-            "Accept": "application/pdf,*/*;q=0.9",
-        })
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/122.0.0.0 Safari/537.36"
+                ),
+                "Accept": "application/pdf,*/*;q=0.9",
+            },
+        )
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             content_type = resp.headers.get("Content-Type", "")
             data = resp.read()
             if len(data) < 1000:
-                log.warning("Downloaded file too small (%d bytes) from %s", len(data), url)
+                log.warning(
+                    "Downloaded file too small (%d bytes) from %s", len(data), url
+                )
                 return False
             # Accept application/pdf or octet-stream
             if "html" in content_type.lower() and b"%PDF" not in data[:8]:
@@ -226,27 +242,32 @@ def _download_pdf(url: str, dest: Path, timeout: int = 60) -> bool:
 
 # ── Auto-download agent ───────────────────────────────────────────────────────
 
+
 class PDFAutoDownloader:
     """
     Scans the database for documents that have a downloadable PDF
     and haven't been PDF-extracted yet. Downloads and extracts them.
     """
 
-    def run(self,
-            jurisdiction: Optional[str] = None,
-            limit: int = 20,
-            progress_cb=None) -> Dict[str, Any]:
+    def run(
+        self, jurisdiction: Optional[str] = None, limit: int = 20, progress_cb=None
+    ) -> Dict[str, Any]:
         """
         Auto-download PDFs for documents in the database.
 
         Returns a summary dict: {attempted, succeeded, failed, skipped}.
         """
-        from utils.db import get_all_documents, get_pdf_metadata, upsert_document, save_pdf_metadata
+        from utils.db import (
+            get_all_documents,
+            get_pdf_metadata,
+            upsert_document,
+            save_pdf_metadata,
+        )
 
         docs = get_all_documents(jurisdiction=jurisdiction)
         results = {"attempted": 0, "succeeded": 0, "failed": 0, "skipped": 0}
 
-        for doc in docs[:limit * 3]:   # fetch more candidates than limit
+        for doc in docs[: limit * 3]:  # fetch more candidates than limit
             if results["attempted"] >= limit:
                 break
 
@@ -263,6 +284,7 @@ class PDFAutoDownloader:
             # Skip documents that aren't AI-relevant — catches stale non-AI
             # docs that entered the DB before the keyword filter was tightened
             from utils.cache import is_ai_relevant as _is_ai
+
             title_and_text = f"{doc.get('title', '')} {doc.get('full_text', '') or ''}"
             if not _is_ai(title_and_text):
                 results["skipped"] += 1
@@ -278,7 +300,7 @@ class PDFAutoDownloader:
                 progress_cb(f"Downloading PDF: {doc.get('title', doc['id'])[:60]}")
 
             # Save to pdf store
-            safe_id  = re.sub(r"[^a-zA-Z0-9_-]", "_", doc["id"])[:80]
+            safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", doc["id"])[:80]
             pdf_path = PDF_STORE_DIR / f"{safe_id}.pdf"
 
             ok = _download_pdf(pdf_url, pdf_path)
@@ -299,24 +321,30 @@ class PDFAutoDownloader:
 
             # Update the document's full_text
             doc["full_text"] = text
-            doc["origin"]    = "pdf_auto"
+            doc["origin"] = "pdf_auto"
             upsert_document(doc)
 
             # Record PDF metadata
-            save_pdf_metadata({
-                "document_id":      doc["id"],
-                "pdf_path":         str(pdf_path),
-                "pdf_url":          pdf_url,
-                "page_count":       pages,
-                "word_count":       len(text.split()),
-                "extraction_method": method,
-                "extracted_at":     datetime.utcnow(),
-                "origin":           "pdf_auto",
-            })
+            save_pdf_metadata(
+                {
+                    "document_id": doc["id"],
+                    "pdf_path": str(pdf_path),
+                    "pdf_url": pdf_url,
+                    "page_count": pages,
+                    "word_count": len(text.split()),
+                    "extraction_method": method,
+                    "extracted_at": datetime.utcnow(),
+                    "origin": "pdf_auto",
+                }
+            )
 
             results["succeeded"] += 1
-            log.info("PDF auto-ingested: %s (%d pages, %d words)",
-                     doc["id"], pages, len(text.split()))
+            log.info(
+                "PDF auto-ingested: %s (%d pages, %d words)",
+                doc["id"],
+                pages,
+                len(text.split()),
+            )
 
         return results
 
@@ -327,26 +355,29 @@ class PDFAutoDownloader:
         """
         from utils.db import get_all_documents, get_pdf_metadata
 
-        docs       = get_all_documents(jurisdiction=jurisdiction)
+        docs = get_all_documents(jurisdiction=jurisdiction)
         candidates = []
         for doc in docs:
             if get_pdf_metadata(doc["id"]):
-                continue   # already done
+                continue  # already done
             pdf_url = _pdf_url_for_document(doc)
             if pdf_url:
-                candidates.append({
-                    "id":           doc["id"],
-                    "title":        doc["title"],
-                    "jurisdiction": doc["jurisdiction"],
-                    "source":       doc["source"],
-                    "pdf_url":      pdf_url,
-                    "has_text":     bool(doc.get("full_text")),
-                    "text_length":  len(doc.get("full_text") or ""),
-                })
+                candidates.append(
+                    {
+                        "id": doc["id"],
+                        "title": doc["title"],
+                        "jurisdiction": doc["jurisdiction"],
+                        "source": doc["source"],
+                        "pdf_url": pdf_url,
+                        "has_text": bool(doc.get("full_text")),
+                        "text_length": len(doc.get("full_text") or ""),
+                    }
+                )
         return candidates
 
 
 # ── Manual ingest (drop folder) ───────────────────────────────────────────────
+
 
 class PDFManualIngestor:
     """
@@ -359,18 +390,18 @@ class PDFManualIngestor:
         files = []
         for p in sorted(PDF_DROP_DIR.glob("*.pdf")):
             stat = p.stat()
-            files.append({
-                "filename":   p.name,
-                "path":       str(p),
-                "size_bytes": stat.st_size,
-                "size_kb":    round(stat.st_size / 1024, 1),
-                "modified":   datetime.fromtimestamp(stat.st_mtime).isoformat(),
-            })
+            files.append(
+                {
+                    "filename": p.name,
+                    "path": str(p),
+                    "size_bytes": stat.st_size,
+                    "size_kb": round(stat.st_size / 1024, 1),
+                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                }
+            )
         return files
 
-    def ingest(self,
-               filename_or_path: str,
-               metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def ingest(self, filename_or_path: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
         """
         Ingest a PDF from the drop folder or a given path.
 
@@ -393,7 +424,7 @@ class PDFManualIngestor:
         # Strip any directory traversal components from the name
         safe_name = Path(filename_or_path).name
         safe_name = re.sub(r"[^a-zA-Z0-9._\-]", "_", safe_name)
-        resolved  = (PDF_DROP_DIR / safe_name).resolve()
+        resolved = (PDF_DROP_DIR / safe_name).resolve()
         inbox_res = PDF_DROP_DIR.resolve()
         if not str(resolved).startswith(str(inbox_res)):
             raise ValueError(f"Path traversal rejected for: {safe_name!r}")
@@ -407,9 +438,9 @@ class PDFManualIngestor:
             raise ValueError(f"Could not extract any text from {src.name}")
 
         # Build a stable document ID
-        title      = metadata.get("title") or src.stem
-        jur        = metadata.get("jurisdiction") or "Unknown"
-        doc_id     = _make_pdf_doc_id(title, jur)
+        title = metadata.get("title") or src.stem
+        jur = metadata.get("jurisdiction") or "Unknown"
+        doc_id = _make_pdf_doc_id(title, jur)
 
         # Check for duplicate
         if get_document(doc_id):
@@ -417,7 +448,7 @@ class PDFManualIngestor:
 
         # Parse published_date
         published = None
-        pd_raw    = metadata.get("published_date")
+        pd_raw = metadata.get("published_date")
         if pd_raw:
             for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
                 try:
@@ -427,29 +458,29 @@ class PDFManualIngestor:
                     continue
 
         doc = {
-            "id":             doc_id,
-            "source":         "pdf_manual",
-            "jurisdiction":   jur,
-            "doc_type":       metadata.get("doc_type") or "PDF Document",
-            "title":          title,
-            "url":            metadata.get("url") or "",
+            "id": doc_id,
+            "source": "pdf_manual",
+            "jurisdiction": jur,
+            "doc_type": metadata.get("doc_type") or "PDF Document",
+            "title": title,
+            "url": metadata.get("url") or "",
             "published_date": published,
-            "agency":         metadata.get("agency") or "",
-            "status":         metadata.get("status") or "Unknown",
-            "full_text":      text,
-            "raw_json":       {
-                "origin":           "pdf_manual",
+            "agency": metadata.get("agency") or "",
+            "status": metadata.get("status") or "Unknown",
+            "full_text": text,
+            "raw_json": {
+                "origin": "pdf_manual",
                 "original_filename": src.name,
-                "page_count":       pages,
-                "word_count":       len(text.split()),
-                "notes":            metadata.get("notes") or "",
+                "page_count": pages,
+                "word_count": len(text.split()),
+                "notes": metadata.get("notes") or "",
             },
         }
 
         upsert_document(doc)
 
         # Move to stored folder
-        stored_dir  = PDF_STORE_DIR / "stored"
+        stored_dir = PDF_STORE_DIR / "stored"
         stored_dir.mkdir(exist_ok=True)
         stored_path = stored_dir / src.name
         # Avoid overwrite collision
@@ -457,32 +488,38 @@ class PDFManualIngestor:
             stored_path = stored_dir / f"{src.stem}_{doc_id[-6:]}.pdf"
         shutil.move(str(src), str(stored_path))
 
-        save_pdf_metadata({
-            "document_id":       doc_id,
-            "pdf_path":          str(stored_path),
-            "pdf_url":           metadata.get("url") or "",
-            "page_count":        pages,
-            "word_count":        len(text.split()),
-            "extraction_method": method,
-            "extracted_at":      datetime.utcnow(),
-            "origin":            "pdf_manual",
-        })
+        save_pdf_metadata(
+            {
+                "document_id": doc_id,
+                "pdf_path": str(stored_path),
+                "pdf_url": metadata.get("url") or "",
+                "page_count": pages,
+                "word_count": len(text.split()),
+                "extraction_method": method,
+                "extracted_at": datetime.utcnow(),
+                "origin": "pdf_manual",
+            }
+        )
 
-        log.info("Manual PDF ingested: %s (%s, %d pages, %d words)",
-                 doc_id, jur, pages, len(text.split()))
+        log.info(
+            "Manual PDF ingested: %s (%s, %d pages, %d words)",
+            doc_id,
+            jur,
+            pages,
+            len(text.split()),
+        )
         return doc
 
-    def ingest_bytes(self,
-                     filename: str,
-                     data: bytes,
-                     metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def ingest_bytes(
+        self, filename: str, data: bytes, metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Ingest a PDF from raw bytes (uploaded via the browser).
         Saves the file to the drop folder first, then calls ingest().
         """
         # F-02 fix: strip directory components and sanitize characters to
         # prevent path traversal (e.g. filename="../../etc/passwd").
-        safe_name = Path(filename).name           # drops any directory parts
+        safe_name = Path(filename).name  # drops any directory parts
         safe_name = re.sub(r"[^a-zA-Z0-9._\-]", "_", safe_name)  # safe chars only
         if not safe_name.lower().endswith(".pdf"):
             safe_name = safe_name + ".pdf"
@@ -497,28 +534,30 @@ class PDFManualIngestor:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _make_pdf_doc_id(title: str, jurisdiction: str) -> str:
     """Generate a stable, collision-resistant document ID for a PDF."""
-    raw  = f"{jurisdiction}::{title.lower().strip()}"
+    raw = f"{jurisdiction}::{title.lower().strip()}"
     slug = re.sub(r"[^a-z0-9]+", "-", raw)[:50].strip("-")
-    h    = hashlib.md5(raw.encode()).hexdigest()[:8]
+    h = hashlib.md5(raw.encode()).hexdigest()[:8]
     return f"PDF-{slug}-{h}"
 
 
 def get_pdf_stats() -> Dict[str, Any]:
     """Return summary statistics about PDF ingestion."""
     from utils.db import get_all_pdf_metadata
+
     all_meta = get_all_pdf_metadata()
-    auto     = [m for m in all_meta if m.get("origin") == "pdf_auto"]
-    manual   = [m for m in all_meta if m.get("origin") == "pdf_manual"]
-    inbox    = list(PDF_DROP_DIR.glob("*.pdf"))
+    auto = [m for m in all_meta if m.get("origin") == "pdf_auto"]
+    manual = [m for m in all_meta if m.get("origin") == "pdf_manual"]
+    inbox = list(PDF_DROP_DIR.glob("*.pdf"))
     return {
-        "total_pdfs":        len(all_meta),
-        "auto_downloaded":   len(auto),
+        "total_pdfs": len(all_meta),
+        "auto_downloaded": len(auto),
         "manually_ingested": len(manual),
-        "inbox_pending":     len(inbox),
-        "total_pages":       sum(m.get("page_count", 0) for m in all_meta),
-        "total_words":       sum(m.get("word_count", 0) for m in all_meta),
-        "pdf_store_dir":     str(PDF_STORE_DIR),
-        "pdf_inbox_dir":     str(PDF_DROP_DIR),
+        "inbox_pending": len(inbox),
+        "total_pages": sum(m.get("page_count", 0) for m in all_meta),
+        "total_words": sum(m.get("word_count", 0) for m in all_meta),
+        "pdf_store_dir": str(PDF_STORE_DIR),
+        "pdf_inbox_dir": str(PDF_DROP_DIR),
     }

@@ -504,7 +504,7 @@ class Orchestrator:
                 "domain":       summary.get("domain", "ai"),
             }
 
-            if learner:
+            if learner and hasattr(learner, 'record_auto_feedback'):
                 try:
                     learner.record_auto_feedback(effective_doc, claude_score)
                 except Exception as e:

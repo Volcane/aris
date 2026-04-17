@@ -20,14 +20,20 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.columns import Columns
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+)
 from rich.markdown import Markdown
 
 from config.settings import OUTPUT_DIR
 from utils.db import get_recent_summaries, get_stats
 from utils.cache import get_logger
 
-log     = get_logger("aris.reporter")
+log = get_logger("aris.reporter")
 console = Console()
 
 
@@ -35,20 +41,23 @@ console = Console()
 
 URGENCY_STYLE = {
     "Critical": "bold red",
-    "High":     "bold yellow",
-    "Medium":   "yellow",
-    "Low":      "dim green",
+    "High": "bold yellow",
+    "Medium": "yellow",
+    "Low": "dim green",
 }
 
 
 # â”€â”€ Console Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+
 def print_banner():
-    console.print(Panel.fit(
-        "[bold white]ARIS[/bold white]  [dim]Automated Regulatory Intelligence System[/dim]\n"
-        "[dim]Monitoring AI regulation and data privacy law[/dim]",
-        border_style="blue",
-    ))
+    console.print(
+        Panel.fit(
+            "[bold white]ARIS[/bold white]  [dim]Automated Regulatory Intelligence System[/dim]\n"
+            "[dim]Monitoring AI regulation and data privacy law[/dim]",
+            border_style="blue",
+        )
+    )
 
 
 def print_stats():
@@ -57,17 +66,22 @@ def print_stats():
     table.add_column("Metric", style="dim")
     table.add_column("Value", style="bold")
 
-    table.add_row("Total documents tracked",   str(stats["total_documents"]))
-    table.add_row("Summarised",                str(stats["total_summaries"]))
-    table.add_row("Federal documents",         str(stats["federal_documents"]))
-    table.add_row("State documents",           str(stats["state_documents"]))
-    table.add_row("Awaiting summarisation",    str(stats["pending_summaries"]))
+    table.add_row("Total documents tracked", str(stats["total_documents"]))
+    table.add_row("Summarised", str(stats["total_summaries"]))
+    table.add_row("Federal documents", str(stats["federal_documents"]))
+    table.add_row("State documents", str(stats["state_documents"]))
+    table.add_row("Awaiting summarisation", str(stats["pending_summaries"]))
 
-    console.print(Panel(table, title="[bold]Database Stats[/bold]", border_style="blue"))
+    console.print(
+        Panel(table, title="[bold]Database Stats[/bold]", border_style="blue")
+    )
 
 
-def print_report(days: int = 30, jurisdiction: Optional[str] = None,
-                 urgency_filter: Optional[str] = None):
+def print_report(
+    days: int = 30,
+    jurisdiction: Optional[str] = None,
+    urgency_filter: Optional[str] = None,
+):
     """Render the full findings table to the terminal."""
     print_banner()
     print_stats()
@@ -92,7 +106,9 @@ def print_report(days: int = 30, jurisdiction: Optional[str] = None,
 
 def _print_jurisdiction_section(jurisdiction: str, items: List[Dict]):
     label = "ðŸ›  Federal" if jurisdiction == "Federal" else f"ðŸ¢  {jurisdiction}"
-    console.print(f"\n[bold blue]{label}[/bold blue]  ({len(items)} item{'s' if len(items)!=1 else ''})")
+    console.print(
+        f"\n[bold blue]{label}[/bold blue]  ({len(items)} item{'s' if len(items) != 1 else ''})"
+    )
 
     table = Table(
         box=box.ROUNDED,
@@ -100,24 +116,27 @@ def _print_jurisdiction_section(jurisdiction: str, items: List[Dict]):
         expand=True,
         border_style="blue",
     )
-    table.add_column("Urgency",    width=10)
-    table.add_column("Title",      ratio=3)
+    table.add_column("Urgency", width=10)
+    table.add_column("Title", ratio=3)
     table.add_column("Type / Status", ratio=2)
-    table.add_column("Agency",     ratio=2)
-    table.add_column("Published",  width=11)
-    table.add_column("Deadline",   width=11)
+    table.add_column("Agency", ratio=2)
+    table.add_column("Published", width=11)
+    table.add_column("Deadline", width=11)
 
-    for item in sorted(items, key=lambda x: _urgency_rank(x.get("urgency", "Low")),
-                       reverse=True):
+    for item in sorted(
+        items, key=lambda x: _urgency_rank(x.get("urgency", "Low")), reverse=True
+    ):
         urgency = item.get("urgency", "Low")
-        style   = URGENCY_STYLE.get(urgency, "")
-        pub     = item.get("published_date", "")[:10] if item.get("published_date") else "â€”"
-        dl      = item.get("deadline") or "â€”"
+        style = URGENCY_STYLE.get(urgency, "")
+        pub = (
+            item.get("published_date", "")[:10] if item.get("published_date") else "â€”"
+        )
+        dl = item.get("deadline") or "â€”"
 
         table.add_row(
             Text(urgency, style=style),
             item.get("title", "")[:80],
-            f"{item.get('doc_type','')} / {item.get('status','')}",
+            f"{item.get('doc_type', '')} / {item.get('status', '')}",
             (item.get("agency") or "")[:40],
             pub,
             dl,
@@ -131,12 +150,14 @@ def _print_jurisdiction_section(jurisdiction: str, items: List[Dict]):
 
 
 def _print_detail_card(item: Dict):
-    content  = []
-    urg_style = URGENCY_STYLE.get(item.get("urgency","Low"), "")
+    content = []
+    urg_style = URGENCY_STYLE.get(item.get("urgency", "Low"), "")
 
-    content.append(f"[{urg_style}]âš   {item.get('urgency','').upper()}[/{urg_style}]  {item.get('title','')}\n")
-    content.append(f"[dim]{item.get('url','')}[/dim]\n")
-    content.append(f"\n[bold]Summary[/bold]\n{item.get('plain_english','')}\n")
+    content.append(
+        f"[{urg_style}]âš   {item.get('urgency', '').upper()}[/{urg_style}]  {item.get('title', '')}\n"
+    )
+    content.append(f"[dim]{item.get('url', '')}[/dim]\n")
+    content.append(f"\n[bold]Summary[/bold]\n{item.get('plain_english', '')}\n")
 
     reqs = item.get("requirements") or []
     if reqs:
@@ -160,7 +181,9 @@ def _print_detail_card(item: Dict):
     if areas:
         content.append(f"\n[dim]Impact areas: {', '.join(areas)}[/dim]")
 
-    console.print(Panel("\n".join(content), border_style=urg_style or "dim", expand=False))
+    console.print(
+        Panel("\n".join(content), border_style=urg_style or "dim", expand=False)
+    )
 
 
 def _urgency_rank(u: str) -> int:
@@ -168,6 +191,7 @@ def _urgency_rank(u: str) -> int:
 
 
 # â”€â”€ Progress bar for summarization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 
 def make_progress() -> Progress:
     return Progress(
@@ -180,6 +204,7 @@ def make_progress() -> Progress:
 
 
 # â”€â”€ Export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 
 def export_json(days: int = 30, filepath: Optional[str] = None) -> str:
     """Export all recent summaries to a JSON file."""
@@ -212,12 +237,18 @@ def export_markdown(days: int = 30, filepath: Optional[str] = None) -> str:
         label = "Federal" if juris == "Federal" else f"State: {juris}"
         lines.append(f"## {label}\n")
 
-        for item in sorted(items, key=lambda x: _urgency_rank(x.get("urgency","Low")), reverse=True):
-            urgency = item.get("urgency","Low")
-            lines.append(f"### {item.get('title','')}")
-            lines.append(f"**Urgency:** {urgency}  |  **Published:** {str(item.get('published_date',''))[:10]}  |  **Deadline:** {item.get('deadline') or 'N/A'}")
-            lines.append(f"**Source:** [{item.get('source','')}]({item.get('url','')})  |  **Agency:** {item.get('agency','')}")
-            lines.append(f"\n**Summary:** {item.get('plain_english','')}\n")
+        for item in sorted(
+            items, key=lambda x: _urgency_rank(x.get("urgency", "Low")), reverse=True
+        ):
+            urgency = item.get("urgency", "Low")
+            lines.append(f"### {item.get('title', '')}")
+            lines.append(
+                f"**Urgency:** {urgency}  |  **Published:** {str(item.get('published_date', ''))[:10]}  |  **Deadline:** {item.get('deadline') or 'N/A'}"
+            )
+            lines.append(
+                f"**Source:** [{item.get('source', '')}]({item.get('url', '')})  |  **Agency:** {item.get('agency', '')}"
+            )
+            lines.append(f"\n**Summary:** {item.get('plain_english', '')}\n")
 
             reqs = item.get("requirements") or []
             if reqs:

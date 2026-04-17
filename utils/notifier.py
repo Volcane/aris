@@ -42,8 +42,10 @@ log = get_logger("aris.notifier")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
+
 def _get(key: str, default: str = "") -> str:
     return os.getenv(key, default).strip()
+
 
 def _bool(key: str, default: bool = True) -> bool:
     val = _get(key, "true" if default else "false").lower()
@@ -63,20 +65,21 @@ def get_config() -> Dict[str, Any]:
     email = _get("NOTIFY_EMAIL") or ""
     smtp_user = _get("SMTP_USER") or ""
     return {
-        "email_configured":   bool(email),
-        "slack_configured":   bool(_get("SLACK_WEBHOOK_URL")),
-        "notify_critical":    _bool("NOTIFY_ON_CRITICAL", True),
-        "notify_high":        _bool("NOTIFY_ON_HIGH", True),
-        "notify_digest":      _bool("NOTIFY_ON_DIGEST", True),
-        "deadline_days":      int(_get("NOTIFY_DEADLINE_DAYS", "14")),
+        "email_configured": bool(email),
+        "slack_configured": bool(_get("SLACK_WEBHOOK_URL")),
+        "notify_critical": _bool("NOTIFY_ON_CRITICAL", True),
+        "notify_high": _bool("NOTIFY_ON_HIGH", True),
+        "notify_digest": _bool("NOTIFY_ON_DIGEST", True),
+        "deadline_days": int(_get("NOTIFY_DEADLINE_DAYS", "14")),
         # Masked: show only domain portion of email (e.g. "@gmail.com") not full address
-        "recipient_domain":   ("@" + email.split("@")[-1]) if "@" in email else None,
-        "smtp_configured":    bool(_get("SMTP_HOST") and smtp_user),
-        "smtp_host":          _get("SMTP_HOST"),   # host is not sensitive
+        "recipient_domain": ("@" + email.split("@")[-1]) if "@" in email else None,
+        "smtp_configured": bool(_get("SMTP_HOST") and smtp_user),
+        "smtp_host": _get("SMTP_HOST"),  # host is not sensitive
     }
 
 
 # ── Email ─────────────────────────────────────────────────────────────────────
+
 
 def send_email(subject: str, body_text: str, body_html: Optional[str] = None) -> bool:
     """Send an email notification. Returns True on success."""
@@ -93,8 +96,8 @@ def send_email(subject: str, body_text: str, body_html: Optional[str] = None) ->
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"]    = f"ARIS <{smtp_user}>"
-        msg["To"]      = recipient
+        msg["From"] = f"ARIS <{smtp_user}>"
+        msg["To"] = recipient
 
         msg.attach(MIMEText(body_text, "plain"))
         if body_html:
@@ -114,6 +117,7 @@ def send_email(subject: str, body_text: str, body_html: Optional[str] = None) ->
 
 # ── Slack ─────────────────────────────────────────────────────────────────────
 
+
 def send_slack(text: str, blocks: Optional[list] = None) -> bool:
     """Send a Slack webhook message. Returns True on success."""
     webhook_url = _get("SLACK_WEBHOOK_URL")
@@ -127,7 +131,7 @@ def send_slack(text: str, blocks: Optional[list] = None) -> bool:
             payload["blocks"] = blocks
 
         data = json.dumps(payload).encode("utf-8")
-        req  = urllib.request.Request(
+        req = urllib.request.Request(
             webhook_url,
             data=data,
             headers={"Content-Type": "application/json"},
@@ -148,17 +152,18 @@ def send_slack(text: str, blocks: Optional[list] = None) -> bool:
 
 # ── Message builders ──────────────────────────────────────────────────────────
 
+
 def _build_digest(run_result: Dict[str, Any]) -> tuple[str, str, str]:
     """Build subject, plain text, and Slack text for a run digest."""
-    date_str   = datetime.utcnow().strftime("%A, %B %-d %Y")
-    fetched    = run_result.get("fetched", 0)
+    date_str = datetime.utcnow().strftime("%A, %B %-d %Y")
+    fetched = run_result.get("fetched", 0)
     summarized = run_result.get("summarized", 0)
-    skipped    = run_result.get("skipped", 0)
-    diffs      = run_result.get("version_diffs", 0) + run_result.get("addenda_found", 0)
-    urgency    = run_result.get("urgency_dist", {})
-    critical   = urgency.get("Critical", 0)
-    high       = urgency.get("High", 0)
-    total_db   = run_result.get("total_documents", 0)
+    skipped = run_result.get("skipped", 0)
+    diffs = run_result.get("version_diffs", 0) + run_result.get("addenda_found", 0)
+    urgency = run_result.get("urgency_dist", {})
+    critical = urgency.get("Critical", 0)
+    high = urgency.get("High", 0)
+    total_db = run_result.get("total_documents", 0)
 
     subject = f"ARIS Digest — {date_str}"
     if critical > 0:
@@ -170,7 +175,9 @@ def _build_digest(run_result: Dict[str, Any]) -> tuple[str, str, str]:
     ]
 
     if critical > 0:
-        lines.append(f"⚠  {critical} critical-urgency document{'s' if critical > 1 else ''} detected")
+        lines.append(
+            f"⚠  {critical} critical-urgency document{'s' if critical > 1 else ''} detected"
+        )
     if high > 0:
         lines.append(f"↑  {high} high-urgency document{'s' if high > 1 else ''}")
     if diffs > 0:
@@ -198,7 +205,9 @@ def _build_digest(run_result: Dict[str, Any]) -> tuple[str, str, str]:
     # Slack blocks version
     slack_text = f"*ARIS Digest — {date_str}*\n"
     if critical > 0:
-        slack_text += f":warning: *{critical} critical finding{'s' if critical > 1 else ''}*\n"
+        slack_text += (
+            f":warning: *{critical} critical finding{'s' if critical > 1 else ''}*\n"
+        )
     slack_text += f"Fetched {fetched} docs · Summarised {summarized}"
     if diffs > 0:
         slack_text += f" · {diffs} change{'s' if diffs > 1 else ''} detected"
@@ -210,9 +219,9 @@ def _build_digest(run_result: Dict[str, Any]) -> tuple[str, str, str]:
 def _build_critical_alert(change_summary: str, severity: str) -> tuple[str, str, str]:
     """Build alert for a single critical/high change."""
     date_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    emoji    = "🚨" if severity == "Critical" else "⚠️"
-    subject  = f"{emoji} ARIS: {severity} regulatory change detected"
-    text     = (
+    emoji = "🚨" if severity == "Critical" else "⚠️"
+    subject = f"{emoji} ARIS: {severity} regulatory change detected"
+    text = (
         f"{emoji} {severity} Regulatory Change\n"
         f"{'─' * 50}\n"
         f"{change_summary}\n\n"
@@ -225,6 +234,7 @@ def _build_critical_alert(change_summary: str, severity: str) -> tuple[str, str,
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+
 def send_digest_if_warranted(run_result: Dict[str, Any]) -> None:
     """
     Called after a scheduled run completes. Sends a notification if:
@@ -234,11 +244,11 @@ def send_digest_if_warranted(run_result: Dict[str, Any]) -> None:
     if not is_configured():
         return
 
-    fetched    = run_result.get("fetched", 0)
+    fetched = run_result.get("fetched", 0)
     summarized = run_result.get("summarized", 0)
-    urgency    = run_result.get("urgency_dist", {})
-    critical   = urgency.get("Critical", 0)
-    high       = urgency.get("High", 0)
+    urgency = run_result.get("urgency_dist", {})
+    critical = urgency.get("Critical", 0)
+    high = urgency.get("High", 0)
 
     # Always notify on critical regardless of digest setting
     if critical > 0 and _bool("NOTIFY_ON_CRITICAL", True):
@@ -265,8 +275,8 @@ def send_digest_if_warranted(run_result: Dict[str, Any]) -> None:
 def send_test_notification() -> Dict[str, bool]:
     """Send a test message to all configured channels. Returns results."""
     results = {}
-    subject  = "ARIS — Test Notification"
-    text     = "This is a test notification from ARIS. Your notification settings are working correctly."
+    subject = "ARIS — Test Notification"
+    text = "This is a test notification from ARIS. Your notification settings are working correctly."
     slack_text = ":white_check_mark: *ARIS test notification* — your Slack integration is working."
 
     results["email"] = send_email(subject, text)

@@ -36,72 +36,65 @@ from pathlib import Path
 #
 COLUMN_ADDITIONS = [
     # documents table
-    ("documents", "origin",         "TEXT",    "'api'"),
-    ("documents", "domain",         "TEXT",    "'ai'"),
-
+    ("documents", "origin", "TEXT", "'api'"),
+    ("documents", "domain", "TEXT", "'ai'"),
     # summaries table
-    ("summaries", "relevance_score","REAL",    "NULL"),
-    ("summaries", "urgency",        "TEXT",    "NULL"),
-    ("summaries", "deadline",       "TEXT",    "NULL"),
-    ("summaries", "requirements",   "TEXT",    "NULL"),   # JSON stored as TEXT
-    ("summaries", "impact_areas",   "TEXT",    "NULL"),   # JSON stored as TEXT
-    ("summaries", "plain_english",  "TEXT",    "NULL"),
-    ("summaries", "action_items",   "TEXT",    "NULL"),   # JSON stored as TEXT
-    ("summaries", "jurisdiction",   "TEXT",    "NULL"),
-    ("summaries", "domain",         "TEXT",    "'ai'"),
-
+    ("summaries", "relevance_score", "REAL", "NULL"),
+    ("summaries", "urgency", "TEXT", "NULL"),
+    ("summaries", "deadline", "TEXT", "NULL"),
+    ("summaries", "requirements", "TEXT", "NULL"),  # JSON stored as TEXT
+    ("summaries", "impact_areas", "TEXT", "NULL"),  # JSON stored as TEXT
+    ("summaries", "plain_english", "TEXT", "NULL"),
+    ("summaries", "action_items", "TEXT", "NULL"),  # JSON stored as TEXT
+    ("summaries", "jurisdiction", "TEXT", "NULL"),
+    ("summaries", "domain", "TEXT", "'ai'"),
     # document_diffs table
-    ("document_diffs", "severity",             "TEXT", "NULL"),
-    ("document_diffs", "diff_type",            "TEXT", "NULL"),
-    ("document_diffs", "relationship_type",    "TEXT", "NULL"),
-    ("document_diffs", "change_summary",       "TEXT", "NULL"),
-    ("document_diffs", "added_requirements",   "TEXT", "NULL"),
+    ("document_diffs", "severity", "TEXT", "NULL"),
+    ("document_diffs", "diff_type", "TEXT", "NULL"),
+    ("document_diffs", "relationship_type", "TEXT", "NULL"),
+    ("document_diffs", "change_summary", "TEXT", "NULL"),
+    ("document_diffs", "added_requirements", "TEXT", "NULL"),
     ("document_diffs", "removed_requirements", "TEXT", "NULL"),
-    ("document_diffs", "modified_requirements","TEXT", "NULL"),
-    ("document_diffs", "definition_changes",   "TEXT", "NULL"),
-    ("document_diffs", "deadline_changes",     "TEXT", "NULL"),
-    ("document_diffs", "penalty_changes",      "TEXT", "NULL"),
-    ("document_diffs", "scope_changes",        "TEXT", "NULL"),
-    ("document_diffs", "new_action_items",     "TEXT", "NULL"),
-    ("document_diffs", "obsolete_action_items","TEXT", "NULL"),
-    ("document_diffs", "overall_assessment",   "TEXT", "NULL"),
-    ("document_diffs", "model_used",           "TEXT", "NULL"),
-    ("document_diffs", "reviewed",             "INTEGER", "0"),
-    ("document_diffs", "reviewed_at",          "TEXT", "NULL"),
-
+    ("document_diffs", "modified_requirements", "TEXT", "NULL"),
+    ("document_diffs", "definition_changes", "TEXT", "NULL"),
+    ("document_diffs", "deadline_changes", "TEXT", "NULL"),
+    ("document_diffs", "penalty_changes", "TEXT", "NULL"),
+    ("document_diffs", "scope_changes", "TEXT", "NULL"),
+    ("document_diffs", "new_action_items", "TEXT", "NULL"),
+    ("document_diffs", "obsolete_action_items", "TEXT", "NULL"),
+    ("document_diffs", "overall_assessment", "TEXT", "NULL"),
+    ("document_diffs", "model_used", "TEXT", "NULL"),
+    ("document_diffs", "reviewed", "INTEGER", "0"),
+    ("document_diffs", "reviewed_at", "TEXT", "NULL"),
     # feedback_events table
-    ("feedback_events", "source",      "TEXT", "NULL"),
-    ("feedback_events", "agency",      "TEXT", "NULL"),
-    ("feedback_events", "jurisdiction","TEXT", "NULL"),
-    ("feedback_events", "keywords",    "TEXT", "NULL"),
-
+    ("feedback_events", "source", "TEXT", "NULL"),
+    ("feedback_events", "agency", "TEXT", "NULL"),
+    ("feedback_events", "jurisdiction", "TEXT", "NULL"),
+    ("feedback_events", "keywords", "TEXT", "NULL"),
     # pdf_metadata table (may not exist at all — handled by create_all)
-    ("pdf_metadata", "origin",       "TEXT", "'pdf_manual'"),
-    ("pdf_metadata", "file_path",    "TEXT", "NULL"),
-    ("pdf_metadata", "page_count",   "INTEGER", "NULL"),
-    ("pdf_metadata", "word_count",   "INTEGER", "NULL"),
-    ("pdf_metadata", "method",       "TEXT", "NULL"),
+    ("pdf_metadata", "origin", "TEXT", "'pdf_manual'"),
+    ("pdf_metadata", "file_path", "TEXT", "NULL"),
+    ("pdf_metadata", "page_count", "INTEGER", "NULL"),
+    ("pdf_metadata", "word_count", "INTEGER", "NULL"),
+    ("pdf_metadata", "method", "TEXT", "NULL"),
     ("pdf_metadata", "extracted_at", "TEXT", "NULL"),
-
     # regulatory_horizon table
     ("regulatory_horizon", "domain", "TEXT", "'ai'"),
-
     # enforcement_actions table
     ("enforcement_actions", "domain", "TEXT", "'ai'"),
-
     # schedule_config — two-track scheduling (jurisdiction + enforcement)
-    ("schedule_config", "jur_enabled",         "INTEGER", "0"),
-    ("schedule_config", "jur_days",            "TEXT",    "'0,1,2,3,4'"),
-    ("schedule_config", "jur_time",            "TEXT",    "'08:00'"),
-    ("schedule_config", "jur_domain",          "TEXT",    "'both'"),
-    ("schedule_config", "jur_lookback",        "INTEGER", "7"),
-    ("schedule_config", "jur_last_run",        "TEXT",    "NULL"),
-    ("schedule_config", "jur_next_run",        "TEXT",    "NULL"),
-    ("schedule_config", "enf_enabled",         "INTEGER", "0"),
-    ("schedule_config", "enf_interval_hours",  "INTEGER", "6"),
-    ("schedule_config", "enf_lookback",        "INTEGER", "2"),
-    ("schedule_config", "enf_last_run",        "TEXT",    "NULL"),
-    ("schedule_config", "enf_next_run",        "TEXT",    "NULL"),
+    ("schedule_config", "jur_enabled", "INTEGER", "0"),
+    ("schedule_config", "jur_days", "TEXT", "'0,1,2,3,4'"),
+    ("schedule_config", "jur_time", "TEXT", "'08:00'"),
+    ("schedule_config", "jur_domain", "TEXT", "'both'"),
+    ("schedule_config", "jur_lookback", "INTEGER", "7"),
+    ("schedule_config", "jur_last_run", "TEXT", "NULL"),
+    ("schedule_config", "jur_next_run", "TEXT", "NULL"),
+    ("schedule_config", "enf_enabled", "INTEGER", "0"),
+    ("schedule_config", "enf_interval_hours", "INTEGER", "6"),
+    ("schedule_config", "enf_lookback", "INTEGER", "2"),
+    ("schedule_config", "enf_last_run", "TEXT", "NULL"),
+    ("schedule_config", "enf_next_run", "TEXT", "NULL"),
 ]
 
 # ── New tables (create if missing) ─────────────────────────────────────────────
@@ -359,13 +352,14 @@ NEW_TABLES = [
 
 # ── Migration runner ──────────────────────────────────────────────────────────
 
+
 def get_existing_columns(conn: sqlite3.Connection, table: str) -> set:
     """Return the set of column names currently in a table."""
     try:
         cursor = conn.execute(f"PRAGMA table_info({table})")
         return {row[1] for row in cursor.fetchall()}
     except sqlite3.OperationalError:
-        return set()   # table doesn't exist yet
+        return set()  # table doesn't exist yet
 
 
 def get_existing_tables(conn: sqlite3.Connection) -> set:
@@ -472,6 +466,7 @@ if __name__ == "__main__":
         try:
             sys.path.insert(0, str(Path(__file__).parent))
             from config.settings import DB_PATH
+
             db_path = Path(DB_PATH)
         except Exception:
             db_path = Path("output/aris.db")

@@ -66,23 +66,27 @@ log = get_logger("aris.synthesis")
 # Module-level re-exports so tests can patch them cleanly
 def get_recent_summaries(days: int = 365, jurisdiction=None):
     from utils.db import get_recent_summaries as _fn
+
     return _fn(days=days, jurisdiction=jurisdiction)
 
 
 def get_existing_synthesis(topic_key: str, max_age_days: int = 7):
     from utils.db import get_existing_synthesis as _fn
+
     return _fn(topic_key, max_age_days)
 
 
 def save_synthesis(result: dict) -> int:
     from utils.db import save_synthesis as _fn
+
     return _fn(result)
 
+
 # ── Token budget - synthesis reads many documents at once ─────────────────────
-SYNTHESIS_MAX_TOKENS   = 4096
-CONFLICT_MAX_TOKENS    = 4096
-MAX_DOCS_PER_SYNTHESIS = 30       # cap at 30 documents per synthesis run
-MAX_CHARS_PER_DOC      = 1200     # truncate each doc contribution to keep within context
+SYNTHESIS_MAX_TOKENS = 4096
+CONFLICT_MAX_TOKENS = 4096
+MAX_DOCS_PER_SYNTHESIS = 30  # cap at 30 documents per synthesis run
+MAX_CHARS_PER_DOC = 1200  # truncate each doc contribution to keep within context
 
 
 # ── System prompts ─────────────────────────────────────────────────────────────
@@ -220,6 +224,7 @@ Return a JSON object with exactly these keys:
 
 # ── Synthesis Agent ───────────────────────────────────────────────────────────
 
+
 class SynthesisAgent:
     """
     Produces thematic regulatory landscape syntheses and jurisdiction
@@ -229,6 +234,7 @@ class SynthesisAgent:
     def __init__(self):
         if not is_configured():
             from utils.llm import _provider
+
             raise ValueError(
                 f"LLM provider '{_provider()}' is not configured. "
                 "Set the appropriate API key in config/keys.env."
@@ -236,12 +242,14 @@ class SynthesisAgent:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def run(self,
-            topic: str,
-            jurisdictions: Optional[List[str]] = None,
-            days: int = 365,
-            detect_conflicts: bool = True,
-            force_refresh: bool = False) -> Dict[str, Any]:
+    def run(
+        self,
+        topic: str,
+        jurisdictions: Optional[List[str]] = None,
+        days: int = 365,
+        detect_conflicts: bool = True,
+        force_refresh: bool = False,
+    ) -> Dict[str, Any]:
         """
         Full pipeline: synthesise the landscape then detect conflicts.
 
@@ -261,26 +269,36 @@ class SynthesisAgent:
                 log.info("Returning cached synthesis for topic: %s", topic)
                 return existing
 
-        log.info("Starting synthesis: topic='%s' jurisdictions=%s", topic, jurisdictions)
+        log.info(
+            "Starting synthesis: topic='%s' jurisdictions=%s", topic, jurisdictions
+        )
 
         # 1. Gather relevant documents
         docs = self._gather_documents(topic, jurisdictions, days)
         if not docs:
             return {
-                "id":      None,
-                "topic":   topic,
-                "error":   f"No summarized documents found for topic '{topic}'" +
-                           (f" in jurisdictions {jurisdictions}" if jurisdictions else ""),
+                "id": None,
+                "topic": topic,
+                "error": f"No summarized documents found for topic '{topic}'"
+                + (f" in jurisdictions {jurisdictions}" if jurisdictions else ""),
                 "docs_used": 0,
             }
 
-        log.info("Synthesis using %d documents across %d jurisdictions",
-                 len(docs), len({d["jurisdiction"] for d in docs}))
+        log.info(
+            "Synthesis using %d documents across %d jurisdictions",
+            len(docs),
+            len({d["jurisdiction"] for d in docs}),
+        )
 
         # 2. Run thematic synthesis
         synthesis = self._run_synthesis(topic, docs)
         if not synthesis:
-            return {"id": None, "topic": topic, "error": "Synthesis failed", "docs_used": len(docs)}
+            return {
+                "id": None,
+                "topic": topic,
+                "error": "Synthesis failed",
+                "docs_used": len(docs),
+            }
 
         # 3. Run conflict detection
         conflicts = None
@@ -289,44 +307,53 @@ class SynthesisAgent:
 
         # 4. Build combined result
         result = {
-            "id":              None,   # set after save
-            "topic_key":       topic_key,
-            "topic":           topic,
-            "jurisdictions":   list({d["jurisdiction"] for d in docs}),
-            "docs_used":       len(docs),
-            "doc_ids":         [d["id"] for d in docs],
-            "synthesis":       synthesis,
-            "conflicts":       conflicts,
-            "generated_at":    datetime.utcnow().isoformat(),
-            "model_used":      CLAUDE_MODEL,
+            "id": None,  # set after save
+            "topic_key": topic_key,
+            "topic": topic,
+            "jurisdictions": list({d["jurisdiction"] for d in docs}),
+            "docs_used": len(docs),
+            "doc_ids": [d["id"] for d in docs],
+            "synthesis": synthesis,
+            "conflicts": conflicts,
+            "generated_at": datetime.utcnow().isoformat(),
+            "model_used": CLAUDE_MODEL,
         }
 
         # 5. Persist
         synthesis_id = save_synthesis(result)
         result["id"] = synthesis_id
-        log.info("Synthesis saved (ID %s): %d docs, %d conflicts found",
-                 synthesis_id,
-                 len(docs),
-                 len(conflicts.get("conflicts", [])) if conflicts else 0)
+        log.info(
+            "Synthesis saved (ID %s): %d docs, %d conflicts found",
+            synthesis_id,
+            len(docs),
+            len(conflicts.get("conflicts", [])) if conflicts else 0,
+        )
 
         return result
 
-    def synthesise(self,
-                   topic: str,
-                   jurisdictions: Optional[List[str]] = None,
-                   days: int = 365,
-                   force_refresh: bool = False) -> Dict[str, Any]:
+    def synthesise(
+        self,
+        topic: str,
+        jurisdictions: Optional[List[str]] = None,
+        days: int = 365,
+        force_refresh: bool = False,
+    ) -> Dict[str, Any]:
         """Run synthesis only (no conflict detection)."""
-        return self.run(topic, jurisdictions, days,
-                        detect_conflicts=False, force_refresh=force_refresh)
+        return self.run(
+            topic,
+            jurisdictions,
+            days,
+            detect_conflicts=False,
+            force_refresh=force_refresh,
+        )
 
-    def detect_conflicts_for_topic(self,
-                                    topic: str,
-                                    jurisdictions: Optional[List[str]] = None,
-                                    days: int = 365) -> Dict[str, Any]:
+    def detect_conflicts_for_topic(
+        self, topic: str, jurisdictions: Optional[List[str]] = None, days: int = 365
+    ) -> Dict[str, Any]:
         """Run conflict detection directly, synthesising first if needed."""
-        return self.run(topic, jurisdictions, days,
-                        detect_conflicts=True, force_refresh=True)
+        return self.run(
+            topic, jurisdictions, days, detect_conflicts=True, force_refresh=True
+        )
 
     def list_suggested_topics(self) -> List[Dict[str, Any]]:
         """
@@ -340,13 +367,13 @@ class SynthesisAgent:
         # Collect impact areas from all summarised documents
         area_counts: Dict[str, Dict] = {}
         for s in summaries:
-            for area in (s.get("impact_areas") or []):
+            for area in s.get("impact_areas") or []:
                 if area not in area_counts:
                     area_counts[area] = {
-                        "topic":             area,
-                        "doc_count":         0,
-                        "jurisdictions":     set(),
-                        "has_high_urgency":  False,
+                        "topic": area,
+                        "doc_count": 0,
+                        "jurisdictions": set(),
+                        "has_high_urgency": False,
                     }
                 area_counts[area]["doc_count"] += 1
                 area_counts[area]["jurisdictions"].add(s.get("jurisdiction", ""))
@@ -359,30 +386,31 @@ class SynthesisAgent:
             jurs = list(info["jurisdictions"] - {""})
             if len(jurs) < 2 or info["doc_count"] < 2:
                 continue
-            suggestions.append({
-                "topic":              area,
-                "doc_count":          info["doc_count"],
-                "jurisdictions":      sorted(jurs),
-                "jurisdiction_count": len(jurs),
-                "has_high_urgency":   info["has_high_urgency"],
-                "synthesis_value":    len(jurs) * info["doc_count"],
-            })
+            suggestions.append(
+                {
+                    "topic": area,
+                    "doc_count": info["doc_count"],
+                    "jurisdictions": sorted(jurs),
+                    "jurisdiction_count": len(jurs),
+                    "has_high_urgency": info["has_high_urgency"],
+                    "synthesis_value": len(jurs) * info["doc_count"],
+                }
+            )
 
         return sorted(suggestions, key=lambda x: x["synthesis_value"], reverse=True)
 
     # ── Document gathering ────────────────────────────────────────────────────
 
-    def _gather_documents(self,
-                           topic: str,
-                           jurisdictions: Optional[List[str]],
-                           days: int) -> List[Dict[str, Any]]:
+    def _gather_documents(
+        self, topic: str, jurisdictions: Optional[List[str]], days: int
+    ) -> List[Dict[str, Any]]:
         """
         Find documents in the database relevant to the topic.
         Combines keyword matching on title/summary with impact area matching.
         """
         all_summaries = get_recent_summaries(days=days, jurisdiction=None)
-        topic_lower   = topic.lower()
-        topic_words   = set(re.findall(r"\b[a-z]{3,}\b", topic_lower))
+        topic_lower = topic.lower()
+        topic_words = set(re.findall(r"\b[a-z]{3,}\b", topic_lower))
 
         scored = []
         for doc in all_summaries:
@@ -416,8 +444,14 @@ class SynthesisAgent:
     def _run_synthesis(self, topic: str, docs: List[Dict]) -> Optional[Dict]:
         """Send documents to Claude for thematic synthesis."""
         jurisdictions = sorted({d.get("jurisdiction", "Unknown") for d in docs})
-        dates         = [d.get("published_date") or d.get("fetched_at") for d in docs if d.get("published_date")]
-        date_range    = f"{min(dates)[:10]} to {max(dates)[:10]}" if dates else "various dates"
+        dates = [
+            d.get("published_date") or d.get("fetched_at")
+            for d in docs
+            if d.get("published_date")
+        ]
+        date_range = (
+            f"{min(dates)[:10]} to {max(dates)[:10]}" if dates else "various dates"
+        )
 
         doc_blocks = []
         for i, doc in enumerate(docs, 1):
@@ -425,21 +459,20 @@ class SynthesisAgent:
             doc_blocks.append(block)
 
         prompt = SYNTHESIS_PROMPT.format(
-            topic         = topic,
-            doc_count     = len(docs),
-            jurisdictions = ", ".join(jurisdictions),
-            date_range    = date_range,
-            documents     = "\n\n".join(doc_blocks),
+            topic=topic,
+            doc_count=len(docs),
+            jurisdictions=", ".join(jurisdictions),
+            date_range=date_range,
+            documents="\n\n".join(doc_blocks),
         )
 
         return self._call_claude(prompt, SYNTHESIS_SYSTEM, SYNTHESIS_MAX_TOKENS)
 
     # ── Conflict detection pass ───────────────────────────────────────────────
 
-    def _run_conflict_detection(self,
-                                 topic: str,
-                                 docs: List[Dict],
-                                 synthesis: Dict) -> Optional[Dict]:
+    def _run_conflict_detection(
+        self, topic: str, docs: List[Dict], synthesis: Dict
+    ) -> Optional[Dict]:
         """
         Compare regulatory requirements across jurisdictions to find conflicts.
         Groups documents by jurisdiction and sends comparative summaries to Claude.
@@ -460,8 +493,8 @@ class SynthesisAgent:
             jur_blocks.append(block)
 
         prompt = CONFLICT_PROMPT.format(
-            topic                  = topic,
-            jurisdiction_summaries = "\n\n".join(jur_blocks),
+            topic=topic,
+            jurisdiction_summaries="\n\n".join(jur_blocks),
         )
 
         return self._call_claude(prompt, CONFLICT_SYSTEM, CONFLICT_MAX_TOKENS)
@@ -470,7 +503,7 @@ class SynthesisAgent:
 
     def _call_claude(self, prompt: str, system: str, max_tokens: int) -> Optional[Dict]:
         try:
-            raw  = call_llm(prompt=prompt, system=system, max_tokens=max_tokens)
+            raw = call_llm(prompt=prompt, system=system, max_tokens=max_tokens)
             data = _safe_parse_json(raw)
             if not data:
                 log.error("SynthesisAgent: LLM returned unparseable JSON")
@@ -484,6 +517,7 @@ class SynthesisAgent:
 
 
 # ── Formatting helpers ────────────────────────────────────────────────────────
+
 
 def _format_doc_for_synthesis(index: int, doc: Dict) -> str:
     """Format a single document summary for inclusion in the synthesis prompt."""
@@ -527,9 +561,11 @@ def _format_jurisdiction_block(jur: str, docs: List[Dict], synthesis: Dict) -> s
         if jur in (obl.get("source_jurisdictions") or []):
             lines.append(f"[OBLIGATION] {obl['obligation']}")
 
-    for doc in docs[:8]:   # cap at 8 docs per jurisdiction
+    for doc in docs[:8]:  # cap at 8 docs per jurisdiction
         lines.append(f"\nDocument: {doc.get('title', 'Untitled')}")
-        lines.append(f"Type: {doc.get('doc_type', '?')} | Status: {doc.get('status', '?')}")
+        lines.append(
+            f"Type: {doc.get('doc_type', '?')} | Status: {doc.get('status', '?')}"
+        )
 
         if doc.get("plain_english"):
             lines.append(f"Summary: {doc['plain_english']}")
@@ -548,27 +584,29 @@ def _format_jurisdiction_block(jur: str, docs: List[Dict], synthesis: Dict) -> s
 def _relevance_to_topic(doc: Dict, topic_lower: str, topic_words: set) -> float:
     """Score how relevant a document is to a topic (0.0 = not relevant)."""
     score = 0.0
-    title   = (doc.get("title")         or "").lower()
+    title = (doc.get("title") or "").lower()
     summary = (doc.get("plain_english") or "").lower()
-    areas   = [str(a).lower() for a in (doc.get("impact_areas") or [])]
-    reqs    = " ".join(str(r).lower() for r in (doc.get("requirements") or []))
+    areas = [str(a).lower() for a in (doc.get("impact_areas") or [])]
+    reqs = " ".join(str(r).lower() for r in (doc.get("requirements") or []))
 
     # Direct topic phrase match
-    if topic_lower in title:   score += 0.5
-    if topic_lower in summary: score += 0.3
+    if topic_lower in title:
+        score += 0.5
+    if topic_lower in summary:
+        score += 0.3
 
     # Word overlap
-    title_words   = set(re.findall(r"\b[a-z]{3,}\b", title))
+    title_words = set(re.findall(r"\b[a-z]{3,}\b", title))
     summary_words = set(re.findall(r"\b[a-z]{3,}\b", summary))
-    area_words    = set(w for a in areas for w in re.findall(r"\b[a-z]{3,}\b", a))
+    area_words = set(w for a in areas for w in re.findall(r"\b[a-z]{3,}\b", a))
 
-    overlap_title   = len(topic_words & title_words)   / max(len(topic_words), 1)
+    overlap_title = len(topic_words & title_words) / max(len(topic_words), 1)
     overlap_summary = len(topic_words & summary_words) / max(len(topic_words), 1)
-    overlap_areas   = len(topic_words & area_words)    / max(len(topic_words), 1)
+    overlap_areas = len(topic_words & area_words) / max(len(topic_words), 1)
 
-    score += overlap_title   * 0.4
+    score += overlap_title * 0.4
     score += overlap_summary * 0.2
-    score += overlap_areas   * 0.3
+    score += overlap_areas * 0.3
 
     # Requirements/action items mention topic
     if any(w in reqs for w in topic_words if len(w) > 4):
@@ -589,12 +627,12 @@ def _safe_parse_json(raw: str) -> Optional[Dict]:
     raw = raw.strip()
     if raw.startswith("```"):
         lines = raw.split("\n")
-        raw   = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
         start = raw.find("{")
-        end   = raw.rfind("}") + 1
+        end = raw.rfind("}") + 1
         if start != -1 and end > start:
             try:
                 return json.loads(raw[start:end])

@@ -20,62 +20,59 @@ Jurisdictions are grouped into three independent tracks:
 
 ENABLED_US_STATES = [
     # Tier 1 — fully implemented with native feeds
-    "PA",    # Pennsylvania  — LegiScan + palegis.us ZIP feed (hourly)
-    "CA",    # California    — LegiScan + CA Legislature API
-    "CO",    # Colorado      — LegiScan + leg.colorado.gov API; CO AI Act effective Jun 2026
-    "IL",    # Illinois      — LegiScan + ILGA RSS feeds; AIPA enacted
-    "TX",    # Texas         — LegiScan + TLO RSS; TRAIGA enacted 2025
-    "WA",    # Washington    — LegiScan + WSL web services; MHMD Act, active AI pipeline
-    "NY",    # New York      — LegiScan + NY Senate API; RAISE Act pending
-
+    "PA",  # Pennsylvania  — LegiScan + palegis.us ZIP feed (hourly)
+    "CA",  # California    — LegiScan + CA Legislature API
+    "CO",  # Colorado      — LegiScan + leg.colorado.gov API; CO AI Act effective Jun 2026
+    "IL",  # Illinois      — LegiScan + ILGA RSS feeds; AIPA enacted
+    "TX",  # Texas         — LegiScan + TLO RSS; TRAIGA enacted 2025
+    "WA",  # Washington    — LegiScan + WSL web services; MHMD Act, active AI pipeline
+    "NY",  # New York      — LegiScan + NY Senate API; RAISE Act pending
     # Tier 2 — LegiScan + supplemental native feeds
-    "FL",    # Florida       — LegiScan + FL Senate API; SB 262, govt AI, deepfakes
-    "MN",    # Minnesota     — LegiScan + MN Senate RSS; SF 2995 (comprehensive AI) reintroducing
-    "CT",    # Connecticut   — LegiScan; SB 2 (comprehensive AI) reintroducing 2026
-
+    "FL",  # Florida       — LegiScan + FL Senate API; SB 262, govt AI, deepfakes
+    "MN",  # Minnesota     — LegiScan + MN Senate RSS; SF 2995 (comprehensive AI) reintroducing
+    "CT",  # Connecticut   — LegiScan; SB 2 (comprehensive AI) reintroducing 2026
     # Tier 3 — LegiScan only (comprehensive coverage, active AI/privacy pipeline)
-    "VA",    # Virginia      — HB 2094 vetoed 2025, reintroducing 2026
-    "NJ",    # New Jersey    — NJ Data Privacy Law, AI employment bills
-    "MA",    # Massachusetts — AI employment bills, Data Privacy Act advancing
-    "OR",    # Oregon        — Consumer Privacy Act in force, AI deepfake bill
-    "MD",    # Maryland      — Online Data Privacy Act, AI employment bills
-    "GA",    # Georgia       — AI employment disclosure, government AI
-    "AZ",    # Arizona       — Chatbot regulation, deepfake disclosure
-    "NC",    # North Carolina — AI Employment Act, state government AI
-    "MI",    # Michigan      — Algorithmic accountability, data privacy
-    "OH",    # Ohio          — AI employment bills, data privacy advancing
-    "NV",    # Nevada        — AI transparency, deepfakes, NV Privacy Law
-    "UT",    # Utah          — Utah AI Policy Act enacted 2024; active pipeline
-    "IN",    # Indiana       — Consumer Data Protection Act in force 2026
-    "TN",    # Tennessee     — ELVIS Act (AI voice/likeness); AI in employment
-    "KY",    # Kentucky      — AI accountability, data privacy advancing
-    "SC",    # South Carolina — AI governance bills, data privacy advancing
-    "WI",    # Wisconsin     — AI employment, data privacy legislation
-    "MO",    # Missouri      — AI regulation bills, data privacy advancing
-
+    "VA",  # Virginia      — HB 2094 vetoed 2025, reintroducing 2026
+    "NJ",  # New Jersey    — NJ Data Privacy Law, AI employment bills
+    "MA",  # Massachusetts — AI employment bills, Data Privacy Act advancing
+    "OR",  # Oregon        — Consumer Privacy Act in force, AI deepfake bill
+    "MD",  # Maryland      — Online Data Privacy Act, AI employment bills
+    "GA",  # Georgia       — AI employment disclosure, government AI
+    "AZ",  # Arizona       — Chatbot regulation, deepfake disclosure
+    "NC",  # North Carolina — AI Employment Act, state government AI
+    "MI",  # Michigan      — Algorithmic accountability, data privacy
+    "OH",  # Ohio          — AI employment bills, data privacy advancing
+    "NV",  # Nevada        — AI transparency, deepfakes, NV Privacy Law
+    "UT",  # Utah          — Utah AI Policy Act enacted 2024; active pipeline
+    "IN",  # Indiana       — Consumer Data Protection Act in force 2026
+    "TN",  # Tennessee     — ELVIS Act (AI voice/likeness); AI in employment
+    "KY",  # Kentucky      — AI accountability, data privacy advancing
+    "SC",  # South Carolina — AI governance bills, data privacy advancing
+    "WI",  # Wisconsin     — AI employment, data privacy legislation
+    "MO",  # Missouri      — AI regulation bills, data privacy advancing
     # Tier 4 — LegiScan only (emerging AI/privacy activity)
-    "LA",    # Louisiana     — AI in government, data privacy legislation
-    "AL",    # Alabama       — AI oversight, biometric privacy bills
-    "MS",    # Mississippi   — AI regulation, data privacy legislation
-    "AR",    # Arkansas      — AI governance, data protection legislation
-    "IA",    # Iowa          — Consumer Data Protection Act in force 2025
-    "KS",    # Kansas        — AI regulation, data privacy advancing
-    "NE",    # Nebraska      — Data Privacy Act in force 2025, AI bills
-    "NM",    # New Mexico    — AI regulation, data privacy advancing
-    "OK",    # Oklahoma      — AI governance, data privacy bills
-    "WV",    # West Virginia — AI regulation, data privacy advancing
-    "ID",    # Idaho         — AI regulation, data privacy bills
-    "MT",    # Montana       — Consumer Data Privacy Act in force 2024
-    "ND",    # North Dakota  — AI regulation, data privacy advancing
-    "SD",    # South Dakota  — AI regulation, data privacy advancing
-    "WY",    # Wyoming       — AI regulation, data privacy bills
-    "AK",    # Alaska        — AI governance, data privacy advancing
-    "HI",    # Hawaii        — AI bills, data privacy advancing
-    "ME",    # Maine         — AI regulation, data privacy advancing
-    "NH",    # New Hampshire — AI regulation, data privacy advancing
-    "VT",    # Vermont       — AI regulation, data privacy advancing
-    "RI",    # Rhode Island  — AI regulation, data privacy advancing
-    "DE",    # Delaware      — Personal Data Privacy Act in force 2025
+    "LA",  # Louisiana     — AI in government, data privacy legislation
+    "AL",  # Alabama       — AI oversight, biometric privacy bills
+    "MS",  # Mississippi   — AI regulation, data privacy legislation
+    "AR",  # Arkansas      — AI governance, data protection legislation
+    "IA",  # Iowa          — Consumer Data Protection Act in force 2025
+    "KS",  # Kansas        — AI regulation, data privacy advancing
+    "NE",  # Nebraska      — Data Privacy Act in force 2025, AI bills
+    "NM",  # New Mexico    — AI regulation, data privacy advancing
+    "OK",  # Oklahoma      — AI governance, data privacy bills
+    "WV",  # West Virginia — AI regulation, data privacy advancing
+    "ID",  # Idaho         — AI regulation, data privacy bills
+    "MT",  # Montana       — Consumer Data Privacy Act in force 2024
+    "ND",  # North Dakota  — AI regulation, data privacy advancing
+    "SD",  # South Dakota  — AI regulation, data privacy advancing
+    "WY",  # Wyoming       — AI regulation, data privacy bills
+    "AK",  # Alaska        — AI governance, data privacy advancing
+    "HI",  # Hawaii        — AI bills, data privacy advancing
+    "ME",  # Maine         — AI regulation, data privacy advancing
+    "NH",  # New Hampshire — AI regulation, data privacy advancing
+    "VT",  # Vermont       — AI regulation, data privacy advancing
+    "RI",  # Rhode Island  — AI regulation, data privacy advancing
+    "DE",  # Delaware      — Personal Data Privacy Act in force 2025
 ]
 
 # ── International Jurisdictions ───────────────────────────────────────────────
@@ -83,17 +80,16 @@ ENABLED_US_STATES = [
 
 ENABLED_INTERNATIONAL = [
     # Fully implemented with live feeds
-    "EU",    # European Union — EUR-Lex SPARQL + EU AI Office RSS
-    "GB",    # United Kingdom — Parliament Bills + legislation.gov.uk + GOV.UK
-    "CA",    # Canada         — OpenParliament + Canada Gazette + ISED feed
-    "SG",    # Singapore      — PDPC RSS + IMDA RSS + pinned framework docs
-    "IN",    # India          — PIB RSS (MEITY) + DPDP Act + IndiaAI Mission
-    "BR",    # Brazil         — ANPD RSS + Senate RSS + LGPD + AI Bill PL2338
-
+    "EU",  # European Union — EUR-Lex SPARQL + EU AI Office RSS
+    "GB",  # United Kingdom — Parliament Bills + legislation.gov.uk + GOV.UK
+    "CA",  # Canada         — OpenParliament + Canada Gazette + ISED feed
+    "SG",  # Singapore      — PDPC RSS + IMDA RSS + pinned framework docs
+    "IN",  # India          — PIB RSS (MEITY) + DPDP Act + IndiaAI Mission
+    "BR",  # Brazil         — ANPD RSS + Senate RSS + LGPD + AI Bill PL2338
     # Pinned docs + available feeds (translation via Claude)
-    "JP",    # Japan          — METI English RSS + pinned AI governance docs
-    "KR",    # South Korea    — MSIT press releases + PIPA/AI Act pinned docs
-    "AU",    # Australia      — Voluntary AI Safety Standard + Federal Register
+    "JP",  # Japan          — METI English RSS + pinned AI governance docs
+    "KR",  # South Korea    — MSIT press releases + PIPA/AI Act pinned docs
+    "AU",  # Australia      — Voluntary AI Safety Standard + Federal Register
     # "CN",  # China          — Pinned docs only (no public CAC API)
 ]
 
@@ -185,46 +181,60 @@ INTERNATIONAL_CLASS_MAP = {
 # Used by the reporter to group jurisdictions into sections.
 
 REGION_LABELS = {
-    "Federal":       "🏛  US Federal",
-    "PA":            "🏢  Pennsylvania (US)",
-    "VA":            "🏢  Virginia (US)",
-    "NY":            "🏢  New York (US)",
-    "CA":            "🏢  California (US)",   # note: state code, not Canada
-    "TX":            "🏢  Texas (US)",
-    "WA":            "🏢  Washington (US)",
-    "FL":            "🏢  Florida (US)",
-    "MN":            "🏢  Minnesota (US)",
-    "CT":            "🏢  Connecticut (US)",
-    "NJ":            "🏢  New Jersey (US)",
-    "MA":            "🏢  Massachusetts (US)",
-    "OR":            "🏢  Oregon (US)",
-    "MD":            "🏢  Maryland (US)",
-    "GA":            "🏢  Georgia (US)",
-    "AZ":            "🏢  Arizona (US)",
-    "NC":            "🏢  North Carolina (US)",
-    "EU":            "🇪🇺  European Union",
-    "GB":            "🇬🇧  United Kingdom",
-    "CA_INTL":       "🇨🇦  Canada",            # disambiguated in reporter
-    "JP":            "🇯🇵  Japan",
-    "CN":            "🇨🇳  China",
-    "AU":            "🇦🇺  Australia",
-    "SG":            "🇸🇬  Singapore",
-    "KR":            "🇰🇷  South Korea",
-    "IN":            "🇮🇳  India",
-    "BR":            "🇧🇷  Brazil",
-    "SG":            "🇸🇬  Singapore",
-    "KR":            "🇰🇷  South Korea",
+    "Federal": "🏛  US Federal",
+    "PA": "🏢  Pennsylvania (US)",
+    "VA": "🏢  Virginia (US)",
+    "NY": "🏢  New York (US)",
+    "CA": "🏢  California (US)",  # note: state code, not Canada
+    "TX": "🏢  Texas (US)",
+    "WA": "🏢  Washington (US)",
+    "FL": "🏢  Florida (US)",
+    "MN": "🏢  Minnesota (US)",
+    "CT": "🏢  Connecticut (US)",
+    "NJ": "🏢  New Jersey (US)",
+    "MA": "🏢  Massachusetts (US)",
+    "OR": "🏢  Oregon (US)",
+    "MD": "🏢  Maryland (US)",
+    "GA": "🏢  Georgia (US)",
+    "AZ": "🏢  Arizona (US)",
+    "NC": "🏢  North Carolina (US)",
+    "EU": "🇪🇺  European Union",
+    "GB": "🇬🇧  United Kingdom",
+    "CA_INTL": "🇨🇦  Canada",  # disambiguated in reporter
+    "JP": "🇯🇵  Japan",
+    "CN": "🇨🇳  China",
+    "AU": "🇦🇺  Australia",
+    "SG": "🇸🇬  Singapore",
+    "KR": "🇰🇷  South Korea",
+    "IN": "🇮🇳  India",
+    "BR": "🇧🇷  Brazil",
+    "SG": "🇸🇬  Singapore",
+    "KR": "🇰🇷  South Korea",
 }
 
 # ── LegiScan state code mapping (US states only) ──────────────────────────────
 LEGISCAN_STATE_MAP = {
-    "PA": "PA", "CA": "CA", "CO": "CO", "IL": "IL",
-    "TX": "TX", "WA": "WA", "NY": "NY", "FL": "FL", "MN": "MN",
-    "CT": "CT", "VA": "VA", "NJ": "NJ", "MA": "MA", "OR": "OR",
-    "MD": "MD", "GA": "GA", "AZ": "AZ", "NC": "NC",
+    "PA": "PA",
+    "CA": "CA",
+    "CO": "CO",
+    "IL": "IL",
+    "TX": "TX",
+    "WA": "WA",
+    "NY": "NY",
+    "FL": "FL",
+    "MN": "MN",
+    "CT": "CT",
+    "VA": "VA",
+    "NJ": "NJ",
+    "MA": "MA",
+    "OR": "OR",
+    "MD": "MD",
+    "GA": "GA",
+    "AZ": "AZ",
+    "NC": "NC",
     # Note: "CA" here means California state; Canada international uses separate map
 }
 
 # ── Legacy alias (keeps old imports from states.py working) ──────────────────
-ENABLED_STATES  = ENABLED_US_STATES
+ENABLED_STATES = ENABLED_US_STATES
 STATE_MODULE_MAP = US_STATE_MODULE_MAP
